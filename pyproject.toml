@@ -1,0 +1,20 @@
+[project]
+name = "datahub-probate"
+version = "0.1.0"
+description = "Retire a table properly: prove the successor, collect sign-off, leave a standing rule."
+requires-python = ">=3.11"
+license = { text = "Apache-2.0" }
+dependencies = ["acryl-datahub>=1.6.0.17", "requests>=2.32"]
+
+[project.optional-dependencies]
+dev = ["pytest>=8.0"]
+
+[project.scripts]
+probate = "probate.cli:main"
+
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[tool.setuptools]
+packages = ["probate", "probate_action", "harness"]
