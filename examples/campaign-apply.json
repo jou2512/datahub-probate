@@ -1,0 +1,11 @@
+{
+  "predecessor": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customers_v3,PROD)",
+  "successor": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customers_v4,PROD)",
+  "live_consumers": 1,
+  "consumers": [
+    "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customer_ltv_report_v2,PROD)"
+  ],
+  "parity_ok": true,
+  "parity_reasons": [],
+  "signed": 1
+}

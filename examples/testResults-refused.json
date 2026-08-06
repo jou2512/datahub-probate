@@ -1,0 +1,38 @@
+{
+  "vorher": {
+    "passing": [
+      {
+        "test": "urn:li:test:all-consumers-signed",
+        "type": "SUCCESS"
+      }
+    ],
+    "failing": [
+      {
+        "test": "urn:li:test:has-successor",
+        "type": "FAILURE"
+      },
+      {
+        "test": "urn:li:test:parity-proven",
+        "type": "FAILURE"
+      }
+    ]
+  },
+  "nachher": {
+    "passing": [
+      {
+        "test": "urn:li:test:all-consumers-signed",
+        "type": "SUCCESS"
+      }
+    ],
+    "failing": [
+      {
+        "test": "urn:li:test:has-successor",
+        "type": "FAILURE"
+      },
+      {
+        "test": "urn:li:test:parity-proven",
+        "type": "FAILURE"
+      }
+    ]
+  }
+}

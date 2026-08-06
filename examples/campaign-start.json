@@ -1,0 +1,9 @@
+{
+  "predecessor": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customers_v3,PROD)",
+  "successor": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customers_v4,PROD)",
+  "dry_run": true,
+  "live": 1,
+  "dead_wood": 0,
+  "missing_lineage": 1,
+  "live_targets": 1
+}

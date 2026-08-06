@@ -1,0 +1,9 @@
+{"mutation": "upsertDataContract", "before": null, "reversible": false}
+{"mutation": "linkAssetVersion", "before": null, "reversible": false}
+{"entity_type": "dataset", "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customers_v3,PROD)", "aspect": "deprecation", "before": null}
+{"mutation": "createForm", "before": null, "reversible": false}
+{"entity_type": "dataset", "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customer_ltv_report_v2,PROD)", "aspect": "ownership", "before": null}
+{"mutation": "batchAssignForm", "before": null, "reversible": false}
+{"mutation": "submitFormPrompt", "before": null, "reversible": false}
+{"mutation": "verifyForm", "before": null, "reversible": false}
+{"entity_type": "dataset", "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customers_v3,PROD)", "aspect": "testResults", "before": null}

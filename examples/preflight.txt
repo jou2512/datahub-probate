@@ -1,0 +1,14 @@
+  OK    seed_datasets              HTTP 200, 2 geschrieben
+  OK    upsertCustomAssertion      {"upsertCustomAssertion": {"urn": "urn:li:assertion:probate-probe"}}
+  OK    reportAssertionResult      {"reportAssertionResult": true}
+  OK    upsertDataContract         {"upsertDataContract": {"urn": "urn:li:dataContract:dc4b5cb5-a0da-43fd-b30e-fc1008207b91"}}
+  OK    linkAssetVersion           {"linkAssetVersion": null}
+  OK    raiseIncident              {"raiseIncident": "urn:li:incident:7f6a6c7a-a654-4749-9ea3-a81e101815d2"}
+  OK    createForm                 {"createForm": {"urn": "urn:li:form:probate-probe"}}
+  OK    batchAssignForm            {"batchAssignForm": true}
+  FEHL  submitFormPrompt           [{"message": "Failed to provide structured property params for prompt type STRUCTURED_PROPERTY", "locations": [{"line": 1, "column": 12}], "path": ["submitFormP
+  FEHL  verifyForm                 [{"message": "java.lang.RuntimeException: Failed to perform update against input { formUrn: \"urn:li:form:probate-probe\", entityUrn: \"urn:li:dataset:(urn:li:d
+
+  8/10 erfolgreich
+  TOR GESCHLOSSEN - gescheitert: submitFormPrompt, verifyForm
+  Die Spezifikation muss angepasst werden, BEVOR gebaut wird.

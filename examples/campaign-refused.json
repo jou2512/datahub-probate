@@ -1,0 +1,11 @@
+{
+  "predecessor": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.orders_v1,PROD)",
+  "successor": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.orders_v2,PROD)",
+  "live_consumers": 0,
+  "consumers": [],
+  "parity_ok": false,
+  "parity_reasons": [
+    "Zeilenzahl weicht um 8.8% ab (100000 -> 91200), erlaubt sind 1%"
+  ],
+  "signed": 0
+}
