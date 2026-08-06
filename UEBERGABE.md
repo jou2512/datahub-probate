@@ -131,6 +131,7 @@ Dann pro Treffer `get_aspect("query", urn, "querysubjects")` → alle berührten
 | 12 | `get_lineage` liefert **>100'000 Zeichen** ohne Pagination-Vorgaben |
 | 13 | `usageStats(range: ALL)` mit gesetztem `startTimeMillis` liefert **falsche oder `null`-Aggregationen** — `startTimeMillis` weglassen (live verglichen an zwei Datasets, 07.08., `harness/seed_lineage_lab.py`) |
 | 14 | `/aspects?action=getTimeseriesAspectValues` braucht das Pflichtfeld **`limit`**, sonst HTTP 500 `NullPointerException: "limit" is null` |
+| 15 | Graph-/Suchindex hinkt Writes **und Deletes** nach (~30 s beobachtet, 07.08.) — Lösch-Verifikation über `get_aspect` (Primärspeicher), **nie** über `searchAcrossEntities`/`lineage` |
 
 ---
 
