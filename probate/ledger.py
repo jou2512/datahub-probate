@@ -139,3 +139,92 @@ class Timeline:
             "dead_since_is_lower_bound": at_least,
             "series": [list(p) for p in self.series],
         }
+
+
+_NOT_ASKED = Coverage(0, None, None, "nicht abgefragt")
+
+
+@dataclass(frozen=True)
+class EdgeVerdict:
+    """Das Urteil ueber eine einzelne Kante, mitsamt seinem Beleg.
+
+    `evidence` traegt immer, WORAUS der Zustand folgt -- nie nur das
+    Wort selbst. Ein Zustand ohne Beleg waere genau die Behauptung,
+    gegen die dieses Modul gebaut wurde.
+    """
+
+    edge: Edge
+    state: str
+    evidence: dict
+    coverage: Coverage
+    timeline: Timeline
+
+    def to_json(self, now_ms: int) -> dict:
+        return {
+            "edge": self.edge.key(),
+            "upstream": self.edge.upstream,
+            "downstream": self.edge.downstream,
+            "state": self.state,
+            "evidence": self.evidence,
+            "coverage": self.coverage.to_json(),
+            "timeline": self.timeline.to_json(now_ms),
+        }
+
+
+def classify_edges(
+    focus: str,
+    declared: set[str],
+    cooccurred: dict[str, list[str]],
+    coverage_by_urn: dict[str, Coverage],
+    timeline_by_urn: dict[str, Timeline],
+    now_ms: int,
+) -> list[EdgeVerdict]:
+    """Vier Zustaende, in dieser Reihenfolge geprueft.
+
+    Die Abdeckung ist das GATE: ohne Zeitfenster wird gar nicht erst
+    geprueft, ob gemessen wurde -- die Antwort waere bedeutungslos.
+    Deshalb steht `has_window` VOR dem Blick in `cooccurred`, nicht
+    danach. Ein fehlender Eintrag in `coverage_by_urn` ist "nicht
+    abgefragt" und damit ebenfalls `unknown`; ein stilles Default auf
+    "abgedeckt" waere genau der Fehlbefund, den dieses Modul verhindert.
+    """
+    out: list[EdgeVerdict] = []
+
+    for target in sorted(declared):
+        cov = coverage_by_urn.get(target, _NOT_ASKED)
+        tl = timeline_by_urn.get(target, Timeline(()))
+        edge = Edge(focus, target)
+
+        if not cov.has_window:
+            out.append(EdgeVerdict(
+                edge, "unknown",
+                {"reason": cov.reason, "source": "declared lineage"},
+                cov, tl))
+            continue
+
+        queries = cooccurred.get(target, [])
+        if queries:
+            out.append(EdgeVerdict(
+                edge, "confirmed",
+                {"query_urns": list(queries),
+                 "source": "declared lineage + query co-occurrence"},
+                cov, tl))
+        else:
+            out.append(EdgeVerdict(
+                edge, "dead",
+                {"reason": "im geprueften Fenster nie gemessen",
+                 "buckets_checked": cov.buckets_seen,
+                 "source": "declared lineage"},
+                cov, tl))
+
+    for target in sorted(set(cooccurred) - declared):
+        out.append(EdgeVerdict(
+            Edge(focus, target), "missing",
+            {"query_urns": list(cooccurred[target]),
+             "cooccurrence_count": len(cooccurred[target]),
+             "direction_evidence": "co-occurrence (undirected)",
+             "source": "query co-occurrence"},
+            coverage_by_urn.get(target, _NOT_ASKED),
+            timeline_by_urn.get(target, Timeline(()))))
+
+    return out

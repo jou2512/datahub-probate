@@ -90,3 +90,102 @@ def test_empty_timeline_yields_no_age_at_all():
 def test_series_keeps_every_bucket_in_order_instead_of_summing_them():
     t = Timeline((Bucket(30 * DAY, 1, 1), Bucket(10 * DAY, 5, 2)))
     assert t.series == ((10 * DAY, 5), (30 * DAY, 1))
+
+
+from probate.ledger import EdgeVerdict, classify_edges
+
+NO_DATA = Coverage(0, None, None, "keine Nutzungs-Zeitfenster im Katalog")
+LOOKED = Coverage(30, 10 * DAY, 40 * DAY, "")
+
+
+def test_unknown_is_never_dead_when_no_windows_exist():
+    """DIE Kernregel. Der Fehler, gegen den der ganze Umbau antritt.
+
+    Links: keine Zeitfenster -> Aussage nicht moeglich -> unknown.
+    Rechts: Zeitfenster da, Verkehr null -> Aussage moeglich -> dead.
+    Summiert waeren beide dieselbe Null.
+    """
+    ohne = classify_edges(
+        focus="urn:up", declared={"urn:down"}, cooccurred={},
+        coverage_by_urn={"urn:down": NO_DATA},
+        timeline_by_urn={"urn:down": Timeline(())},
+        now_ms=50 * DAY)
+    mit = classify_edges(
+        focus="urn:up", declared={"urn:down"}, cooccurred={},
+        coverage_by_urn={"urn:down": LOOKED},
+        timeline_by_urn={"urn:down": Timeline((Bucket(40 * DAY, 0, 0),))},
+        now_ms=50 * DAY)
+
+    assert ohne[0].state == "unknown"
+    assert mit[0].state == "dead"
+    assert ohne[0].evidence["reason"] == "keine Nutzungs-Zeitfenster im Katalog"
+
+
+def test_a_urn_missing_from_the_coverage_map_is_unknown_not_dead():
+    """Ein Dataset, das wir gar nicht abgefragt haben, ist unknown.
+    Ein stilles .get()-Default auf 'abgedeckt' waere ein Fehlbefund."""
+    v = classify_edges(
+        focus="urn:up", declared={"urn:down"}, cooccurred={},
+        coverage_by_urn={}, timeline_by_urn={}, now_ms=50 * DAY)
+    assert v[0].state == "unknown"
+    assert v[0].evidence["reason"] == "nicht abgefragt"
+
+
+def test_declared_and_measured_is_confirmed_with_the_query_urn_as_evidence():
+    v = classify_edges(
+        focus="urn:up", declared={"urn:down"},
+        cooccurred={"urn:down": ["urn:li:query:q1", "urn:li:query:q2"]},
+        coverage_by_urn={"urn:down": LOOKED},
+        timeline_by_urn={"urn:down": Timeline((Bucket(40 * DAY, 9, 2),))},
+        now_ms=50 * DAY)
+    assert v[0].state == "confirmed"
+    assert v[0].evidence["query_urns"] == ["urn:li:query:q1", "urn:li:query:q2"]
+
+
+def test_measured_but_not_declared_is_missing_and_never_unknown():
+    """Was wir gemessen haben, kann nicht 'nicht gemessen' sein --
+    auch dann nicht, wenn die Aggregat-Abdeckung duenn ist."""
+    v = classify_edges(
+        focus="urn:up", declared=set(),
+        cooccurred={"urn:other": ["urn:li:query:q9"]},
+        coverage_by_urn={"urn:other": NO_DATA},
+        timeline_by_urn={"urn:other": Timeline(())},
+        now_ms=50 * DAY)
+    assert v[0].state == "missing"
+    assert v[0].edge.key() == "urn:up->urn:other"
+
+
+def test_missing_edges_declare_their_direction_as_unproven():
+    """QuerySubject nennt nur `entity`, kein Richtungsfeld. Ko-Okkurrenz
+    ist ungerichtet -- das muss im Beleg stehen, sonst wandert eine
+    geratene Richtung in P3 in den Katalog."""
+    v = classify_edges(
+        focus="urn:up", declared=set(),
+        cooccurred={"urn:other": ["urn:li:query:q9"]},
+        coverage_by_urn={}, timeline_by_urn={}, now_ms=50 * DAY)
+    assert v[0].evidence["direction_evidence"] == "co-occurrence (undirected)"
+
+
+def test_every_state_produced_is_one_of_the_four():
+    v = classify_edges(
+        focus="urn:up", declared={"a", "b"},
+        cooccurred={"b": ["urn:li:query:q1"], "c": ["urn:li:query:q2"]},
+        coverage_by_urn={"a": LOOKED, "b": LOOKED, "c": LOOKED},
+        timeline_by_urn={"a": Timeline((Bucket(40 * DAY, 0, 0),)),
+                         "b": Timeline((Bucket(40 * DAY, 4, 1),)),
+                         "c": Timeline((Bucket(40 * DAY, 4, 1),))},
+        now_ms=50 * DAY)
+    assert {x.state for x in v} == {"dead", "confirmed", "missing"}
+    assert all(x.state in STATES for x in v)
+
+
+def test_verdict_json_carries_state_evidence_coverage_and_timeline():
+    v = classify_edges(
+        focus="urn:up", declared={"urn:down"}, cooccurred={},
+        coverage_by_urn={"urn:down": LOOKED},
+        timeline_by_urn={"urn:down": Timeline((Bucket(40 * DAY, 0, 0),))},
+        now_ms=50 * DAY)[0].to_json(now_ms=50 * DAY)
+    assert v["state"] == "dead"
+    assert v["edge"] == "urn:up->urn:down"
+    assert v["coverage"]["buckets_seen"] == 30
+    assert v["timeline"]["dead_since_days"] == 10
