@@ -42,6 +42,19 @@ def test_deprecation_names_the_successor():
     assert "urn:b" in out["deprecation_note"]
 
 
+def test_version_set_urn_uses_a_process_stable_hash():
+    """Live-Fund: Pythons eingebautes hash() ist fuer str NICHT stabil
+    ueber Prozesslaeufe (PYTHONHASHSEED-Randomisierung seit Py3.3) --
+    derselbe predecessor haette bei jedem Interpreter-Neustart eine andere
+    VersionSet-URN erzeugt. Weisse-Box-Pruefung gegen hashlib.sha1, weil
+    ein Vergleich zweier Aufrufe IM SELBEN Prozess den Fehler nicht
+    aufgedeckt haette (hash() ist innerhalb eines Prozesses stabil)."""
+    import hashlib
+    out = succeed(RecordingWb(), "urn:a", "urn:b", GOOD, ["urn:li:assertion:x"])
+    expected_slug = hashlib.sha1(b"urn:a").hexdigest()[:12]
+    assert out["version_set"] == f"urn:li:versionSet:(probate-{expected_slug},dataset)"
+
+
 def test_deprecation_carries_a_structured_replacement_link():
     """Nicht nur Text im note-Feld -- Deprecation.replacement ist genau
     dafuer da und macht den Nachfolger filterbar/abfragbar."""

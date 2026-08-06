@@ -7,6 +7,8 @@ hat einen Moment, in dem weder alt noch neu die Zusage traegt.
 
 from __future__ import annotations
 
+import hashlib
+
 from probate.parity import Verdict
 
 
@@ -39,7 +41,13 @@ def succeed(
             "Keine Umschaltung ohne Beweis. Gruende: " + "; ".join(verdict.reasons)
         )
 
-    version_set = f"urn:li:versionSet:(probate-{abs(hash(predecessor)) % 10**8},dataset)"
+    # Live-Fund (2026-08-06): Pythons eingebautes hash() ist fuer str NICHT
+    # stabil ueber Prozesslaeufe (PYTHONHASHSEED-Randomisierung, Standard
+    # seit Py3.3) -- derselbe predecessor haette bei jedem Lauf eine andere
+    # VersionSet-URN erzeugt, verwaiste VersionSets waeren die Folge.
+    # hashlib.sha1 ist deterministisch.
+    slug = hashlib.sha1(predecessor.encode()).hexdigest()[:12]
+    version_set = f"urn:li:versionSet:(probate-{slug},dataset)"
     note = (
         f"Abgeloest durch {successor}. Gleichwertigkeit belegt durch "
         f"{', '.join(assertion_urns)}. Durchgefuehrt von Probate."
