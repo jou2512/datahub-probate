@@ -9,8 +9,8 @@ source:
   type: kafka
   config:
     connection:
-      bootstrap: localhost:9092
-      schema_registry_url: http://localhost:8081
+      bootstrap: localhost:29192
+      schema_registry_url: http://localhost:28080/schema-registry/api/
 action:
   type: probate_action.watcher:ProbateWatcher
   config:

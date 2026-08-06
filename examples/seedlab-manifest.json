@@ -1,0 +1,53 @@
+{
+  "seeded": true,
+  "seeded_statement": "Dies sind kuenstlich eingespielte Demonstrationsdaten (harness/seed_lineage_lab.py), keine echte Warehouse-Nutzung. Namespace probate_seedlab, Plattform postgres.",
+  "generated_at": "2026-08-06T22:33:22.834936+00:00",
+  "gms_url": "http://localhost:28080",
+  "namespace": "probate_seedlab",
+  "edges": [
+    {
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)",
+      "declared_lineage": true,
+      "cooccurrence_query": true,
+      "usage_buckets_upstream": 3,
+      "usage_buckets_downstream": 3,
+      "expected_edge_state": "confirmed",
+      "represents": "Kante deklariert + Ko-Okkurrenz-Query + frische Nutzung beidseitig"
+    },
+    {
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_downstream,PROD)",
+      "declared_lineage": true,
+      "cooccurrence_query": false,
+      "usage_buckets_upstream": 8,
+      "usage_buckets_downstream": 8,
+      "expected_edge_state": "dead",
+      "represents": "Kante deklariert, Nutzung gemessen, letzter Verkehr ~117 Tage zurueck, danach Null"
+    },
+    {
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)",
+      "declared_lineage": false,
+      "cooccurrence_query": true,
+      "usage_buckets_upstream": 3,
+      "usage_buckets_downstream": 3,
+      "expected_edge_state": "missing",
+      "represents": "Ko-Okkurrenz-Query + frische Nutzung, aber KEINE deklarierte Kante"
+    },
+    {
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_downstream,PROD)",
+      "declared_lineage": true,
+      "cooccurrence_query": false,
+      "usage_buckets_upstream": 0,
+      "usage_buckets_downstream": 0,
+      "expected_edge_state": "unknown",
+      "represents": "Kante deklariert, aber KEINE Nutzungs-Buckets ueberhaupt"
+    }
+  ],
+  "cooccurrence_search_results": {
+    "A(+B)": 1,
+    "E(+F)": 1
+  }
+}

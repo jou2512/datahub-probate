@@ -8,7 +8,8 @@ sind ueber den Actor nicht unterscheidbar. Deshalb wird ueber den ASPEKT
 gefiltert, nicht ueber den Actor.
 
 Der Live-Start der Kafka-Action-Pipeline (Plantext Step 5,
-`datahub-actions run -c probate_action/recipe.yml`) wurde in dieser Session
+`datahub-actions actions -c probate_action/recipe.yml` -- Subcommand
+`actions`, nicht `run`, live geprueft) wurde in dieser Session
 BEWUSST NICHT ausgefuehrt: dieser Task ist im Bauplan (STAND.md, Cutline)
 der erste Streichkandidat bei Zeitmangel, und ein echter Pipeline-Lauf
 haette eine zusaetzliche Kafka-Konsumentengruppe gegen eine der beiden
