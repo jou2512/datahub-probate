@@ -1,4 +1,7 @@
+import http.server
 import json
+import threading
+
 import pytest
 from probate.gms import Gms, GmsError, _urllib_transport
 
@@ -37,9 +40,9 @@ def test_upsert_rejects_a_bare_dict():
 
 
 def test_upsert_sends_a_list_and_uses_sync():
-    t = FakeTransport([(200, [{"urn": "u"}])])
-    out = Gms("http://x", transport=t).upsert("dataset", [{"urn": "u"}])
-    assert out == [{"urn": "u"}]
+    t = FakeTransport([(200, [{"urn": "urn:li:dataset:u"}])])
+    out = Gms("http://x", transport=t).upsert("dataset", [{"urn": "urn:li:dataset:u"}])
+    assert out == [{"urn": "urn:li:dataset:u"}]
     method, url, payload = t.calls[0]
     assert method == "POST"
     assert url.endswith("/openapi/v3/entity/dataset?async=false")
@@ -50,22 +53,22 @@ def test_upsert_raises_when_nothing_was_written():
     """HTTP 200 mit leerer Liste ist ein Fehlschlag, kein Erfolg."""
     t = FakeTransport([(200, [])])
     with pytest.raises(GmsError):
-        Gms("http://x", transport=t).upsert("dataset", [{"urn": "u"}])
+        Gms("http://x", transport=t).upsert("dataset", [{"urn": "urn:li:dataset:u"}])
 
 
 def test_delete_aspect_sends_delete_to_the_aspect_url():
     t = FakeTransport([(200, None)])
-    Gms("http://x", transport=t).delete_aspect("dataset", "u", "deprecation")
+    Gms("http://x", transport=t).delete_aspect("dataset", "urn:li:dataset:u", "deprecation")
     method, url, payload = t.calls[0]
     assert method == "DELETE"
-    assert url == "http://x/openapi/v3/entity/dataset/u/deprecation"
+    assert url == "http://x/openapi/v3/entity/dataset/urn:li:dataset:u/deprecation"
     assert payload is None
 
 
 def test_delete_aspect_raises_on_non_200():
     t = FakeTransport([(404, "not found")])
     with pytest.raises(GmsError):
-        Gms("http://x", transport=t).delete_aspect("dataset", "u", "deprecation")
+        Gms("http://x", transport=t).delete_aspect("dataset", "urn:li:dataset:u", "deprecation")
 
 
 class _FakeResponse:
@@ -122,3 +125,127 @@ def test_gms_explicit_token_wins_over_environment(monkeypatch):
     monkeypatch.setenv("DATAHUB_TOKEN", "env-token-456")
     g = Gms("http://x", token="explicit-token")
     assert g.token == "explicit-token"
+
+
+# --- Finding I1: default base_url ---------------------------------------
+
+
+def test_default_base_url_is_28080_not_the_forbidden_18080():
+    """18080 = showcase-ecommerce, die fremde Messdaten-Instanz von
+    datahub-attest -- dort schreiben entwertet zwei Einreichungen."""
+    g = Gms(transport=lambda m, u, p: (200, {}))
+    assert g.base == "http://localhost:28080"
+
+
+# --- Finding C4: URN-Validierung vor Pfad-Interpolation ------------------
+
+
+@pytest.mark.parametrize(
+    "bad_urn",
+    [
+        'urn:li:dataset:(urn:li:dataPlatform:x,"injected",PROD)',
+        "urn:li:dataset:(urn:li:dataPlatform:x,../../etc/passwd,PROD)",
+        "urn:li:dataset:with space",
+        "urn:li:dataset:with?query=1",
+        "urn:li:dataset:with#fragment",
+        "urn:li:dataset:with{brace}",
+    ],
+)
+def test_get_aspect_rejects_dangerous_urns_before_any_transport_call(bad_urn):
+    t = FakeTransport([])
+    with pytest.raises(GmsError):
+        Gms("http://x", transport=t).get_aspect("dataset", bad_urn, "datasetProperties")
+    assert t.calls == []
+
+
+def test_delete_aspect_rejects_dangerous_urns_before_any_transport_call():
+    t = FakeTransport([])
+    with pytest.raises(GmsError):
+        Gms("http://x", transport=t).delete_aspect("dataset", "urn:li:dataset:a/../../b", "deprecation")
+    assert t.calls == []
+
+
+def test_upsert_rejects_a_record_with_a_dangerous_urn_before_any_transport_call():
+    t = FakeTransport([])
+    with pytest.raises(GmsError):
+        Gms("http://x", transport=t).upsert(
+            "dataset", [{"urn": 'urn:li:dataset:"quoted"'}]
+        )
+    assert t.calls == []
+
+
+LEGIT_NESTED_URN = "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.a,PROD)"
+
+
+def test_get_aspect_accepts_a_legit_nested_urn_with_parens_commas_colons_slash():
+    t = FakeTransport([(200, {"value": {}})])
+    body = Gms("http://x", transport=t).get_aspect("dataset", LEGIT_NESTED_URN, "datasetProperties")
+    assert body == {"value": {}}
+    method, url, payload = t.calls[0]
+    assert url == f"http://x/openapi/v3/entity/dataset/{LEGIT_NESTED_URN}/datasetproperties"
+
+
+def test_upsert_accepts_a_record_with_a_legit_nested_urn():
+    t = FakeTransport([(200, [{"urn": LEGIT_NESTED_URN}])])
+    out = Gms("http://x", transport=t).upsert("dataset", [{"urn": LEGIT_NESTED_URN}])
+    assert out == [{"urn": LEGIT_NESTED_URN}]
+
+
+# --- Finding C3: kein Redirect folgen -------------------------------------
+
+
+class _RedirectAndCaptureHandler(http.server.BaseHTTPRequestHandler):
+    """/redirect antwortet 302 auf /steal (anderer Port = anderer Host aus
+    urllib-Sicht). /steal merkt sich, ob es je erreicht wurde und mit
+    welchem Authorization-Header."""
+
+    captured = {"hit": False, "auth": None}
+    attacker_port = None
+
+    def log_message(self, *a):
+        pass
+
+    def do_GET(self):
+        if self.path == "/redirect":
+            self.send_response(302)
+            self.send_header("Location", f"http://127.0.0.1:{self.attacker_port}/steal")
+            self.end_headers()
+        elif self.path == "/steal":
+            _RedirectAndCaptureHandler.captured["hit"] = True
+            _RedirectAndCaptureHandler.captured["auth"] = self.headers.get("Authorization")
+            self.send_response(200)
+            self.end_headers()
+            self.wfile.write(b"{}")
+        else:
+            self.send_response(404)
+            self.end_headers()
+
+
+def test_urllib_transport_does_not_follow_a_cross_host_redirect():
+    """Miss C3 live: ohne den Fix laeuft dieser Test rot, weil urlopen()
+    dem 302 folgt und den Bearer-Token an /steal weiterreicht (Handler auf
+    einem zweiten Port = anderer Host aus urllib-Sicht)."""
+    _RedirectAndCaptureHandler.captured = {"hit": False, "auth": None}
+    redirect_srv = http.server.HTTPServer(("127.0.0.1", 0), _RedirectAndCaptureHandler)
+    attacker_srv = http.server.HTTPServer(("127.0.0.1", 0), _RedirectAndCaptureHandler)
+    _RedirectAndCaptureHandler.attacker_port = attacker_srv.server_port
+    threading.Thread(target=redirect_srv.serve_forever, daemon=True).start()
+    threading.Thread(target=attacker_srv.serve_forever, daemon=True).start()
+    try:
+        send = _urllib_transport("secret-pat-should-never-leave-this-host")
+        status, _body = send("GET", f"http://127.0.0.1:{redirect_srv.server_port}/redirect", None)
+        assert status == 302
+        assert _RedirectAndCaptureHandler.captured["hit"] is False
+        assert _RedirectAndCaptureHandler.captured["auth"] is None
+    finally:
+        redirect_srv.shutdown()
+        attacker_srv.shutdown()
+
+
+def test_gms_get_aspect_turns_an_unfollowed_redirect_into_a_loud_gmserror():
+    """Der 302, den _urllib_transport jetzt als Status statt als Folge-
+    Request zurueckgibt, muss in der bestehenden non-200-Behandlung
+    landen -- lauter GmsError, kein stiller None-Rueckgabewert."""
+    t = FakeTransport([(302, None)])
+    with pytest.raises(GmsError):
+        Gms("http://x", transport=t).get_aspect("dataset", LEGIT_NESTED_URN, "datasetProperties")
