@@ -25,12 +25,29 @@ Messgeruest selbst unabhaengig fertig werden kann. `detail_pass` bricht bei
 einem einzelnen kaputten Aufruf zudem NICHT die ganze Stichprobe ab -- bei
 41 Kanten waere ein Fehler sonst der Grund, warum die anderen 40 nie
 gemessen werden (siehe Docstring dort).
+
+Review-Runde 1, CRITICAL: `tracemalloc` ist ein GLOBALES, nicht reentrantes
+Tracing -- `start()`/`stop()` kennen keine Verschachtelung. Die urspruengliche
+Fassung rief `measure()` sowohl aussen (run_stage um detail_pass) als auch
+innen (detail_pass pro Kante) auf; das letzte innere `tracemalloc.stop()`
+beendete das Tracing, bevor die aeussere Messung ihren Spitzenwert lesen
+konnte -- `loadtest_<scale>_detail_peak_mb` war praktisch immer ~0, sobald
+die Stichprobe mindestens eine Kante enthielt (empirisch nachgestellt: 0.0 MB
+verschachtelt vs. 38.57 MB bei derselben 1-Mio-Ints-Allokation ohne Nesting).
+Deshalb misst `detail_pass` seine Kanten jetzt selbst nur mit `perf_counter`
+(kein `tracemalloc`), und GENAU EINE aeussere `measure()`-Session (in
+`run_stage`) sieht den echten Speicherverbrauch der ganzen Detail-Stufe.
 """
 
 from __future__ import annotations
 
+import argparse
+import json
+import os
+import sys
 import time
 import tracemalloc
+from pathlib import Path
 
 STATS_SUMMARY_Q = """
 query($urn: String!) {
@@ -98,6 +115,14 @@ def detail_pass(gms, edges: list[str]) -> dict:
     aber mit ihrer eigenen (meist kurzen) `seconds`-Messung in den
     Durchschnitt ein -- das ist ehrlicher als sie zu ignorieren, denn eine
     schnelle Antwort MIT Fehler ist trotzdem eine Antwort.
+
+    Misst PRO KANTE bewusst nur mit `time.perf_counter` -- NICHT mit
+    `measure()`/`tracemalloc`. `tracemalloc` ist global und nicht reentrant;
+    `run_stage` legt genau EINE aeussere `measure()`-Session um den ganzen
+    Aufruf von `detail_pass`, und die soll den Spitzenwert der Detail-Stufe
+    sehen. Ein `measure()`-Aufruf pro Kante wuerde das globale Tracing bei
+    jeder Kante neu starten/stoppen und der aeusseren Messung fast immer ~0
+    MB vortaeuschen (Review-Runde 1, CRITICAL -- siehe Moduldocstring).
     """
     if not edges:
         return {"detail_edges": 0, "detail_seconds_total": 0.0, "detail_seconds_per_edge": 0.0,
@@ -109,12 +134,17 @@ def detail_pass(gms, edges: list[str]) -> dict:
     per_edge_seconds = []
     break_urn, break_error, error_count = "", "", 0
     for urn in edges:
-        _, m = measure(fetch_cooccurrence, gms, urn)
-        per_edge_seconds.append(m["seconds"])
-        if m["broke"]:
+        t0 = time.perf_counter()
+        broke, err = False, ""
+        try:
+            fetch_cooccurrence(gms, urn)
+        except Exception as exc:  # noqa: BLE001 - der Fehler MUSS sichtbar bleiben, nie verschwinden
+            broke, err = True, f"{type(exc).__name__}: {exc}"[:500]
+        per_edge_seconds.append(round(time.perf_counter() - t0, 3))
+        if broke:
             error_count += 1
             if not break_urn:
-                break_urn, break_error = urn, m["error"]
+                break_urn, break_error = urn, err
 
     total = round(sum(per_edge_seconds), 3)
     return {
@@ -136,14 +166,20 @@ def run_stage(gms, scale: str, detail_sample: int = 41) -> dict:
     wird die TATSAECHLICHE Zahl ausgewiesen (`loadtest_<scale>_detail_edges`),
     nicht die geplante.
 
-    Jede Stufe (Seed, Grob, Detail) wird einzeln mit `measure()` umschlossen,
-    damit ein Absturz auf einer Stufe die anderen nicht verhindert und mit
-    eigenem Fehlertext ausgewiesen wird -- die Bruchstelle bleibt benennbar,
-    egal auf welcher Stufe sie liegt. Alle drei cleanup()-Zahlen
-    (`leftover`/`verified`/`errors`) werden mit `loadtest_<scale>_` prefixed,
-    nicht nur die ersten beiden wie im urspruenglichen Entwurf -- sonst
-    kollidiert `cleanup_errors` bei mehreren Stufen in einem gemeinsamen
-    Artefakt (Task 23 faehrt s/m/l nacheinander).
+    ALLE VIER Stufen (Seed, Grob, Detail, Cleanup) werden einzeln mit
+    `measure()` umschlossen, damit ein Absturz auf einer Stufe die anderen
+    nicht verhindert und mit eigenem Fehlertext ausgewiesen wird -- die
+    Bruchstelle bleibt benennbar, egal auf welcher Stufe sie liegt.
+    Review-Runde 1 (IMPORTANT 1): `cleanup()` fehlte urspruenglich in dieser
+    Liste -- bei Skala `l` feuert ihre Ruecklese-Schleife >100k
+    `get_aspect`-Aufrufe; EIN transienter Fehler dort haette den kompletten
+    `run_stage()`-Aufruf unkontrolliert abbrechen und damit auch die bereits
+    gemessenen Seed-/Grob-/Detail-Zahlen mitreissen lassen. Alle vier
+    cleanup()-Zahlen (`leftover`/`verified`/`errors`, plus `broke`/`error`
+    aus der umschliessenden `measure()`) werden mit `loadtest_<scale>_`
+    prefixed, nicht nur ein Teil davon wie im urspruenglichen Entwurf --
+    sonst kollidieren sie bei mehreren Stufen in einem gemeinsamen Artefakt
+    (Task 23 faehrt s/m/l nacheinander).
     """
     from harness.loadgen import cleanup, generate
     out = {"seeded": True, "scale": scale}
@@ -177,8 +213,77 @@ def run_stage(gms, scale: str, detail_sample: int = 41) -> dict:
         out[f"loadtest_{scale}_detail_error"] = m_detail["error"] or detail.get("detail_break_error", "")
         out[f"loadtest_{scale}_detail_break_urn"] = detail.get("detail_break_urn", "")
 
-    clean = cleanup(gms, scale)
-    out[f"loadtest_{scale}_cleanup_verified"] = clean["cleanup_verified"]
-    out[f"loadtest_{scale}_cleanup_leftover"] = clean["cleanup_leftover"]
-    out[f"loadtest_{scale}_cleanup_errors"] = clean["cleanup_errors"]
+    clean, m_clean = measure(cleanup, gms, scale)
+    clean = clean or {}
+    out[f"loadtest_{scale}_cleanup_verified"] = clean.get("cleanup_verified", False)
+    out[f"loadtest_{scale}_cleanup_leftover"] = clean.get("cleanup_leftover", 0)
+    out[f"loadtest_{scale}_cleanup_errors"] = clean.get("cleanup_errors", [])
+    out[f"loadtest_{scale}_cleanup_broke"] = m_clean["broke"]
+    if m_clean["broke"]:
+        out[f"loadtest_{scale}_cleanup_error"] = m_clean["error"]
     return out
+
+
+def run_smoke(gms, scale: str = "s", out_path: Path | None = None) -> dict:
+    """Kleiner, LESENDER Live-Nachweis gegen eine echte Instanz -- schreibt
+    nichts, raeumt deshalb auch nichts auf.
+
+    Review-Runde 1 (IMPORTANT 2): die Live-Zahlen im ersten Report (0.511s /
+    3.754s / 50 Aufrufe / 4650 Zeichen) standen nur in Prosa, ohne
+    Lauf-Artefakt -- Verstoss gegen global-constraints.md ("jede Zahl in
+    Prosa kommt aus einem Lauf-Artefakt in harness/runs/"). `run_smoke()`
+    fuehrt genau den lesenden Teil, der diese Zahlen erzeugt hat
+    (`measure(coarse_pass, ...)`), noch einmal aus und schreibt das Ergebnis
+    nach `harness/runs/loadtest_smoke.json`.
+
+    Bewusst NUR `coarse_pass` -- kein `generate()`/`cleanup()` (das ist Task
+    21s `harness/loadgen.run_smoke()`, bereits als Artefakt committet) und
+    kein `detail_pass()` (haengt an `probate.ledger.fetch_cooccurrence`,
+    Lane A/Task 6 noch offen -- ein Aufruf hier wuerde nur den erwarteten
+    ImportError als "Bruchstelle" dokumentieren, nichts Neues zeigen). Ein
+    reiner Lesevorgang braucht keine Aufraeum-Garantie.
+    """
+    if out_path is None:
+        out_path = Path("harness/runs/loadtest_smoke.json")
+
+    coarse, m_coarse = measure(coarse_pass, gms, scale)
+    coarse = coarse or {}
+    artifact = {
+        "seeded": False,
+        "note": "read-only Live-Check (nur coarse_pass) gegen die bestehende Instanz -- "
+                "kein Schreiben, kein Cleanup noetig",
+        "scale": scale,
+        "loadtest_smoke_coarse_seconds": m_coarse["seconds"],
+        "loadtest_smoke_coarse_peak_mb": m_coarse["peak_memory_mb"],
+        "loadtest_smoke_coarse_api_calls": coarse.get("coarse_api_calls", 0),
+        "loadtest_smoke_coarse_response_chars": coarse.get("coarse_response_chars", 0),
+        "loadtest_smoke_coarse_suspicious": coarse.get("coarse_suspicious", 0),
+        "loadtest_smoke_coarse_broke": m_coarse["broke"],
+    }
+    if m_coarse["broke"]:
+        artifact["loadtest_smoke_coarse_error"] = m_coarse["error"]
+
+    out_path.parent.mkdir(parents=True, exist_ok=True)
+    out_path.write_text(json.dumps(artifact, indent=2, ensure_ascii=False) + "\n", encoding="utf-8")
+    return artifact
+
+
+def main() -> int:
+    p = argparse.ArgumentParser(description=__doc__)
+    p.add_argument("--gms-url", default="http://localhost:28080")
+    p.add_argument("--scale", default="s", choices=("s", "m", "l"))
+    p.add_argument("--token", default=None)
+    p.add_argument("--out", default="harness/runs/loadtest_smoke.json")
+    args = p.parse_args()
+
+    from probate.gms import Gms
+    token = args.token if args.token is not None else os.environ.get("DATAHUB_TOKEN")
+    gms = Gms(base_url=args.gms_url, token=token)
+
+    artifact = run_smoke(gms, args.scale, Path(args.out))
+    print(json.dumps(artifact, indent=2, ensure_ascii=False))
+    return 1 if artifact["loadtest_smoke_coarse_broke"] else 0
+
+
+if __name__ == "__main__":
+    sys.exit(main())

@@ -17,9 +17,11 @@ verschwiegene Abwesenheit von Daten, kein Messergebnis. Deshalb sammelt
 oben durchzureichen.
 """
 
+import json
+
 import probate.ledger as ledger_module
 from harness.loadgen import dataset_urn, plan
-from harness.loadtest import coarse_pass, detail_pass, measure, run_stage
+from harness.loadtest import coarse_pass, detail_pass, measure, run_smoke, run_stage
 
 
 # --- measure() -- aus dem Brief, wortgetreu -----------------------------
@@ -164,6 +166,27 @@ def test_detail_pass_keeps_the_first_break_point_when_several_edges_fail(monkeyp
     assert "boom at one" in out["detail_break_error"]
 
 
+def test_detail_stage_peak_memory_reflects_real_allocation_not_a_nested_reset(monkeypatch):
+    """Regressionstest fuer Review-Runde 1 (CRITICAL): `run_stage` misst den
+    Detail-Durchgang mit EINER aeusseren measure()/tracemalloc-Session um
+    detail_pass(). Rief detail_pass() intern selbst measure() PRO KANTE auf,
+    stoppte das innere tracemalloc.stop() die globale Tracing-Session vorzeitig
+    -- die aeussere Messung sah danach fast immer ~0 MB, egal wie viel die
+    Kante tatsaechlich alloziert hatte. `tracemalloc` ist global und nicht
+    reentrant; verschachtelte measure()-Aufrufe ueber dieselbe Grenze sind
+    deshalb verboten. Der Test allokiert bewusst eine Million Ints in der
+    (gefakten) fetch_cooccurrence, um eine Messung zu erzwingen, die bei einem
+    Nesting-Bug garantiert bei ~0 landet."""
+    def allocates_a_million_ints(gms, urn):
+        return [i for i in range(1_000_000)]
+
+    monkeypatch.setattr(ledger_module, "fetch_cooccurrence", allocates_a_million_ints, raising=False)
+
+    _, m = measure(detail_pass, object(), ["a"])
+
+    assert m["peak_memory_mb"] > 1.0  # eine Million Python-Ints ist weit ueber Rundungsrauschen
+
+
 # --- run_stage() -- eine vollstaendige Stufe -----------------------------
 
 class FakeGmsStage:
@@ -241,3 +264,62 @@ def test_run_stage_surfaces_a_broken_seed_stage_with_its_error_text(monkeypatch)
 
     assert out["loadtest_s_seed_broke"] is True
     assert "gms unreachable" in out["loadtest_s_seed_error"]
+
+
+def test_run_stage_survives_a_cleanup_crash_and_still_reports_seed_coarse_detail(monkeypatch):
+    """Review-Runde 1 (IMPORTANT 1): cleanup() war die einzige Stufe, die
+    NICHT mit measure() umschlossen war -- ein einzelner nicht abgefangener
+    Fehler in der Ruecklese-Schleife (get_aspect, bei Skala l >100k Aufrufe)
+    haette den kompletten run_stage()-Aufruf zum Absturz gebracht und damit
+    auch die bereits gemessenen Seed-/Grob-/Detail-Zahlen verloren."""
+    class BrokenCleanupGms(FakeGmsStage):
+        def get_aspect(self, entity_type, urn, aspect):
+            raise RuntimeError("transient 503 during cleanup readback")
+
+    monkeypatch.setattr(ledger_module, "fetch_cooccurrence", lambda gms, urn: {}, raising=False)
+
+    out = run_stage(BrokenCleanupGms(), "s", detail_sample=1)
+
+    # Seed/Grob/Detail sind unversehrt -- kein Absturz hat sie mitgerissen.
+    assert out["loadtest_s_seed_broke"] is False
+    assert out["loadtest_s_coarse_broke"] is False
+    assert out["loadtest_s_coarse_api_calls"] == 50
+    assert out["loadtest_s_detail_broke"] is False
+
+    # Der Cleanup-Fehler ist sichtbar, nicht verschluckt.
+    assert out["loadtest_s_cleanup_broke"] is True
+    assert "transient 503" in out["loadtest_s_cleanup_error"]
+    assert out["loadtest_s_cleanup_verified"] is False
+
+
+# --- run_smoke() -- kleiner, lesender Live-Nachweis ----------------------
+
+def test_run_smoke_writes_a_readonly_artifact_with_coarse_metrics(tmp_path):
+    """run_smoke() ist read-only (nur coarse_pass, kein generate()/cleanup())
+    -- Belegt in Fix-Runde 1 (IMPORTANT 2): jede Zahl in Prosa kommt aus einem
+    Lauf-Artefakt in harness/runs/ (global-constraints.md), nicht nur aus
+    einem Terminal-Mitschnitt."""
+    g = FakeGmsCoarse()
+    out_path = tmp_path / "loadtest_smoke.json"
+
+    artifact = run_smoke(g, "s", out_path)
+
+    assert out_path.exists()
+    on_disk = json.loads(out_path.read_text(encoding="utf-8"))
+    assert on_disk == artifact
+    assert artifact["seeded"] is False
+    assert artifact["scale"] == "s"
+    assert artifact["loadtest_smoke_coarse_api_calls"] == 50
+    assert artifact["loadtest_smoke_coarse_broke"] is False
+
+
+def test_run_smoke_records_a_broken_coarse_pass_instead_of_crashing(tmp_path):
+    class BrokenGraphqlGms:
+        def graphql(self, query, variables=None):
+            raise RuntimeError("GraphQL HTTP 500: upstream unavailable")
+
+    out_path = tmp_path / "loadtest_smoke.json"
+    artifact = run_smoke(BrokenGraphqlGms(), "s", out_path)
+
+    assert artifact["loadtest_smoke_coarse_broke"] is True
+    assert "upstream unavailable" in artifact["loadtest_smoke_coarse_error"]
