@@ -92,3 +92,50 @@ def coverage_from_buckets(buckets: tuple[Bucket, ...]) -> Coverage:
         return Coverage(0, None, None, "keine Nutzungs-Zeitfenster im Katalog")
     ordered = sorted(buckets, key=lambda b: b.bucket_ms)
     return Coverage(len(ordered), ordered[0].bucket_ms, ordered[-1].bucket_ms, "")
+
+
+@dataclass(frozen=True)
+class Timeline:
+    """Dieselben Buckets, nur nicht summiert.
+
+    Der Unterschied zwischen einem Pruefwerkzeug und einem Nachweis:
+    "diese Kante ist tot" ist eine Momentaufnahme, "diese Kante war bis
+    zum 11. April gedeckt" ist eine Aussage, die man spaeter belegen kann.
+
+    `buckets == ()` heisst NICHT "null Verkehr", sondern "wir haben nicht
+    hingesehen". Wer das summiert, macht aus beidem dieselbe Null.
+    """
+
+    buckets: tuple[Bucket, ...]
+
+    @property
+    def _ordered(self) -> list[Bucket]:
+        return sorted(self.buckets, key=lambda b: b.bucket_ms)
+
+    @property
+    def last_covered_ms(self) -> int | None:
+        covered = [b.bucket_ms for b in self.buckets if b.total_sql_queries > 0]
+        return max(covered) if covered else None
+
+    def dead_since(self, now_ms: int) -> tuple[int | None, bool]:
+        """(Tage, at_least). `at_least=True` heisst: vor dem aeltesten
+        Bucket wissen wir nichts, die Zahl ist eine Untergrenze."""
+        if not self.buckets:
+            return None, False
+        last = self.last_covered_ms
+        if last is not None:
+            return (now_ms - last) // _DAY_MS, False
+        return (now_ms - self._ordered[0].bucket_ms) // _DAY_MS, True
+
+    @property
+    def series(self) -> tuple[tuple[int, int], ...]:
+        return tuple((b.bucket_ms, b.total_sql_queries) for b in self._ordered)
+
+    def to_json(self, now_ms: int) -> dict:
+        days, at_least = self.dead_since(now_ms)
+        return {
+            "last_covered_ms": self.last_covered_ms,
+            "dead_since_days": days,
+            "dead_since_is_lower_bound": at_least,
+            "series": [list(p) for p in self.series],
+        }

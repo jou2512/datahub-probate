@@ -1,4 +1,4 @@
-from probate.ledger import STATES, Bucket, Coverage, Edge, coverage_from_buckets
+from probate.ledger import STATES, Bucket, Coverage, Edge, Timeline, coverage_from_buckets
 
 
 def test_edge_key_is_stable_and_directional():
@@ -51,3 +51,42 @@ def test_buckets_are_sorted_before_measuring_the_span():
     day = 86_400_000
     c = coverage_from_buckets((Bucket(40 * day, 1, 1), Bucket(10 * day, 3, 1)))
     assert c.oldest_bucket_ms == 10 * day
+
+
+DAY = 86_400_000
+
+
+def test_last_covered_is_the_newest_bucket_with_actual_traffic():
+    t = Timeline((Bucket(10 * DAY, 5, 2), Bucket(20 * DAY, 0, 0), Bucket(30 * DAY, 0, 0)))
+    assert t.last_covered_ms == 10 * DAY
+
+
+def test_dead_since_counts_days_from_the_last_covered_bucket():
+    t = Timeline((Bucket(10 * DAY, 5, 2), Bucket(30 * DAY, 0, 0)))
+    days, at_least = t.dead_since(now_ms=40 * DAY)
+    assert days == 30
+    assert at_least is False
+
+
+def test_never_covered_is_reported_as_at_least_since_the_oldest_observation():
+    """Vor dem aeltesten Bucket wissen wir nichts. Also 'mindestens seit',
+    nicht 'seit' -- eine Zahl, die mehr behauptet als die Daten hergeben,
+    ist genau der Fehler, gegen den dieses Werkzeug antritt."""
+    t = Timeline((Bucket(10 * DAY, 0, 0), Bucket(30 * DAY, 0, 0)))
+    days, at_least = t.dead_since(now_ms=40 * DAY)
+    assert days == 30
+    assert at_least is True
+    assert t.last_covered_ms is None
+
+
+def test_empty_timeline_yields_no_age_at_all():
+    """Ohne Zeitfenster gibt es kein Alter. None ist die richtige Antwort,
+    0 waere eine Luege."""
+    days, at_least = Timeline(()).dead_since(now_ms=40 * DAY)
+    assert days is None
+    assert at_least is False
+
+
+def test_series_keeps_every_bucket_in_order_instead_of_summing_them():
+    t = Timeline((Bucket(30 * DAY, 1, 1), Bucket(10 * DAY, 5, 2)))
+    assert t.series == ((10 * DAY, 5), (30 * DAY, 1))
