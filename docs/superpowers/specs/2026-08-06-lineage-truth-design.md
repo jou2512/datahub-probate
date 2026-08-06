@@ -114,6 +114,31 @@ Nutzungs-Zeitfenster gibt es im Katalog überhaupt, und wie weit reichen sie zur
 Abdeckung dünn, wird das Ergebnis als solches ausgewiesen, nicht stillschweigend als „gemessen"
 verkauft.
 
+### Schicht 1b — Die Zeitachse (aus dem Abgleich, ohne Zusatzquelle)
+
+Nutzungsdaten kommen ohnehin in Zeitfenstern mit Zeitstempeln. Bisher wird die zeitliche
+Dimension **weggeworfen** — der Abgleich sagt „heute ist diese Kante tot", nicht „sie war bis
+zum 11. April gedeckt".
+
+Das ist der Unterschied zwischen einem **Prüfwerkzeug** und einem **Nachweis**, und er kostet
+fast nichts: dieselben Buckets, nur nicht summiert, sondern behalten.
+
+Daraus fallen drei Angaben pro Kante:
+- **letzte Deckung** — der jüngste Zeitpunkt mit gemessenem Verkehr
+- **tot seit** — Alter der Abweichung in Tagen
+- **Verlauf** — Abfragen pro Zeitfenster, als Reihe
+
+Der Nutzen ist nicht Statistik, sondern Beweiskraft: „Diese Kante war zu diesem Zeitpunkt
+gedeckt" ist eine Aussage, die man später belegen kann. Ein datierter Befund ist der Anfang
+eines Audit-Trails; ein undatierter ist eine Momentaufnahme.
+
+Herkunft dieser Ergänzung: Joel brachte am 06.08. eine Analyse aus einem früheren Gespräch ein
+(Compliance-Produkt auf Graph-Infrastruktur). Deren Kernbeobachtung — *alle bauen Vorhersage,
+niemand baut Beweis* — deckt sich unabhängig mit unserer Feldzählung (36 Blast-Radius-Klone,
+alle zukunftsgerichtet). Die dort genannten Rechtsbehauptungen (DSGVO Art. 30, NIS2, EU AI Act,
+Beraterkosten) sind **ungeprüft** und gehören vor jeder Verwendung einzeln gegen den Gesetzestext
+belegt. Übernommen wird hier ausschliesslich die strukturelle Beobachtung, nicht der Markt-Teil.
+
 ### Schicht 2 — Das Urteil (hier sitzt das Modell, und nur hier)
 
 Nicht jede Abweichung ist wichtig. Eine tote Kante zu einer Tabelle mit „Jahresabschluss" in
@@ -185,7 +210,7 @@ Bauvorhaben, aber ein sauberer Nebenbefund für den Upstream-Beitrag.
 | Tag | Was |
 |---|---|
 | **Rest 06.08.** | `recipe.yml` korrigieren, Nutzungsdaten seeden, erster echter Abgleich auf 28080 |
-| **Fr 07.08.** | Schicht 1 vollständig: Kanten-Register, vier Zustände, Abdeckungs-Prüfung, Tests |
+| **Fr 07.08.** | Schicht 1 vollständig: Kanten-Register, vier Zustände, Abdeckungs-Prüfung, **Zeitachse (1b)**, Tests |
 | **Sa 08.08.** | Schicht 2 (Modell-Urteil mit Zitatpflicht) + Schicht 3 (Korrektur-Modus) + Wächter live |
 | **So 09.08.** | **Englisches** README, `examples/`, Video, Devpost-Text, Upstream-Beitrag |
 | **Mo 10.08.** | Nur Abgabe. Kein Bauen. |
