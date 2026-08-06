@@ -129,6 +129,8 @@ Dann pro Treffer `get_aspect("query", urn, "querysubjects")` → alle berührten
 | 10 | Ohne Token ist der Handelnde `urn:li:corpuser:__datahub_system`, nicht `datahub` |
 | 11 | Der MCP-Server hat **keine Zeitfenster** — Timestamps in `gql/queries.gql` auskommentiert |
 | 12 | `get_lineage` liefert **>100'000 Zeichen** ohne Pagination-Vorgaben |
+| 13 | `usageStats(range: ALL)` mit gesetztem `startTimeMillis` liefert **falsche oder `null`-Aggregationen** — `startTimeMillis` weglassen (live verglichen an zwei Datasets, 07.08., `harness/seed_lineage_lab.py`) |
+| 14 | `/aspects?action=getTimeseriesAspectValues` braucht das Pflichtfeld **`limit`**, sonst HTTP 500 `NullPointerException: "limit" is null` |
 
 ---
 
