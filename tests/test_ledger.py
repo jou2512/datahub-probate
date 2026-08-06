@@ -312,3 +312,98 @@ def test_state_sweep_over_declared_x_window_x_pair_query():
     }
     assert "t_w" not in by_target
     assert "t_" not in by_target
+
+
+# --- Task 5: Beschaffung ------------------------------------------------
+
+from probate.ledger import fetch_cooccurrence, fetch_declared_edges, fetch_usage
+
+
+class FakeGms:
+    """Handgeschrieben, kein Mock-Rahmenwerk -- gleiches Muster wie
+    tests/test_writeback.py."""
+
+    def __init__(self, graphql_by_call=None, aspects=None):
+        self.graphql_by_call = list(graphql_by_call or [])
+        self.aspects = aspects or {}
+        self.queries_sent = []
+
+    def graphql(self, query, variables=None):
+        self.queries_sent.append((query, variables))
+        return self.graphql_by_call.pop(0)
+
+    def get_aspect(self, entity_type, urn, aspect):
+        return self.aspects.get((entity_type, urn, aspect))
+
+
+def test_fetch_usage_turns_buckets_into_bucket_objects():
+    g = FakeGms([{"dataset": {"usageStats": {"buckets": [
+        {"bucket": 10 * DAY, "metrics": {"totalSqlQueries": 5, "uniqueUserCount": 2}},
+        {"bucket": 20 * DAY, "metrics": {"totalSqlQueries": 0, "uniqueUserCount": 0}},
+    ]}}}])
+    got = fetch_usage(g, "urn:x")
+    assert got == (Bucket(10 * DAY, 5, 2), Bucket(20 * DAY, 0, 0))
+
+
+def test_fetch_usage_returns_empty_tuple_when_the_catalog_has_no_stats():
+    """Der Beispielkatalog liefert live `buckets: []`. Leer heisst hier
+    'nicht gemessen' -- und genau so kommt es bei Coverage an."""
+    g = FakeGms([{"dataset": {"usageStats": None}}])
+    assert fetch_usage(g, "urn:x") == ()
+    assert coverage_from_buckets(fetch_usage(FakeGms([{"dataset": None}]), "urn:x")).has_window is False
+
+
+def test_fetch_usage_treats_a_null_metric_as_zero_traffic_not_as_a_missing_bucket():
+    """Ein Bucket mit null Verkehr ist ein Beleg, dass hingesehen wurde.
+    Er darf nicht wegfallen, sonst wird aus `dead` ein `unknown`."""
+    g = FakeGms([{"dataset": {"usageStats": {"buckets": [
+        {"bucket": 10 * DAY, "metrics": {"totalSqlQueries": None, "uniqueUserCount": None}},
+    ]}}}])
+    assert fetch_usage(g, "urn:x") == (Bucket(10 * DAY, 0, 0),)
+
+
+def test_fetch_declared_edges_passes_the_count_limit_into_the_query():
+    """Falle 12: get_lineage liefert >100k Zeichen ohne Vorgabe."""
+    g = FakeGms([{"dataset": {"lineage": {"relationships": [
+        {"entity": {"urn": "urn:d1"}}, {"entity": {"urn": "urn:d2"}}]}}}])
+    assert fetch_declared_edges(g, "urn:x", count=50) == {"urn:d1", "urn:d2"}
+    sent_query, sent_vars = g.queries_sent[0]
+    assert sent_vars["count"] == 50
+    assert "$count" in sent_query
+
+
+def test_fetch_cooccurrence_keeps_the_query_urn_as_evidence_per_target():
+    """targets.fetch_measured wirft die Query-URN weg. Genau die ist der
+    Beleg, den jede confirmed/missing-Kante mitfuehren muss."""
+    g = FakeGms(
+        [{"searchAcrossEntities": {"total": 1, "searchResults": [
+            {"entity": {"urn": "urn:li:query:q1"}}]}}],
+        aspects={("query", "urn:li:query:q1", "querysubjects"): {
+            "value": {"subjects": [{"entity": "urn:x"}, {"entity": "urn:other"}]}}},
+    )
+    assert fetch_cooccurrence(g, "urn:x") == {"urn:other": ["urn:li:query:q1"]}
+
+
+def test_fetch_cooccurrence_never_reports_the_focus_dataset_as_its_own_consumer():
+    g = FakeGms(
+        [{"searchAcrossEntities": {"total": 1, "searchResults": [
+            {"entity": {"urn": "urn:li:query:q1"}}]}}],
+        aspects={("query", "urn:li:query:q1", "querysubjects"): {
+            "value": {"subjects": [{"entity": "urn:x"}]}}},
+    )
+    assert fetch_cooccurrence(g, "urn:x") == {}
+
+
+def test_fetch_cooccurrence_collects_every_query_that_touches_the_same_target():
+    g = FakeGms(
+        [{"searchAcrossEntities": {"total": 2, "searchResults": [
+            {"entity": {"urn": "urn:li:query:q1"}},
+            {"entity": {"urn": "urn:li:query:q2"}}]}}],
+        aspects={
+            ("query", "urn:li:query:q1", "querysubjects"): {
+                "value": {"subjects": [{"entity": "urn:x"}, {"entity": "urn:o"}]}},
+            ("query", "urn:li:query:q2", "querysubjects"): {
+                "value": {"subjects": [{"entity": "urn:x"}, {"entity": "urn:o"}]}},
+        },
+    )
+    assert fetch_cooccurrence(g, "urn:x") == {"urn:o": ["urn:li:query:q1", "urn:li:query:q2"]}

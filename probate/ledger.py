@@ -21,6 +21,9 @@ from __future__ import annotations
 
 from dataclasses import dataclass
 
+from probate.targets import _QUERY_SEARCH_Q as COOCCURRENCE_Q  # eine Wahrheit;
+# targets.py bleibt unveraendert, der String wird nicht ein zweites Mal getippt.
+
 STATES = ("confirmed", "dead", "missing", "unknown")
 
 
@@ -295,4 +298,107 @@ def classify_edges(
             coverage_by_urn.get(target, _NOT_ASKED),
             timeline_by_urn.get(target, Timeline(()))))
 
+    return out
+
+
+# --- Beschaffung ---------------------------------------------------------
+#
+# Gemessenes Rezept (UEBERGABE Sec.4/5, live gegen v1.5.0.6 verifiziert):
+# usageStats(range: MONTH) liefert Buckets UND Aggregat. Wir nehmen die
+# Buckets -- das Aggregat waere genau die Summierung, die "nichts gemessen"
+# und "nichts passiert" ununterscheidbar macht. Falle 13 (`range: ALL` mit
+# gesetztem `startTimeMillis` liefert falsche/null Aggregationen) betrifft
+# diese Abfrage nicht direkt (kein `startTimeMillis`, `range: MONTH`), aber
+# aus demselben Grund wird hier bewusst KEIN `startTimeMillis` gesetzt.
+USAGE_Q = """
+query($urn: String!) {
+  dataset(urn: $urn) {
+    usageStats(range: MONTH) {
+      buckets { bucket metrics { totalSqlQueries uniqueUserCount } }
+      aggregations { totalSqlQueries uniqueUserCount }
+    }
+    statsSummary { queryCountLast30Days uniqueUserCountLast30Days }
+  }
+}
+"""
+
+# Wie targets._LINEAGE_Q, aber mit `count` als Variable: Falle 12 --
+# get_lineage liefert nachweislich >100'000 Zeichen ohne Pagination-Vorgabe.
+LINEAGE_Q = """
+query($urn: String!, $count: Int!) {
+  dataset(urn: $urn) {
+    lineage(input: {direction: DOWNSTREAM, start: 0, count: $count}) {
+      relationships { entity { urn } }
+    }
+  }
+}
+"""
+
+
+def fetch_usage(gms, urn: str, range_: str = "MONTH") -> tuple[Bucket, ...]:
+    """Rohe Zeitfenster, nicht summiert.
+
+    Ein Bucket mit `totalSqlQueries: null` ist ein Bucket mit null
+    Verkehr, kein fehlender Bucket -- er belegt, dass hingesehen wurde.
+    Wer ihn wegfiltert, macht aus `dead` ein `unknown`.
+    """
+    data = gms.graphql(USAGE_Q, {"urn": urn})
+    stats = (data.get("dataset") or {}).get("usageStats") or {}
+    out = []
+    for b in stats.get("buckets") or []:
+        m = b.get("metrics") or {}
+        out.append(Bucket(
+            bucket_ms=int(b.get("bucket") or 0),
+            total_sql_queries=int(m.get("totalSqlQueries") or 0),
+            unique_user_count=int(m.get("uniqueUserCount") or 0),
+        ))
+    return tuple(out)
+
+
+def fetch_declared_edges(gms, urn: str, count: int = 200) -> set[str]:
+    data = gms.graphql(LINEAGE_Q, {"urn": urn, "count": count})
+    rels = ((data.get("dataset") or {}).get("lineage") or {}).get("relationships") or []
+    return {r["entity"]["urn"] for r in rels if r.get("entity")}
+
+
+def fetch_cooccurrence(gms, urn: str) -> dict[str, list[str]]:
+    """Ko-Okkurrenz MIT Beleg: Ziel-URN -> Liste der Query-URNs.
+
+    `targets.fetch_measured` liefert dieselbe Information als blosse
+    Menge und wirft die Query-URN weg. Genau die ist aber der Beleg, den
+    jede `confirmed`- und jede `missing`-Kante mitfuehren muss.
+
+    Richtung: QuerySubject nennt nur `entity`, kein Richtungsfeld. Die
+    Ko-Okkurrenz ist damit UNGERICHTET -- das steht im Beleg jeder
+    missing-Kante und darf beim Schreiben (correct.py) nicht als
+    gemessene Richtung ausgegeben werden.
+
+    Zeitstempel-Messschritt (Step 1, 07.08., `harness/runs/
+    query-timestamp-probe.json`): eine Query-Entitaet TRAEGT einen
+    verwertbaren Zeitstempel -- `queryproperties.value.created.time`
+    (Epoch-ms, z.B. 1754300000000), live an drei gesuchten Query-URNs
+    geprueft, zwei mit Wert, eine (Ingestion-generiert, kein manueller
+    Eintrag) mit `queryproperties: null`. "Nicht geprueft" und "gibt es
+    nicht" waeren hier verschiedene Aussagen gewesen -- es ist das erste:
+    ein Teil der Query-Entitaeten traegt keine `queryproperties` und
+    liefert dann keinen Zeitstempel. Fuer DIESE Runde bleibt die
+    Zeitachse trotzdem an den Dataset-Buckets (`fetch_usage`), weil dort
+    die gemessene, luecken-freiere Grundlage liegt; eine spaetere
+    Detail-Ebene kann `created.time` pro Paar-Query zusaetzlich zeigen.
+    """
+    hits = gms.graphql(COOCCURRENCE_Q, {"urn": urn})
+    query_urns = [
+        r["entity"]["urn"]
+        for r in (hits.get("searchAcrossEntities") or {}).get("searchResults", [])
+        if r.get("entity")
+    ]
+    out: dict[str, list[str]] = {}
+    for q_urn in query_urns:
+        aspect = gms.get_aspect("query", q_urn, "querysubjects")
+        if not aspect:
+            continue
+        for s in (aspect.get("value") or {}).get("subjects", []):
+            other = s.get("entity")
+            if other and other != urn:
+                out.setdefault(other, []).append(q_urn)
     return out

@@ -1,0 +1,45 @@
+{
+  "seeded": true,
+  "probed_urns": [
+    "urn:li:query:probate-seedlab-confirmed",
+    "urn:li:query:probate-seedlab-missing",
+    "urn:li:query:probate_load-s-000000"
+  ],
+  "queryproperties": {
+    "urn:li:query:probate-seedlab-confirmed": {
+      "value": {
+        "statement": {
+          "value": "INSERT INTO probate_seedlab.confirmed_downstream SELECT * FROM probate_seedlab.confirmed_upstream",
+          "language": "SQL"
+        },
+        "lastModified": {
+          "actor": "urn:li:corpuser:datahub",
+          "time": 1754300000000
+        },
+        "source": "MANUAL",
+        "created": {
+          "actor": "urn:li:corpuser:datahub",
+          "time": 1754300000000
+        }
+      }
+    },
+    "urn:li:query:probate-seedlab-missing": {
+      "value": {
+        "statement": {
+          "value": "INSERT INTO probate_seedlab.missing_downstream SELECT * FROM probate_seedlab.missing_upstream",
+          "language": "SQL"
+        },
+        "lastModified": {
+          "actor": "urn:li:corpuser:datahub",
+          "time": 1754300000000
+        },
+        "source": "MANUAL",
+        "created": {
+          "actor": "urn:li:corpuser:datahub",
+          "time": 1754300000000
+        }
+      }
+    },
+    "urn:li:query:probate_load-s-000000": null
+  }
+}
