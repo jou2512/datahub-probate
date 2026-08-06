@@ -227,10 +227,29 @@ auf die falsche Seite:
 
 ---
 
-## 10 · Zwei Artefakte zum Nachlesen
+## 10 · Das Dashboard — laufend pflegen
 
-Beide sind für Menschen geschrieben, nicht für den Bau — aber sie erklären das Warum
-vollständig:
+**Joel liest das morgens als erstes.** Es muss den echten Stand zeigen, nicht den geplanten.
+
+- **URL:** https://claude.ai/code/artifact/c818e1b1-583d-4be1-bfd4-c71e4961049b
+- **Datei:** `C:\Users\joel2\AppData\Local\Temp\claude\C--AI-OS-projects-datahub-hackathon-2026\c2a8c457-0804-4ea8-9a14-b89f8823b51c\scratchpad\probate-bauplan.html`
+- **Anleitung:** steht als HTML-Kommentar ganz oben in der Datei
+
+**Nach jedem abgeschlossenen Schritt:** Datei bearbeiten, dann Artifact-Tool mit
+`file_path` **und** `url` (beide oben) — dann bleibt die URL gleich und Joel sieht den
+Fortschritt an derselben Stelle.
+
+Zu aktualisieren: Zeitstempel (`#stamp`) · Phasenstatus (`pstate-open|run|done|block`) ·
+Abnahme-Häkchen (`class="ok"` am `<li>`) · neue Protokollzeile **oben** in `#protokoll` ·
+Gates (`#gates`) · Blocker (`#blocker`).
+
+**Zwei Regeln dazu:** Jede Protokollzeile trägt eine **Zahl**, kein Gefühl („41 tote Kanten
+gefunden", nicht „läuft gut"). Und keine Phase wird auf `done` gesetzt, solange ihre Abnahme
+nicht abgehakt ist.
+
+## 11 · Zwei Artefakte zum Nachlesen
+
+Für Menschen geschrieben, nicht für den Bau — aber sie erklären das Warum vollständig:
 
 - **Ist-Zustand, alles erklärt:** https://claude.ai/code/artifact/4f495f6c-3b2c-4d11-b9e7-01ce3d64cfab
 - **Zielzustand mit Werkbank und Lasttest:** https://claude.ai/code/artifact/87990576-73b4-43cf-8085-97eaece09bbe

@@ -1,0 +1,579 @@
+<title>probate — Bauplan &amp; Lauf</title>
+
+<!--
+================================================================================
+  ANLEITUNG FÜR DEN AGENTEN, DER DIESE DATEI PFLEGT
+================================================================================
+  Diese Seite ist das Morgen-danach-Dashboard. Joel öffnet sie und will in
+  30 Sekunden sehen: was steht, was nicht, was ist schiefgegangen.
+
+  DU AKTUALISIERST SIE LAUFEND. Nach jedem abgeschlossenen Schritt:
+
+  1. STEMPEL oben:  <span id="stamp">…</span>  → aktuelle Zeit eintragen
+  2. PHASENSTATUS:  Klasse am <span class="pstate ...">  ändern:
+                    pstate-open    → offen        (grau)
+                    pstate-run     → läuft        (ocker, mit Punkt)
+                    pstate-done    → fertig       (grün)
+                    pstate-block   → blockiert    (rot)
+                    Text im span mitändern.
+  3. ABNAHME:       <li> in .accept bekommt class="ok" wenn erfüllt.
+                    Nicht erfüllt = Klasse weglassen. Nie raten.
+  4. PROTOKOLL:     Neuen <div class="logrow"> ganz OBEN in #protokoll
+                    einfügen. Zeit · was · Ergebnis mit ZAHL.
+  5. GATES:         Werte in #gates aktualisieren (Tests, audit_claims).
+  6. BLOCKER:       Wenn etwas hängt: Eintrag in #blocker, ehrlich,
+                    mit dem, was tatsächlich versucht wurde.
+
+  REGEL: Nie eine Phase auf "fertig" setzen, deren Abnahme nicht abgehakt ist.
+  Ein halbfertiger Stand mit ehrlichem Protokoll ist mehr wert als ein
+  grüner Haken, der nicht trägt.
+
+  Danach: Artifact-Tool mit derselben Datei aufrufen → gleiche URL.
+================================================================================
+-->
+
+<style>
+:root {
+  --ground: #F7F7F5; --raised: #FFFFFF; --sunken: #EDEDEA; --deep: #1C2027;
+  --ink: #1A1D23; --ink-soft: #4A5058; --ink-faint: #767C86;
+  --line: #DCDCD7; --line-soft: #E8E8E4;
+  --declared: #4C5BAF; --declared-bg: #EAECF7;
+  --measured: #A8672F; --measured-bg: #F7EFE6;
+  --conflict: #B33A30; --conflict-bg: #FAEBE9;
+  --settled: #3D7A55; --settled-bg: #E9F2EC;
+  --serif: Georgia, 'Iowan Old Style', 'Palatino Linotype', serif;
+  --sans: ui-sans-serif, system-ui, -apple-system, 'Segoe UI', Roboto, sans-serif;
+  --mono: ui-monospace, 'SF Mono', 'Cascadia Mono', Consolas, monospace;
+}
+@media (prefers-color-scheme: dark) {
+  :root {
+    --ground: #12151A; --raised: #1A1E25; --sunken: #0D1014; --deep: #080A0D;
+    --ink: #E4E7EC; --ink-soft: #A8AEB8; --ink-faint: #767E8A;
+    --line: #2A2F38; --line-soft: #21252C;
+    --declared: #8E9BE0; --declared-bg: #1C2136;
+    --measured: #D89B5C; --measured-bg: #2E2115;
+    --conflict: #E0685C; --conflict-bg: #331B18;
+    --settled: #6BB588; --settled-bg: #16281D;
+  }
+}
+:root[data-theme="dark"] {
+  --ground: #12151A; --raised: #1A1E25; --sunken: #0D1014; --deep: #080A0D;
+  --ink: #E4E7EC; --ink-soft: #A8AEB8; --ink-faint: #767E8A;
+  --line: #2A2F38; --line-soft: #21252C;
+  --declared: #8E9BE0; --declared-bg: #1C2136; --measured: #D89B5C; --measured-bg: #2E2115;
+  --conflict: #E0685C; --conflict-bg: #331B18; --settled: #6BB588; --settled-bg: #16281D;
+}
+:root[data-theme="light"] {
+  --ground: #F7F7F5; --raised: #FFFFFF; --sunken: #EDEDEA; --deep: #1C2027;
+  --ink: #1A1D23; --ink-soft: #4A5058; --ink-faint: #767C86;
+  --line: #DCDCD7; --line-soft: #E8E8E4;
+  --declared: #4C5BAF; --declared-bg: #EAECF7; --measured: #A8672F; --measured-bg: #F7EFE6;
+  --conflict: #B33A30; --conflict-bg: #FAEBE9; --settled: #3D7A55; --settled-bg: #E9F2EC;
+}
+
+* { box-sizing: border-box; }
+body { margin: 0; background: var(--ground); color: var(--ink);
+  font-family: var(--sans); line-height: 1.62; -webkit-font-smoothing: antialiased; }
+.wrap { max-width: 62rem; margin: 0 auto; padding: 3rem 1.5rem 7rem; }
+
+/* header */
+header { margin-bottom: 2.5rem; }
+.kicker { font-family: var(--mono); font-size: 0.7rem; letter-spacing: 0.13em;
+  text-transform: uppercase; color: var(--ink-faint); margin: 0 0 0.8rem; }
+h1 { font-family: var(--serif); font-weight: 600; font-size: clamp(2rem,5vw,2.8rem);
+  line-height: 1.08; margin: 0 0 0.6rem; letter-spacing: -0.012em; text-wrap: balance; }
+.standfirst { font-size: 1.05rem; color: var(--ink-soft); max-width: 60ch; margin: 0 0 1.4rem; }
+.tags { display: flex; flex-wrap: wrap; gap: 0.45rem; }
+.tag { font-family: var(--mono); font-size: 0.72rem; padding: 0.3em 0.65em;
+  border-radius: 4px; background: var(--sunken); color: var(--ink-soft); border: 1px solid var(--line); }
+.tag.hot { background: var(--conflict-bg); color: var(--conflict); border-color: transparent; font-weight: 600; }
+.tag.stampbox { background: var(--settled-bg); color: var(--settled); border-color: transparent; font-weight: 600; }
+
+section { margin-bottom: 3rem; }
+h2 { font-family: var(--serif); font-weight: 600; font-size: 1.42rem; margin: 0 0 0.9rem; }
+h3 { font-size: 0.84rem; font-weight: 700; letter-spacing: 0.02em; margin: 1.6rem 0 0.6rem; }
+p { margin: 0 0 0.85rem; max-width: 70ch; }
+.rule { height: 1px; background: var(--line); border: 0; margin: 0 0 1.4rem; }
+
+/* ---- Fortschrittsleiste ---- */
+.pbar { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line);
+  border-radius: 7px; overflow: hidden; grid-template-columns: repeat(auto-fit, minmax(6.5rem, 1fr)); }
+.pcell { background: var(--raised); padding: 0.75rem 0.6rem; text-align: center; }
+.pcell .pn { font-family: var(--mono); font-size: 0.64rem; color: var(--ink-faint);
+  letter-spacing: 0.08em; margin-bottom: 0.3rem; }
+.pcell .pl { font-size: 0.76rem; font-weight: 600; line-height: 1.25; }
+.pcell.done { background: var(--settled-bg); } .pcell.done .pl { color: var(--settled); }
+.pcell.run  { background: var(--measured-bg); } .pcell.run .pl { color: var(--measured); }
+.pcell.block{ background: var(--conflict-bg); } .pcell.block .pl { color: var(--conflict); }
+
+/* ---- Gates ---- */
+.gates { display: grid; gap: 1px; background: var(--line); border: 1px solid var(--line);
+  border-radius: 7px; overflow: hidden; grid-template-columns: repeat(auto-fit, minmax(11rem,1fr)); margin-top: 1rem; }
+.gate { background: var(--raised); padding: 0.9rem 1rem; }
+.gate .gl { font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.08em;
+  text-transform: uppercase; color: var(--ink-faint); margin-bottom: 0.25rem; }
+.gate .gv { font-size: 1.15rem; font-weight: 700; font-variant-numeric: tabular-nums; }
+.gate .gv.ok { color: var(--settled); } .gate .gv.bad { color: var(--conflict); }
+.gate .gv.idle { color: var(--ink-faint); }
+
+/* ---- Protokoll ---- */
+.log { border: 1px solid var(--line); border-radius: 7px; background: var(--raised); overflow: hidden; }
+.logrow { display: grid; grid-template-columns: 4.6rem 1fr; gap: 0 0.9rem;
+  padding: 0.7rem 1rem; border-bottom: 1px solid var(--line-soft); align-items: baseline; }
+.logrow:last-child { border-bottom: 0; }
+.logrow .t { font-family: var(--mono); font-size: 0.72rem; color: var(--ink-faint);
+  font-variant-numeric: tabular-nums; }
+.logrow .m { font-size: 0.89rem; }
+.logrow .m b { font-weight: 650; }
+.logrow.ok .m b { color: var(--settled); }
+.logrow.bad .m b { color: var(--conflict); }
+.logrow.warn .m b { color: var(--measured); }
+.logempty { padding: 1.6rem 1rem; text-align: center; color: var(--ink-faint);
+  font-size: 0.88rem; font-family: var(--mono); }
+
+/* ---- Phasen ---- */
+.phase { background: var(--raised); border: 1px solid var(--line);
+  border-radius: 8px; margin-bottom: 0.9rem; overflow: hidden; }
+.phead { display: flex; align-items: baseline; gap: 0.8rem; flex-wrap: wrap;
+  padding: 0.9rem 1.15rem; border-bottom: 1px solid var(--line); background: var(--sunken); }
+.pnum { font-family: var(--mono); font-size: 0.7rem; font-weight: 700; letter-spacing: 0.07em;
+  padding: 0.2em 0.55em; border-radius: 4px; background: var(--declared-bg);
+  color: var(--declared); white-space: nowrap; }
+.ptitle { font-weight: 700; font-size: 0.97rem; }
+.pstate { margin-left: auto; font-family: var(--mono); font-size: 0.68rem; font-weight: 700;
+  letter-spacing: 0.07em; text-transform: uppercase; padding: 0.24em 0.6em; border-radius: 4px;
+  display: inline-flex; align-items: center; gap: 0.4em; white-space: nowrap; }
+.pstate-open  { background: var(--sunken); color: var(--ink-faint); }
+.pstate-run   { background: var(--measured-bg); color: var(--measured); }
+.pstate-done  { background: var(--settled-bg); color: var(--settled); }
+.pstate-block { background: var(--conflict-bg); color: var(--conflict); }
+.pstate-run::before { content:""; width:0.45em; height:0.45em; border-radius:50%;
+  background: var(--measured); display:inline-block; }
+.pbody { padding: 1.05rem 1.15rem; }
+.pbody p { font-size: 0.92rem; }
+.pbody ol, .pbody ul { margin: 0 0 0.9rem; padding-left: 1.2rem; }
+.pbody li { margin-bottom: 0.35rem; font-size: 0.91rem; max-width: 66ch; }
+
+.accept { background: var(--sunken); border-radius: 6px; padding: 0.85rem 1rem; margin-top: 0.9rem; }
+.accept-h { font-family: var(--mono); font-size: 0.65rem; letter-spacing: 0.1em;
+  text-transform: uppercase; color: var(--ink-faint); margin-bottom: 0.55rem; }
+.accept ul { list-style: none; padding: 0; margin: 0; }
+.accept li { padding-left: 1.5rem; position: relative; font-size: 0.88rem; margin-bottom: 0.32rem; max-width: none; }
+.accept li::before { content: ""; position: absolute; left: 0; top: 0.36em;
+  width: 0.82em; height: 0.82em; border: 1.5px solid var(--ink-faint); border-radius: 3px; }
+.accept li.ok { color: var(--ink-soft); }
+.accept li.ok::before { background: var(--settled); border-color: var(--settled); }
+.accept li.ok::after { content: ""; position: absolute; left: 0.22em; top: 0.5em;
+  width: 0.34em; height: 0.16em; border-left: 1.6px solid var(--raised);
+  border-bottom: 1.6px solid var(--raised); transform: rotate(-45deg); }
+
+/* ---- Tabellen ---- */
+.tw { overflow-x: auto; border: 1px solid var(--line); border-radius: 7px; background: var(--raised); }
+table { border-collapse: collapse; width: 100%; font-size: 0.875rem; min-width: 30rem; }
+thead th { text-align: left; font-family: var(--mono); font-size: 0.64rem; letter-spacing: 0.07em;
+  text-transform: uppercase; color: var(--ink-faint); padding: 0.65rem 0.85rem;
+  border-bottom: 1px solid var(--line); background: var(--sunken); }
+tbody td { padding: 0.6rem 0.85rem; border-bottom: 1px solid var(--line-soft); vertical-align: top; color: var(--ink-soft); }
+tbody td:first-child { color: var(--ink); font-weight: 550; }
+tbody tr:last-child td { border-bottom: 0; }
+code:not(pre code) { font-family: var(--mono); font-size: 0.87em; background: var(--sunken);
+  padding: 0.1em 0.36em; border-radius: 3px; }
+
+.note { border-left: 2px solid var(--declared); background: var(--raised);
+  padding: 0.8rem 1.05rem; border-radius: 0 6px 6px 0; margin: 1.1rem 0; font-size: 0.91rem; }
+.note.stop { border-left-color: var(--conflict); }
+.note.warn { border-left-color: var(--measured); }
+.note p:last-child { margin-bottom: 0; }
+
+.chain { background: var(--deep); border-radius: 7px; padding: 1.1rem 1.2rem;
+  overflow-x: auto; border: 1px solid var(--line); }
+.chain pre { font-family: var(--mono); font-size: 0.76rem; line-height: 1.7;
+  margin: 0; color: #C9CFD8; white-space: pre; }
+.chain .dim { color: #6C7684; } .chain .ok { color: #6BB588; } .chain .w { color: #D89B5C; }
+
+footer { margin-top: 3rem; padding-top: 1.1rem; border-top: 1px solid var(--line);
+  font-family: var(--mono); font-size: 0.7rem; color: var(--ink-faint); line-height: 1.7; }
+
+.tt { position: fixed; top: 1rem; right: 1rem; z-index: 20; font-family: var(--sans);
+  font-size: 0.68rem; font-weight: 600; letter-spacing: 0.06em; text-transform: uppercase;
+  background: var(--raised); color: var(--ink-soft); border: 1px solid var(--line);
+  border-radius: 4px; padding: 0.4rem 0.65rem; cursor: pointer; }
+@media (prefers-reduced-motion: reduce) { * { transition: none !important; animation: none !important; } }
+</style>
+
+<button class="tt" id="tt" type="button">Theme</button>
+
+<div class="wrap">
+
+<header>
+  <p class="kicker">Bauplan &amp; Lauf-Protokoll · Nachtlauf</p>
+  <h1>probate — Lineage-Wahrheitsprüfer</h1>
+  <p class="standfirst">Der Katalog behauptet Verbindungen. Die Abfragen wissen, welche davon
+  stimmen. Dieses Werkzeug hält beide gegeneinander — fortlaufend, pro Kante, mit Datum.</p>
+  <div class="tags">
+    <span class="tag hot">Frist 10.08.2026, 23:00</span>
+    <span class="tag stampbox">Stand: <span id="stamp">06.08. 22:40 — vor dem Lauf</span></span>
+    <span class="tag">D:\Programmieren\datahub-probate</span>
+    <span class="tag">Fable orchestriert</span>
+  </div>
+</header>
+
+<!-- ========== FORTSCHRITT ========== -->
+<section>
+  <h2>Fortschritt auf einen Blick</h2>
+  <hr class="rule">
+  <div class="pbar">
+    <div class="pcell" id="p0"><div class="pn">P0</div><div class="pl">Vorbereitung</div></div>
+    <div class="pcell" id="p1"><div class="pn">P1</div><div class="pl">Register</div></div>
+    <div class="pcell" id="p2"><div class="pn">P2</div><div class="pl">Urteil</div></div>
+    <div class="pcell" id="p3"><div class="pn">P3</div><div class="pl">Korrektur</div></div>
+    <div class="pcell" id="p4"><div class="pn">P4</div><div class="pl">Wächter</div></div>
+    <div class="pcell" id="p5"><div class="pn">P5</div><div class="pl">Werkbank</div></div>
+    <div class="pcell" id="p6"><div class="pn">P6</div><div class="pl">Lasttest</div></div>
+    <div class="pcell" id="p7"><div class="pn">P7</div><div class="pl">Einreichung</div></div>
+  </div>
+
+  <div class="gates" id="gates">
+    <div class="gate"><div class="gl">pytest</div><div class="gv ok">61 grün</div></div>
+    <div class="gate"><div class="gl">audit_claims</div><div class="gv ok">3 / 3</div></div>
+    <div class="gate"><div class="gl">Kanten geprüft</div><div class="gv idle">—</div></div>
+    <div class="gate"><div class="gl">Lasttest</div><div class="gv idle">offen</div></div>
+  </div>
+</section>
+
+<!-- ========== PROTOKOLL ========== -->
+<section>
+  <h2>Was passiert ist</h2>
+  <hr class="rule">
+  <p style="font-size:0.9rem;color:var(--ink-soft)">Neueste oben. Jede Zeile mit einer Zahl,
+  nicht mit einem Gefühl.</p>
+  <div class="log" id="protokoll">
+    <div class="logempty">Der Lauf hat noch nicht begonnen.</div>
+  </div>
+</section>
+
+<!-- ========== BLOCKER ========== -->
+<section>
+  <h2>Was hängt</h2>
+  <hr class="rule">
+  <div id="blocker">
+    <div class="note">
+      <p>Nichts offen. Wenn hier etwas steht, gehört dazu: <strong>was genau versucht wurde</strong>,
+      der Fehlertext, und ob es umgangen wurde oder blockiert. „Nicht geprüft" und
+      „funktioniert nicht" sind verschiedene Aussagen.</p>
+    </div>
+  </div>
+</section>
+
+<!-- ========== DIE PHASEN ========== -->
+<section>
+  <h2>Die Phasen</h2>
+  <hr class="rule">
+
+  <div class="phase">
+    <div class="phead"><span class="pnum">P0</span><span class="ptitle">Vorbereitung</span>
+      <span class="pstate pstate-open">offen</span></div>
+    <div class="pbody">
+      <p>Kurz, aber Voraussetzung für alles. Ohne Nutzungsdaten misst der Abgleich nichts.</p>
+      <ol>
+        <li><code>probate_action/recipe.yml</code> korrigieren: Kafka <code>29192</code>,
+        Schema-Registry über GMS, nicht <code>8081</code></li>
+        <li>Nutzungsdaten in den Katalog seeden (Rezept in <code>UEBERGABE.md</code> §4)</li>
+        <li>Erster Abgleich gegen <code>28080</code>, um zu sehen, was überhaupt ankommt</li>
+      </ol>
+      <div class="accept"><div class="accept-h">Abnahme</div><ul>
+        <li>Nutzungsdaten geschrieben und zurückgelesen, mit Zahl</li>
+        <li>Katalog hat Kanten UND Nutzung, beides gemessen</li>
+        <li>Geseedeter Zustand ist als geseedet vermerkt</li>
+      </ul></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phead"><span class="pnum">P1</span><span class="ptitle">Kanten-Register + Zeitachse</span>
+      <span class="pstate pstate-open">offen</span></div>
+    <div class="pbody">
+      <p><strong>Das Fundament. Nie streichbar.</strong> Ohne diese Phase gibt es nichts zu zeigen.</p>
+      <ol>
+        <li>Vier Zustände pro Kante: <code>confirmed</code> · <code>dead</code> ·
+        <code>missing</code> · <code>unknown</code></li>
+        <li><strong>Abdeckungs-Prüfung vor jeder Klassifikation</strong> — wie viele
+        Zeitfenster gibt es, wie weit reichen sie zurück</li>
+        <li>Zeitachse: letzte Deckung · tot-seit in Tagen · Verlauf je Fenster</li>
+        <li>Tests für alles davon</li>
+      </ol>
+      <div class="note stop">
+        <p><strong>Der Fehler, den diese Phase behebt:</strong> Bisher fielen „nichts gemessen"
+        und „nichts genutzt" in dieselbe leere Antwort — und der Fall „deklariert, nichts
+        gemessen" galt als <em>unbedenklich</em>. Ein aktiver Konsument wäre bei fehlender
+        Datenlage stillschweigend überfahren worden. <code>unknown</code> darf <strong>nie</strong>
+        wie <code>dead</code> behandelt werden.</p>
+      </div>
+      <div class="accept"><div class="accept-h">Abnahme</div><ul>
+        <li>Alle vier Zustände treten in einem echten Lauf auf</li>
+        <li><code>unknown</code> nachweislich getrennt von <code>dead</code> — mit Testfall</li>
+        <li>Abdeckung wird ausgewiesen, bevor ein Urteil fällt</li>
+        <li>Zeitachse liefert „tot seit N Tagen" aus echten Zeitfenstern</li>
+        <li>pytest grün</li>
+      </ul></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phead"><span class="pnum">P2</span><span class="ptitle">Das Urteil</span>
+      <span class="pstate pstate-open">offen</span></div>
+    <div class="pbody">
+      <p>Die einzige Stelle im Projekt mit einem Modellaufruf. 41 tote Kanten sind zu viele zum
+      Anschauen — welche ist die gefährliche?</p>
+      <ul>
+        <li><code>probate/judge.py</code> liest Beschreibung, Eigentümer, Glossar, Domäne</li>
+        <li><strong>Zitatpflicht:</strong> ohne benannte Quelle kein Urteil — dann bleibt es beim
+        deterministischen Befund</li>
+      </ul>
+      <div class="accept"><div class="accept-h">Abnahme</div><ul>
+        <li>Zwei Kanten mit gegensätzlicher Einstufung, beide begründet</li>
+        <li>Jedes Urteil nennt, woraus es stammt</li>
+        <li>Ohne Beleg fällt es zurück auf den deterministischen Befund — mit Testfall</li>
+      </ul></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phead"><span class="pnum">P3</span><span class="ptitle">Korrektur-Modus</span>
+      <span class="pstate pstate-open">offen</span></div>
+    <div class="pbody">
+      <p>Melden <em>oder</em> reparieren. Über das bestehende <code>writeback.py</code> —
+      Disziplin unverändert.</p>
+      <ul>
+        <li>Fehlende Kante eintragen, mit der Abfrage als Beleg</li>
+        <li>Tote Kante markieren, mit Datum der letzten Deckung</li>
+        <li>Doku aus beobachteter Nutzung anreichern</li>
+      </ul>
+      <div class="accept"><div class="accept-h">Abnahme</div><ul>
+        <li>Vorschlag → Bestätigung → Journal, nie automatisch</li>
+        <li><code>probate revert</code> nimmt jeden Schreibvorgang zurück, live geprüft</li>
+        <li>Probe-Entitäten danach gelöscht, Löschung zurückgelesen</li>
+      </ul></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phead"><span class="pnum">P4</span><span class="ptitle">Wächter live</span>
+      <span class="pstate pstate-open">offen</span></div>
+    <div class="pbody">
+      <p>Das Gerüst steht und startet nachweislich — drei Konfigfehler wurden bereits gefunden
+      und behoben. Jetzt: echte Ereignisse verarbeiten.</p>
+      <div class="accept"><div class="accept-h">Abnahme</div><ul>
+        <li>Pipeline läuft und empfängt ein echtes Ereignis</li>
+        <li>Eine Änderung im Katalog löst eine Neubewertung aus — sichtbar im Protokoll</li>
+        <li>Kein verschluckter Fehler (silent-failure-hunter hat geprüft)</li>
+      </ul></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phead"><span class="pnum">P5</span><span class="ptitle">Die Werkbank</span>
+      <span class="pstate pstate-open">offen</span></div>
+    <div class="pbody">
+      <p><strong>Nicht streichbar.</strong> Ohne sie ist die Demo wieder etwas, dem man glauben
+      muss — genau das bekam in der Jury-Simulation 3 von 10.</p>
+      <p>Vier Bereiche (deklariert · gemessen · Register · Live-Protokoll) plus Steuerpult mit
+      sechs Knöpfen, die <em>beide</em> Wahrheitsquellen verändern.</p>
+      <div class="chain"><pre><span class="dim">Demo-Ablauf, ~40 Sekunden:</span>
+  Kante eintragen   <span class="dim">→</span>  erscheint als <span class="w">TOT</span>
+  Abfrage absetzen  <span class="dim">→</span>  wird <span class="ok">BESTÄTIGT</span>
+  Warehouse trennen <span class="dim">→</span>  wird <span class="dim">UNBEKANNT</span>  <span class="w">← nicht TOT</span></pre></div>
+      <div class="note warn">
+        <p><strong>Gestaltung ist bindend:</strong> beruhigend statt alarmierend (Rot nur für
+        Kanten-Zustände, nie Rahmen/Kopf/Knöpfe) · erklärend eingebaut · zwei Quellen, zwei
+        Farben, überall dieselben · Zustand hat eine Form, nicht nur eine Zahl.
+        <strong>Kein AI-Slop:</strong> keine Emoji-Marken, kein Farbverlauf-Hero, nicht alles
+        zentriert, kein Creme+Terrakotta, kein Inter/Space Grotesk.</p>
+      </div>
+      <div class="accept"><div class="accept-h">Abnahme</div><ul>
+        <li>Alle sechs Knöpfe lösen wirklich etwas aus</li>
+        <li>Der 40-Sekunden-Ablauf läuft durch, dreimal in drei Richtungen</li>
+        <li>Ohne laufende Instanz sichtbar als Aufzeichnung gekennzeichnet</li>
+        <li>Im echten Browser geprüft, keine Konsolenfehler</li>
+      </ul></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phead"><span class="pnum">P6</span><span class="ptitle">Lasttest</span>
+      <span class="pstate pstate-open">offen</span></div>
+    <div class="pbody">
+      <p>Bisher mit <strong>zwei</strong> Abfragen getestet. Eine echte Firma macht sechsstellige
+      Zahlen täglich.</p>
+      <div class="tw"><table>
+        <thead><tr><th>Stufe</th><th>Tabellen</th><th>Abfragen</th><th>Ergebnis</th></tr></thead>
+        <tbody>
+          <tr><td>S</td><td>50</td><td>1'000</td><td id="lt-s">—</td></tr>
+          <tr><td>M</td><td>500</td><td>10'000</td><td id="lt-m">—</td></tr>
+          <tr><td>L</td><td>5'000</td><td>100'000</td><td id="lt-l">—</td></tr>
+        </tbody>
+      </table></div>
+      <p style="margin-top:0.9rem">Je Stufe: Dauer grober Durchgang · Dauer Detailblick je Kante ·
+      Spitzenspeicher · Anzahl Aufrufe · <strong>bricht etwas, und wo genau</strong>.</p>
+      <div class="note stop">
+        <p><strong>Wenn es kippt, kommt die Zahl trotzdem ins README</strong> — mit der Grösse,
+        ab der es nicht mehr trägt. Eine benannte Grenze ist ein Ergebnis, eine verschwiegene
+        ein Fehler. Reicht es nur für Stufe M: hochrechnen und <em>als Hochrechnung
+        kennzeichnen</em>.</p>
+      </div>
+      <div class="accept"><div class="accept-h">Abnahme</div><ul>
+        <li>Alle drei Stufen gelaufen (oder die nicht gelaufene ehrlich benannt)</li>
+        <li>Vollabgleich gegen Tagesdelta gemessen — der entscheidende Vergleich</li>
+        <li>Zahlen stehen im README und in <code>audit_claims.py</code></li>
+      </ul></div>
+    </div>
+  </div>
+
+  <div class="phase">
+    <div class="phead"><span class="pnum">P7</span><span class="ptitle">Einreichung vorbereiten</span>
+      <span class="pstate pstate-open">offen</span></div>
+    <div class="pbody">
+      <ul>
+        <li>README <strong>auf Englisch</strong> — die alte Fassung war deutsch, 3/10 dafür</li>
+        <li><code>examples/</code> mit echten Läufen, nicht nachgestellt</li>
+        <li>Devpost-Text, Video-Drehbuch</li>
+        <li>Upstream-Beitrag vorbereiten</li>
+      </ul>
+      <div class="note stop">
+        <p><strong>Nur vorbereiten.</strong> Repo öffentlich machen, pushen, Video
+        veröffentlichen, Devpost abschicken, PR öffnen — macht Joel.</p>
+      </div>
+      <div class="accept"><div class="accept-h">Abnahme</div><ul>
+        <li>README englisch, ein Fremder kommt damit zum Laufen</li>
+        <li>Jede Zahl im README von <code>audit_claims.py</code> gedeckt</li>
+        <li>Der Abgrenzungssatz gegen DataHubs eigenen Blogartikel steht drin</li>
+      </ul></div>
+    </div>
+  </div>
+</section>
+
+<!-- ========== BESATZUNG ========== -->
+<section>
+  <h2>Die Besatzung</h2>
+  <hr class="rule">
+  <p><strong>Fable ist die Leitung</strong> — verteilt, prüft, führt zusammen. Baut nicht selbst.
+  Wer alles selbst liest, verbrennt Kontext und wird ab der Hälfte schlechter.</p>
+
+  <h3>Modell nach Denktiefe</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Modell</th><th>Wofür</th><th>Warum</th></tr></thead>
+    <tbody>
+      <tr><td><code>fable</code></td><td>Orchestrierung, Zerlegung, Entscheide</td><td>hält den Überblick, delegiert statt zu tippen</td></tr>
+      <tr><td><code>opus</code></td><td>Architektur · Review · Sicherheit</td><td>wo Sparen später doppelt kostet</td></tr>
+      <tr><td><code>sonnet</code></td><td>Umsetzung nach Spec, Tests, UI</td><td>der Arbeitsstand</td></tr>
+      <tr><td><code>haiku</code></td><td>Suchen, Gerüst, Aufräumen</td><td>mechanisch, muss nicht denken</td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Wer geholt wird</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Aufgabe</th><th>Agent</th><th>Modell</th></tr></thead>
+    <tbody>
+      <tr><td><strong>Schluckt der Code Fehler still</strong> — nach JEDER Phase</td><td><code>silent-failure-hunter</code></td><td>opus</td></tr>
+      <tr><td>Datenmodell des Registers, offene Strukturfragen</td><td><code>architect</code></td><td>opus</td></tr>
+      <tr><td>Auth-Pfad, bevor die Werkbank schreibt</td><td><code>security-reviewer</code></td><td>opus</td></tr>
+      <tr><td>Vor jedem grösseren Commit</td><td><code>code-reviewer</code></td><td>opus</td></tr>
+      <tr><td>Jede neue <code>.py</code></td><td><code>python-reviewer</code></td><td>sonnet</td></tr>
+      <tr><td>Die Werkbank</td><td><code>react-reviewer</code></td><td>sonnet</td></tr>
+      <tr><td>Lasttest auswerten</td><td><code>performance-optimizer</code></td><td>sonnet</td></tr>
+      <tr><td>Bestehende Module verstehen</td><td><code>code-explorer</code></td><td>sonnet</td></tr>
+      <tr><td>DataHub-API unklar</td><td><code>docs-lookup</code></td><td>sonnet</td></tr>
+      <tr><td>Werkbank end-to-end</td><td><code>e2e-runner</code> · <code>browser-qa</code></td><td>sonnet</td></tr>
+      <tr><td>Dateien und Symbole finden</td><td><code>Explore</code></td><td>haiku</td></tr>
+      <tr><td>Am Schluss aufräumen</td><td><code>code-simplifier</code></td><td>haiku</td></tr>
+    </tbody>
+  </table></div>
+  <div class="note stop">
+    <p><code>silent-failure-hunter</code> steht zuoberst, weil das Produkt daran hängt: Die These
+    lautet „stille Fehler sind die gefährlichsten" — und genau diese Klasse wurde im eigenen Code
+    schon <strong>dreimal</strong> gefunden: der übersprungene Revert, die verschluckte Regel, die
+    Selbstbescheinigung. Alle drei sahen aus wie ein sauberes Ergebnis.</p>
+  </div>
+
+  <h3>Skills</h3>
+  <div class="tw"><table>
+    <thead><tr><th>Wann</th><th>Skill</th></tr></thead>
+    <tbody>
+      <tr><td>Vor Phase 1, Plan aus der Spec</td><td><code>superpowers:writing-plans</code></td></tr>
+      <tr><td>Die Phasen abarbeiten</td><td><code>superpowers:subagent-driven-development</code></td></tr>
+      <tr><td>Jede neue Logik</td><td><code>superpowers:test-driven-development</code></td></tr>
+      <tr><td>Spec vollständig statt minimal</td><td><code>disciplined-implementer</code></td></tr>
+      <tr><td>Wenn Kafka oder API zicken</td><td><code>superpowers:systematic-debugging</code></td></tr>
+      <tr><td>Vor jedem „fertig"</td><td><code>superpowers:verification-before-completion</code> · <code>ship</code></td></tr>
+      <tr><td>Werkbank, Struktur und Interaktion</td><td><code>ui-ux-pro-max</code></td></tr>
+      <tr><td>Werkbank, Stil</td><td><code>frontend-design</code></td></tr>
+      <tr><td><strong>Vor der ersten Zeile Chart-Code</strong></td><td><code>dataviz</code></td></tr>
+      <tr><td>Der Lasttest</td><td><code>benchmark-optimization-loop</code></td></tr>
+      <tr><td>Parallele Agenten ohne Kollision</td><td><code>superpowers:dispatching-parallel-agents</code></td></tr>
+    </tbody>
+  </table></div>
+
+  <h3>Was gleichzeitig läuft</h3>
+  <div class="chain"><pre><span class="dim">P0</span> Vorbereitung  <span class="dim">─────────────────</span>  muss zuerst
+         │
+<span class="dim">P1</span> Register  <span class="dim">──┬──</span> UI-Gerüst          <span class="dim">┐</span>
+                 <span class="dim">└──</span> Lasttest-Fixtures  <span class="dim">┘</span>  parallel zum Bauen
+         │
+<span class="dim">P2</span> Urteil  <span class="dim">────┬──</span> Review von P1        <span class="dim">┐</span>
+<span class="dim">P3</span> Korrektur <span class="dim">──┤</span>                       <span class="dim">│</span>  Review läuft, während
+<span class="dim">P4</span> Wächter <span class="dim">────┘</span>                       <span class="dim">┘</span>  die nächste Phase baut
+         │
+<span class="dim">P5</span> Werkbank
+         │
+<span class="dim">P6</span> Lasttest  <span class="dim">──</span> drei Stufen <span class="w">parallel</span>, nicht seriell
+         │
+<span class="dim">P7</span> Einreichung</pre></div>
+</section>
+
+<!-- ========== HARTE REGELN ========== -->
+<section>
+  <h2>Regeln, die nicht verhandelbar sind</h2>
+  <hr class="rule">
+  <div class="tw"><table>
+    <tbody>
+      <tr><td>Beweislast</td><td>Nichts behaupten, was nicht gemessen ist. Das ist der Gegenstand der Einreichung, nicht nur eine Hausregel</td></tr>
+      <tr><td>Instanz</td><td>Nur <code>28080</code>. NIEMALS <code>18080</code> (fremde Messdaten), NIEMALS <code>8080</code> (WhatsApp-Bridge)</td></tr>
+      <tr><td>Aufräumen</td><td>Jeder Live-Lauf löscht seine Probe-Entitäten und liest die Löschung zurück</td></tr>
+      <tr><td>Kennzeichnung</td><td>Geseedete Daten überall als geseedet ausweisen</td></tr>
+      <tr><td>Rangfolge</td><td>Live-Aufruf &gt; Quellcode &gt; Doku</td></tr>
+      <tr><td>Tore</td><td>Vor jedem „fertig": <code>pytest</code> grün UND <code>audit_claims.py</code> grün</td></tr>
+      <tr><td>Drift</td><td>Neue Zahl im README → <code>audit_claims.py</code> erweitern</td></tr>
+      <tr><td>HITL</td><td>Repo öffentlich, pushen, Video, Devpost, PR — macht Joel</td></tr>
+    </tbody>
+  </table></div>
+
+  <div class="note stop">
+    <p><strong>Es gibt kein „Zeit reicht nicht".</strong> Der Lauf ist autonom und läuft über
+    Nacht. Der Engpass ist Orchestrierung und Kontext, nicht Kalender. Wenn etwas nicht fertig
+    wird, lautet die Antwort <em>besser verteilen</em>, nicht <em>Umfang streichen</em>.</p>
+    <p style="margin-top:0.6rem"><strong>Und nie</strong> eine Phase als erledigt melden, deren
+    Abnahme nicht abgehakt ist. Ein halbfertiger Stand mit ehrlichem Protokoll ist mehr wert als
+    ein grüner Haken, der nicht trägt.</p>
+  </div>
+</section>
+
+<footer>
+  Quelle der Wahrheit: <code>UEBERGABE.md</code> · Spezifikation:
+  <code>docs/superpowers/specs/2026-08-06-lineage-truth-design.md</code> ·
+  Prompt: <code>PROMPT-NAECHSTE-SESSION.md</code><br>
+  Diese Seite wird vom laufenden Agenten fortgeschrieben — Anleitung als Kommentar im Quelltext.
+</footer>
+
+</div>
+
+<script>
+(function () {
+  var btn = document.getElementById('tt');
+  var root = document.documentElement;
+  btn.addEventListener('click', function () {
+    var now = root.getAttribute('data-theme');
+    if (!now) now = window.matchMedia('(prefers-color-scheme: dark)').matches ? 'dark' : 'light';
+    root.setAttribute('data-theme', now === 'dark' ? 'light' : 'dark');
+  });
+})();
+</script>

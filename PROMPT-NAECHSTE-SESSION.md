@@ -133,10 +133,26 @@ NICHT MACHEN (HITL — mache ich selbst)
 Repo öffentlich machen, pushen, Video veröffentlichen, Devpost abschicken,
 Upstream-PR öffnen. Alles andere darfst du.
 
+DAS DASHBOARD LAUFEND PFLEGEN — wichtig, Joel liest es morgens als erstes
+Datei:  C:\Users\joel2\AppData\Local\Temp\claude\C--AI-OS-projects-datahub-hackathon-2026\
+        c2a8c457-0804-4ea8-9a14-b89f8823b51c\scratchpad\probate-bauplan.html
+URL:    https://claude.ai/code/artifact/c818e1b1-583d-4be1-bfd4-c71e4961049b
+
+Die vollständige Anleitung steht als HTML-Kommentar oben in der Datei. Kurz:
+- Nach JEDEM abgeschlossenen Schritt: Datei bearbeiten, dann Artifact-Tool aufrufen mit
+  file_path = obige Datei UND url = obige URL. Dann bleibt die URL gleich.
+- Zeitstempel oben (#stamp) · Phasenstatus (pstate-open/run/done/block) ·
+  Abnahme-Häkchen (class="ok" am <li>) · Protokollzeile oben in #protokoll einfügen ·
+  Gates (#gates) · Blocker (#blocker) wenn etwas hängt.
+- Protokollzeilen tragen eine ZAHL, kein Gefühl. "41 tote Kanten gefunden", nicht "läuft gut".
+- Eine Phase wird NIE auf "fertig" gesetzt, solange ihre Abnahme nicht abgehakt ist.
+- Blocker ehrlich: was genau versucht wurde, welcher Fehlertext, umgangen oder blockiert.
+
 ABSCHLUSS
 Bericht mit echten Zahlen: was steht, was gemessen wurde (die tatsächlichen Lasttest-Werte),
 was offen blieb und warum. Keine Schätzung als Fakt. Wenn etwas nicht getestet wurde, steht
 das da — "nicht geprüft" und "funktioniert nicht" sind verschiedene Aussagen.
+Das Dashboard muss am Ende den echten Stand zeigen, nicht den geplanten.
 ```
 
 ---
