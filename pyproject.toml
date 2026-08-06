@@ -8,6 +8,7 @@ dependencies = ["acryl-datahub>=1.6.0.17", "requests>=2.32"]
 
 [project.optional-dependencies]
 dev = ["pytest>=8.0"]
+actions = ["acryl-datahub-actions"]
 
 [project.scripts]
 probate = "probate.cli:main"

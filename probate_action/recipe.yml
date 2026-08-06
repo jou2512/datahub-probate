@@ -1,0 +1,21 @@
+# Der Top-Level-`datahub:`-Block ist Pflicht, sonst ist ctx.graph None
+# und die Action liest, ohne je zu schreiben (belegte Falle, STAND.md).
+#
+# server: 28080, NICHT 18080 -- 18080 traegt showcase-ecommerce, gegen das
+# datahub-attest veroeffentlichte Zahlen gemessen hat. Nicht verunreinigen
+# (dieselbe Regel wie in jedem anderen Task dieser Session).
+name: probate-watcher
+source:
+  type: kafka
+  config:
+    connection:
+      bootstrap: localhost:9092
+      schema_registry_url: http://localhost:8081
+action:
+  type: probate_action.watcher:ProbateWatcher
+  config:
+    closed_urns_file: harness/runs/closed.json
+    gms_url: http://localhost:28080
+    dry_run: true
+datahub:
+  server: http://localhost:28080
