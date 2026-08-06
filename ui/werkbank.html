@@ -1,0 +1,108 @@
+<!doctype html>
+<!--
+  ui/werkbank.html
+  Warum diese Datei existiert: die Werkbank ist die Beweisflaeche der
+  Einreichung -- vier Bereiche, die dieselbe Kante aus zwei Quellen zeigen
+  (Katalog vs. Messung) und ihr einen von vier Zustaenden zuweisen. Dieses
+  Geruest legt nur die Struktur und ehrliche Leerzustaende fest; das
+  Fuellen mit echten Laufdaten uebernimmt werkbank.js (Task 17).
+-->
+<html lang="en">
+<head>
+  <meta charset="utf-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1" />
+  <title>Lineage truth bench</title>
+  <link rel="stylesheet" href="werkbank.css" />
+</head>
+<body>
+  <main class="shell">
+    <header class="shell__head">
+      <h1 class="shell__title">Lineage truth bench</h1>
+      <p class="shell__sub">Declared lineage, held against measured usage — per edge.</p>
+      <span id="mode-badge" class="badge" data-mode="recording">Recording — no live instance</span>
+    </header>
+
+    <p id="coverage-banner" class="banner" role="status">
+      <span class="chip chip--unknown banner__chip">Unknown</span>
+      <span class="banner__text">No check has run yet. Coverage — how many edges we actually looked at — will stand here once one has, above every result below it.</span>
+    </p>
+
+    <section id="controls" class="controls" aria-label="Control desk">
+      <button type="button" data-action="seed-query">Run a query</button>
+      <button type="button" data-action="add-edge">Declare an edge</button>
+      <button type="button" data-action="remove-edge">Remove an edge</button>
+      <button type="button" data-action="cut-warehouse">Disconnect warehouse</button>
+      <button type="button" data-action="fast-forward">Fast-forward time</button>
+      <button type="button" data-action="run-ledger">Run full check</button>
+    </section>
+
+    <section class="legend" aria-label="What each edge state means">
+      <p class="legend__item">
+        <span class="chip chip--confirmed" data-state-help="confirmed">Confirmed</span>
+        <span>Declared and measured — the edge carries real traffic.</span>
+      </p>
+      <p class="legend__item">
+        <span class="chip chip--dead" data-state-help="dead">Dead</span>
+        <span>Declared, but no traffic in any observed window.</span>
+      </p>
+      <p class="legend__item">
+        <span class="chip chip--missing" data-state-help="missing">Missing</span>
+        <span>Measured together in queries, but never declared.</span>
+      </p>
+      <p class="legend__item">
+        <span class="chip chip--unknown" data-state-help="unknown">Unknown</span>
+        <span>No usage windows at all — we did not look, so we do not say.</span>
+      </p>
+    </section>
+
+    <div class="grid">
+      <section class="pane pane--declared" aria-labelledby="declared-heading">
+        <div class="pane__head">
+          <h2 id="declared-heading">Declared</h2>
+          <span class="pane__caption">What the catalog claims</span>
+        </div>
+        <div id="declared-tree" class="pane__body">
+          <p class="empty-state">No catalog snapshot loaded yet. Press “Run a query” to fetch the declared lineage tree for the seeded tables.</p>
+        </div>
+      </section>
+
+      <section class="pane pane--ledger" aria-labelledby="ledger-heading">
+        <div class="pane__head">
+          <h2 id="ledger-heading">Edge ledger</h2>
+          <span class="pane__caption">Per-edge verdict, declared against measured</span>
+        </div>
+        <div id="edge-ledger" class="pane__body">
+          <p class="empty-state">The ledger is empty until at least one full check has run. Press “Run full check” to classify every known edge into confirmed, dead, missing, or unknown.</p>
+        </div>
+      </section>
+
+      <section class="pane pane--measured" aria-labelledby="measured-heading">
+        <div class="pane__head">
+          <h2 id="measured-heading">Measured</h2>
+          <span class="pane__caption">What actually moved, by usage window</span>
+        </div>
+        <div id="measured-bars" class="pane__body">
+          <p class="empty-state">No usage windows recorded yet. Measurement starts once a query moves data through the warehouse — an empty bar and a missing window are not the same claim.</p>
+        </div>
+      </section>
+
+      <section class="pane pane--log" aria-labelledby="log-heading">
+        <div class="pane__head">
+          <h2 id="log-heading">Live log</h2>
+          <span class="pane__caption">What happened, in order</span>
+        </div>
+        <div id="live-log" class="pane__body" aria-live="polite">
+          <p class="empty-state">Nothing has happened yet. Actions taken at the control desk above will appear here, timestamped, in the order they ran.</p>
+        </div>
+      </section>
+    </div>
+
+    <template id="state-help">
+      <span data-state-help="confirmed">Declared and measured — the edge carries real traffic.</span>
+      <span data-state-help="dead">Declared, but no traffic in any observed window.</span>
+      <span data-state-help="missing">Measured together in queries, but never declared.</span>
+      <span data-state-help="unknown">No usage windows at all — we did not look, so we do not say.</span>
+    </template>
+  </main>
+</body>
+</html>

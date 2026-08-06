@@ -1,0 +1,494 @@
+/* ui/werkbank.css
+   Warum diese Datei so aussieht: die Gestaltung ist eines von sechs
+   gleichgewichteten Bewertungskriterien, und die Vorgaben sind bindend
+   (Spec, Abschnitt Gestaltung). Rot gehoert dem ZUSTAND einer Kante --
+   nirgends einem Rahmen, einer Kopfzeile oder einem Knopf.
+
+   Alle Literalwerte (Farben) stehen einmal, im ersten :root-Block, als
+   Lichtwerte UND Dunkelwerte. Jede Theme-Umschaltung -- automatisch ueber
+   prefers-color-scheme oder explizit ueber data-theme -- setzt die
+   aktiven Alias-Variablen per var()-Referenz um, nie per neuem Literal.
+   So bleibt "zwei Quellen, zwei Farben, durchgehend" strukturell wahr,
+   nicht nur behauptet. */
+
+:root {
+  color-scheme: light dark;
+
+  /* Lichtwerte -- gedeckt, kuehl, ruhig. Kein Creme, kein Terrakotta. */
+  --bg-light:           #f7f8fa;
+  --surface-light:      #ffffff;
+  --surface-sunk-light: #eef1f5;
+  --line-light:         #d9dee6;
+  --ink-light:          #16191f;
+  --ink-muted-light:    #5b636f;
+  --declared-light:     #3d5a99;
+  --measured-light:     #1f7a63;
+  --state-confirmed-light: #1f7a63;
+  --state-dead-light:      #a8323a;
+  --state-missing-light:   #9a6b12;
+  --state-unknown-light:   #6b7280;
+  --shadow-light: rgba(22, 25, 31, 0.07);
+
+  /* Dunkelwerte -- dieselbe Rolle je Token, angepasste Leuchtdichte. */
+  --bg-dark:           #14161a;
+  --surface-dark:      #1b1e24;
+  --surface-sunk-dark: #22262e;
+  --line-dark:         #313743;
+  --ink-dark:          #e8eaee;
+  --ink-muted-dark:    #9aa3b0;
+  --declared-dark:     #8fa8e0;
+  --measured-dark:     #5fc0a4;
+  --state-confirmed-dark: #5fc0a4;
+  --state-dead-dark:      #e08b92;
+  --state-missing-dark:   #d9ad5b;
+  --state-unknown-dark:   #98a1ae;
+  --shadow-dark: rgba(0, 0, 0, 0.35);
+
+  /* Aktives Thema -- Vorgabe hell, siehe Umschaltung weiter unten. */
+  --bg:            var(--bg-light);
+  --surface:       var(--surface-light);
+  --surface-sunk:  var(--surface-sunk-light);
+  --line:          var(--line-light);
+  --ink:           var(--ink-light);
+  --ink-muted:     var(--ink-muted-light);
+  --declared:      var(--declared-light);
+  --measured:      var(--measured-light);
+  --state-confirmed: var(--state-confirmed-light);
+  --state-dead:      var(--state-dead-light);
+  --state-missing:   var(--state-missing-light);
+  --state-unknown:   var(--state-unknown-light);
+  --shadow: var(--shadow-light);
+
+  /* Form: bewusst NICHT ueberall dieselbe grosse Rundung. */
+  --r-card:  6px;
+  --r-chip:  3px;
+  --r-input: 4px;
+
+  --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
+  --space-4: 20px; --space-5: 32px; --space-6: 48px;
+
+  --font-ui:   ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
+  --font-mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
+
+  --t-fast: 120ms ease-out;
+  --t-calm: 220ms ease-out;
+}
+
+@media (prefers-color-scheme: dark) {
+  :root {
+    --bg:            var(--bg-dark);
+    --surface:       var(--surface-dark);
+    --surface-sunk:  var(--surface-sunk-dark);
+    --line:          var(--line-dark);
+    --ink:           var(--ink-dark);
+    --ink-muted:     var(--ink-muted-dark);
+    --declared:      var(--declared-dark);
+    --measured:      var(--measured-dark);
+    --state-confirmed: var(--state-confirmed-dark);
+    --state-dead:      var(--state-dead-dark);
+    --state-missing:   var(--state-missing-dark);
+    --state-unknown:   var(--state-unknown-dark);
+    --shadow: var(--shadow-dark);
+  }
+}
+
+/* Der explizite Umschalter gewinnt gegen die System-Praeferenz -- die
+   Attribut-Selektoren tragen mehr Spezifitaet als das blosse :root
+   innerhalb der media-Regel, unabhaengig davon, ob die media-Regel
+   gerade greift. */
+:root[data-theme="dark"] {
+  --bg:            var(--bg-dark);
+  --surface:       var(--surface-dark);
+  --surface-sunk:  var(--surface-sunk-dark);
+  --line:          var(--line-dark);
+  --ink:           var(--ink-dark);
+  --ink-muted:     var(--ink-muted-dark);
+  --declared:      var(--declared-dark);
+  --measured:      var(--measured-dark);
+  --state-confirmed: var(--state-confirmed-dark);
+  --state-dead:      var(--state-dead-dark);
+  --state-missing:   var(--state-missing-dark);
+  --state-unknown:   var(--state-unknown-dark);
+  --shadow: var(--shadow-dark);
+}
+:root[data-theme="light"] {
+  --bg:            var(--bg-light);
+  --surface:       var(--surface-light);
+  --surface-sunk:  var(--surface-sunk-light);
+  --line:          var(--line-light);
+  --ink:           var(--ink-light);
+  --ink-muted:     var(--ink-muted-light);
+  --declared:      var(--declared-light);
+  --measured:      var(--measured-light);
+  --state-confirmed: var(--state-confirmed-light);
+  --state-dead:      var(--state-dead-light);
+  --state-missing:   var(--state-missing-light);
+  --state-unknown:   var(--state-unknown-light);
+  --shadow: var(--shadow-light);
+}
+
+/* ---------------------------------------------------------------------
+   Basis
+   --------------------------------------------------------------------- */
+
+*, *::before, *::after { box-sizing: border-box; }
+
+html, body { margin: 0; padding: 0; }
+
+body {
+  background: var(--bg);
+  color: var(--ink);
+  font-family: var(--font-ui);
+  font-size: 15px;
+  line-height: 1.5;
+  -webkit-font-smoothing: antialiased;
+}
+
+h1, h2, h3, p { margin: 0; }
+
+button {
+  font: inherit;
+  color: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--declared);
+  outline-offset: 2px;
+}
+
+/* ---------------------------------------------------------------------
+   Gerueststruktur -- nicht zentriert, der Inhalt fuellt die Breite.
+   --------------------------------------------------------------------- */
+
+.shell {
+  padding: var(--space-5) var(--space-6) var(--space-6);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-4);
+}
+
+.shell__head {
+  display: flex;
+  align-items: baseline;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  padding-bottom: var(--space-3);
+  border-bottom: 1px solid var(--line);
+}
+
+.shell__title {
+  font-size: 1.5rem;
+  font-weight: 600;
+  letter-spacing: -0.01em;
+}
+
+.shell__sub {
+  color: var(--ink-muted);
+  font-size: 0.95rem;
+  flex: 1 1 auto;
+  min-width: 240px;
+}
+
+/* ---------------------------------------------------------------------
+   Abzeichen -- neutral, keine Zustandsfarbe. Zustandsfarbe ist Kanten
+   vorbehalten, nicht dem Verbindungsmodus der Werkbank selbst.
+   --------------------------------------------------------------------- */
+
+.badge {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-1) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  background: var(--surface-sunk);
+  color: var(--ink-muted);
+  font-size: 0.8rem;
+  white-space: nowrap;
+}
+
+.badge::before {
+  content: "";
+  display: inline-block;
+  width: 6px;
+  height: 6px;
+  border-radius: 50%;
+  background: currentColor;
+}
+
+/* ---------------------------------------------------------------------
+   Abdeckungs-Banner -- steht UEBER den Ergebnissen, ist keine Fussnote.
+   --------------------------------------------------------------------- */
+
+.banner {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-3) var(--space-4);
+  background: var(--surface-sunk);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  color: var(--ink);
+  font-size: 0.92rem;
+}
+
+.banner__chip {
+  flex: 0 0 auto;
+}
+
+.banner__text {
+  flex: 1 1 auto;
+}
+
+/* ---------------------------------------------------------------------
+   Bedienpult
+   --------------------------------------------------------------------- */
+
+.controls {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-2);
+}
+
+.controls button {
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-input);
+  cursor: pointer;
+  transition: background var(--t-fast), border-color var(--t-fast);
+}
+
+.controls button:hover {
+  background: var(--surface-sunk);
+}
+
+.controls button[data-action="run-ledger"] {
+  border-color: var(--measured);
+  color: var(--measured);
+  font-weight: 600;
+}
+
+/* ---------------------------------------------------------------------
+   Zustands-Legende -- die Erklaerung sitzt an Ort und Stelle, nicht in
+   einem separaten Handbuch. Vier Zustaende, vier Saetze, immer sichtbar.
+   --------------------------------------------------------------------- */
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-4);
+  padding: var(--space-3) 0;
+}
+
+.legend__item {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  max-width: 320px;
+  font-size: 0.85rem;
+}
+
+.legend__item .chip { flex: 0 0 auto; }
+
+.legend__item span:last-child {
+  color: var(--ink-muted);
+}
+
+/* ---------------------------------------------------------------------
+   Zustands-Chip -- farbiger Punkt + Text. Kein Akzentstreifen, das
+   Signal sitzt im Punkt, nicht am Rahmen der Karte.
+   --------------------------------------------------------------------- */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-1);
+  padding: 2px var(--space-2);
+  border-radius: var(--r-chip);
+  border: 1px solid var(--line);
+  font-size: 0.8rem;
+  font-weight: 600;
+  white-space: nowrap;
+}
+
+.chip::before {
+  content: "";
+  display: inline-block;
+  width: 7px;
+  height: 7px;
+  border-radius: 50%;
+  background: var(--dot, var(--state-unknown));
+}
+
+.chip--confirmed { --dot: var(--state-confirmed); }
+.chip--dead      { --dot: var(--state-dead); }
+.chip--missing   { --dot: var(--state-missing); }
+.chip--unknown   { --dot: var(--state-unknown); }
+
+/* ---------------------------------------------------------------------
+   Die vier Bereiche -- zwei Spalten, zwei Zeilen, keine Zentrierung.
+   --------------------------------------------------------------------- */
+
+.grid {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
+  grid-template-rows: repeat(2, minmax(220px, auto));
+  gap: var(--space-4);
+}
+
+.pane {
+  display: flex;
+  flex-direction: column;
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  box-shadow: 0 1px 2px var(--shadow);
+  overflow: hidden;
+}
+
+.pane__head {
+  display: flex;
+  align-items: baseline;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3) var(--space-4);
+  border-bottom: 1px solid var(--line);
+}
+
+.pane__head h2 {
+  font-size: 0.85rem;
+  font-weight: 600;
+  text-transform: uppercase;
+  letter-spacing: 0.04em;
+}
+
+.pane__caption {
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+}
+
+.pane__body {
+  flex: 1 1 auto;
+  padding: var(--space-4);
+  overflow-x: auto;
+  overflow-y: auto;
+}
+
+/* ---------------------------------------------------------------------
+   Leerzustand -- ehrlich statt erfunden. Steht so lange hier, bis
+   werkbank.js (Task 17) den Bereich fuellt.
+   --------------------------------------------------------------------- */
+
+.empty-state {
+  color: var(--ink-muted);
+  font-size: 0.9rem;
+  max-width: 46ch;
+}
+
+/* ---------------------------------------------------------------------
+   Deklarierter Baum -- Einrueckung ueber gedaempfte Leitlinien, kein
+   Icon-Set, kein Zusatzsystem.
+   --------------------------------------------------------------------- */
+
+.tree { font-family: var(--font-mono); font-size: 0.85rem; }
+
+.tree__node {
+  padding: var(--space-1) 0 var(--space-1) var(--space-3);
+  border-left: 1px dashed var(--line);
+}
+
+.tree__node[data-source="declared"] { color: var(--declared); }
+
+/* ---------------------------------------------------------------------
+   Gemessene Balken -- eine Farbe (Gemessen), Groesse traegt die Aussage.
+   Spur in surface-sunk, Fuellung in --measured, 4px gerundetes Ende,
+   an der Grundlinie verankert -- kein zweites Signal, keine zweite Farbe.
+   --------------------------------------------------------------------- */
+
+.bar-row {
+  display: grid;
+  grid-template-columns: minmax(120px, 1fr) minmax(80px, 2fr) auto;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+  font-size: 0.85rem;
+}
+
+.bar-row__label { font-family: var(--font-mono); color: var(--ink); }
+
+.bar-track {
+  height: 8px;
+  background: var(--surface-sunk);
+  border-radius: var(--r-chip);
+  overflow: hidden;
+}
+
+.bar-track__fill {
+  height: 100%;
+  background: var(--measured);
+  border-radius: var(--r-chip);
+}
+
+.bar-row__value {
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+  text-align: right;
+}
+
+/* ---------------------------------------------------------------------
+   Kanten-Register -- die eigentliche Ledger-Zeile: Punkt, gerichteter
+   Schluessel, zwei Quell-Marken. Das ist die Karte, an der man diese
+   Werkbank wiedererkennt -- ein Pruefprotokoll, kein Kachel-Dashboard.
+   --------------------------------------------------------------------- */
+
+.ledger-row {
+  display: flex;
+  align-items: center;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line);
+  font-family: var(--font-mono);
+  font-size: 0.82rem;
+}
+
+.ledger-row:last-child { border-bottom: none; }
+
+.ledger-row__key {
+  flex: 1 1 auto;
+  min-width: 0;
+  overflow-wrap: anywhere;
+  color: var(--ink);
+}
+
+.ledger-row__source {
+  flex: 0 0 auto;
+  font-size: 0.7rem;
+  padding: 1px var(--space-1);
+  border-radius: var(--r-chip);
+  border: 1px solid var(--line);
+}
+
+.ledger-row__source--declared { color: var(--declared); }
+.ledger-row__source--measured { color: var(--measured); }
+
+/* ---------------------------------------------------------------------
+   Live-Protokoll -- Zeitstempel in Tabellenziffern, Zeilen chronologisch.
+   --------------------------------------------------------------------- */
+
+.log { font-family: var(--font-mono); font-size: 0.82rem; }
+
+.log-entry {
+  display: flex;
+  gap: var(--space-3);
+  padding: var(--space-1) 0;
+}
+
+.log-entry__time {
+  flex: 0 0 auto;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.log-entry__text { color: var(--ink); }
