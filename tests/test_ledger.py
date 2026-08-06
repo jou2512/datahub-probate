@@ -189,3 +189,126 @@ def test_verdict_json_carries_state_evidence_coverage_and_timeline():
     assert v["edge"] == "urn:up->urn:down"
     assert v["coverage"]["buckets_seen"] == 30
     assert v["timeline"]["dead_since_days"] == 10
+
+
+# --- Fix-Runde 1 (Review) ---------------------------------------------
+
+
+def test_an_empty_query_list_is_not_a_measurement_and_yields_no_missing_edge():
+    """CRITICAL 1. Keine Messung ist kein Befund -- das Spiegelbild des
+    urspruenglichen Fehlers waere eine erfundene Kante."""
+    v = classify_edges(
+        focus="urn:up", declared=set(), cooccurred={"urn:other": []},
+        coverage_by_urn={}, timeline_by_urn={}, now_ms=50 * DAY)
+    assert v == []
+
+
+def test_a_zero_traffic_window_stays_dead_regardless_of_query_source():
+    """Query-Quellen-Gate Regel 1: ein Fenster mit Null Verkehr ist
+    Beleg genug -- unabhaengig von queries_seen."""
+    v = classify_edges(
+        focus="urn:up", declared={"urn:down"}, cooccurred={},
+        coverage_by_urn={"urn:down": LOOKED},
+        timeline_by_urn={"urn:down": Timeline((Bucket(40 * DAY, 0, 0),))},
+        now_ms=50 * DAY, queries_seen=0)
+    assert v[0].state == "dead"
+
+
+def test_traffic_without_a_reachable_query_source_is_unknown_not_dead():
+    """Query-Quellen-Gate Regel 2: Verkehr gemessen, aber queries_seen
+    == 0 -- 'keine Query-Ingestion' ist von 'Queries beruehren die
+    Kante nicht' nicht unterscheidbar, also unknown statt dead."""
+    v = classify_edges(
+        focus="urn:up", declared={"urn:down"}, cooccurred={},
+        coverage_by_urn={"urn:down": LOOKED},
+        timeline_by_urn={"urn:down": Timeline((Bucket(40 * DAY, 9, 2),))},
+        now_ms=50 * DAY, queries_seen=0)
+    assert v[0].state == "unknown"
+    assert v[0].evidence["reason"] == (
+        "verkehr gemessen, aber query-quelle leer — kante nicht pruefbar")
+
+
+def test_traffic_with_a_queried_source_and_no_pair_is_dead():
+    """Query-Quellen-Gate Regel 3: Verkehr gemessen, Query-Quelle
+    befragt, keine Paar-Query fuer diese Kante -- starker Beleg."""
+    v = classify_edges(
+        focus="urn:up", declared={"urn:down"}, cooccurred={},
+        coverage_by_urn={"urn:down": LOOKED},
+        timeline_by_urn={"urn:down": Timeline((Bucket(40 * DAY, 9, 2),))},
+        now_ms=50 * DAY, queries_seen=5)
+    assert v[0].state == "dead"
+
+
+def test_a_declared_self_edge_is_never_emitted():
+    """IMPORTANT 3. Der Fokus ist niemals sein eigenes Ziel."""
+    v = classify_edges(
+        focus="urn:up", declared={"urn:up"}, cooccurred={},
+        coverage_by_urn={"urn:up": LOOKED},
+        timeline_by_urn={"urn:up": Timeline((Bucket(40 * DAY, 9, 2),))},
+        now_ms=50 * DAY, queries_seen=5)
+    assert v == []
+
+
+def test_a_cooccurred_self_edge_is_never_emitted():
+    """IMPORTANT 3, zweiter Zweig: auch ueber Ko-Okkurrenz nicht."""
+    v = classify_edges(
+        focus="urn:up", declared=set(),
+        cooccurred={"urn:up": ["urn:li:query:q1"]},
+        coverage_by_urn={}, timeline_by_urn={}, now_ms=50 * DAY)
+    assert v == []
+
+
+def test_coverage_and_timeline_disagreement_is_unknown_not_dead():
+    """IMPORTANT 4. Abdeckung meldet Fenster, die Zeitachse ist leer --
+    ein dead ohne Alters-Beleg waere ein Vertragsbruch dieses Moduls."""
+    v = classify_edges(
+        focus="urn:up", declared={"urn:down"}, cooccurred={},
+        coverage_by_urn={"urn:down": LOOKED},
+        timeline_by_urn={"urn:down": Timeline(())},
+        now_ms=50 * DAY)
+    assert v[0].state == "unknown"
+    assert v[0].evidence["reason"] == "abdeckung und zeitachse widersprechen sich"
+
+
+def test_state_sweep_over_declared_x_window_x_pair_query():
+    """Reviewer minor 8, vom Controller befoerdert: die acht Kombinationen
+    aus deklariert x Fenster-Abdeckung x Paar-Query, bei queries_seen > 0
+    und (wo ein Fenster existiert) Verkehr > 0. Beweist das Kernversprechen
+    ueber den vollen Kombinationsraum statt an Einzelbeispielen."""
+    combos = {
+        "t_dwq": (True, True, True),     # deklariert, Fenster, Paar-Query -> confirmed
+        "t_dw": (True, True, False),     # deklariert, Fenster, keine Paar-Query -> dead (Regel 3)
+        "t_dq": (True, False, True),     # deklariert, kein Fenster, Paar-Query -> unknown
+        "t_d": (True, False, False),     # deklariert, kein Fenster, keine Paar-Query -> unknown
+        "t_wq": (False, True, True),     # nicht deklariert, Fenster, Paar-Query -> missing
+        "t_w": (False, True, False),     # nicht deklariert, Fenster, keine Paar-Query -> abwesend
+        "t_q": (False, False, True),     # nicht deklariert, kein Fenster, Paar-Query -> missing
+        "t_": (False, False, False),     # nichts davon -> abwesend
+    }
+    declared = {name for name, (d, _, _) in combos.items() if d}
+    cooccurred = {
+        name: (["urn:li:query:q1"] if q else [])
+        for name, (_, _, q) in combos.items()
+    }
+    coverage_by_urn = {name: LOOKED for name, (_, w, _) in combos.items() if w}
+    timeline_by_urn = {
+        name: Timeline((Bucket(40 * DAY, 5, 1),))
+        for name, (_, w, _) in combos.items() if w
+    }
+
+    v = classify_edges(
+        focus="urn:up", declared=declared, cooccurred=cooccurred,
+        coverage_by_urn=coverage_by_urn, timeline_by_urn=timeline_by_urn,
+        now_ms=50 * DAY, queries_seen=5)
+
+    by_target = {x.edge.downstream: x.state for x in v}
+    assert by_target == {
+        "t_dwq": "confirmed",
+        "t_dw": "dead",
+        "t_dq": "unknown",
+        "t_d": "unknown",
+        "t_wq": "missing",
+        "t_q": "missing",
+    }
+    assert "t_w" not in by_target
+    assert "t_" not in by_target

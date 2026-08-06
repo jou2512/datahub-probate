@@ -178,6 +178,7 @@ def classify_edges(
     coverage_by_urn: dict[str, Coverage],
     timeline_by_urn: dict[str, Timeline],
     now_ms: int,
+    queries_seen: int = 0,
 ) -> list[EdgeVerdict]:
     """Vier Zustaende, in dieser Reihenfolge geprueft.
 
@@ -187,10 +188,42 @@ def classify_edges(
     danach. Ein fehlender Eintrag in `coverage_by_urn` ist "nicht
     abgefragt" und damit ebenfalls `unknown`; ein stilles Default auf
     "abgedeckt" waere genau der Fehlbefund, den dieses Modul verhindert.
+
+    Fokus-Kanten werden nie erzeugt (`target == focus`): weder eine
+    deklarierte Selbstreferenz noch eine Ko-Okkurrenz mit sich selbst
+    ist eine sinnvolle Kante.
+
+    `coverage_by_urn`/`timeline_by_urn` koennen sich widersprechen (eine
+    Abdeckung meldet Fenster, die Zeitachse ist trotzdem leer) -- das ist
+    ein Datenfehler, keine Grundlage fuer irgendein Urteil, und wird
+    deshalb selbst zu `unknown`, bevor ein anderer Zweig greift.
+
+    Query-Quellen-Gate (Entscheid `docs/entscheidungen/
+    2026-08-07-query-quellen-gate.md`): das Abdeckungs-Gate belegt nur,
+    dass wir die NUTZUNGS-Statistik angeschaut haben. `dead`/`confirmed`
+    ruhen aber auf der QUERY-Ko-Okkurrenz, einer anderen Quelle. Fuer
+    eine deklarierte Kante mit Fenstern und ohne Paar-Query gilt darum:
+      1. Verkehr im Fenster == 0 -> `dead` bleibt lizenziert (ein Fenster
+         mit Null heisst: es lief ueberhaupt nichts).
+      2. Verkehr > 0 und `queries_seen == 0` -> `unknown` ("verkehr
+         gemessen, aber query-quelle leer") -- wir koennen "keine
+         Query-Ingestion" nicht von "Queries beruehren den Fokus nicht"
+         unterscheiden.
+      3. Verkehr > 0 und `queries_seen > 0` -> `dead` (starker Beleg: die
+         Query-Quelle wurde befragt und kennt die Kante nicht).
+    `confirmed` (Paar-Query existiert) ist von `queries_seen` unberuehrt.
+
+    Eine leere `cooccurred[target]`-Liste ist keine Messung -- eine
+    `missing`-Kante ohne Query-URN waere das Spiegelbild des
+    urspruenglichen Fehlers: eine erfundene Kante statt eines
+    verschwiegenen Zustands.
     """
     out: list[EdgeVerdict] = []
 
     for target in sorted(declared):
+        if target == focus:
+            continue
+
         cov = coverage_by_urn.get(target, _NOT_ASKED)
         tl = timeline_by_urn.get(target, Timeline(()))
         edge = Edge(focus, target)
@@ -202,6 +235,14 @@ def classify_edges(
                 cov, tl))
             continue
 
+        if not tl.buckets:
+            out.append(EdgeVerdict(
+                edge, "unknown",
+                {"reason": "abdeckung und zeitachse widersprechen sich",
+                 "source": "declared lineage"},
+                cov, tl))
+            continue
+
         queries = cooccurred.get(target, [])
         if queries:
             out.append(EdgeVerdict(
@@ -209,19 +250,46 @@ def classify_edges(
                 {"query_urns": list(queries),
                  "source": "declared lineage + query co-occurrence"},
                 cov, tl))
-        else:
+            continue
+
+        traffic = sum(b.total_sql_queries for b in tl.buckets)
+        if traffic == 0:
             out.append(EdgeVerdict(
                 edge, "dead",
                 {"reason": "im geprueften Fenster nie gemessen",
                  "buckets_checked": cov.buckets_seen,
                  "source": "declared lineage"},
                 cov, tl))
+        elif queries_seen == 0:
+            out.append(EdgeVerdict(
+                edge, "unknown",
+                {"reason": "verkehr gemessen, aber query-quelle leer — kante nicht pruefbar",
+                 "traffic_in_window": traffic,
+                 "queries_seen": queries_seen,
+                 "source": "declared lineage"},
+                cov, tl))
+        else:
+            out.append(EdgeVerdict(
+                edge, "dead",
+                {"reason": "query-quelle befragt, keine paar-abfrage fuer diese kante gefunden",
+                 "traffic_in_window": traffic,
+                 "queries_seen": queries_seen,
+                 "buckets_checked": cov.buckets_seen,
+                 "source": "declared lineage + query co-occurrence"},
+                cov, tl))
 
     for target in sorted(set(cooccurred) - declared):
+        if target == focus:
+            continue
+
+        queries = cooccurred[target]
+        if not queries:
+            continue
+
         out.append(EdgeVerdict(
             Edge(focus, target), "missing",
-            {"query_urns": list(cooccurred[target]),
-             "cooccurrence_count": len(cooccurred[target]),
+            {"query_urns": list(queries),
+             "cooccurrence_count": len(queries),
              "direction_evidence": "co-occurrence (undirected)",
              "source": "query co-occurrence"},
             coverage_by_urn.get(target, _NOT_ASKED),
