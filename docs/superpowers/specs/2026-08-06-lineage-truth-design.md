@@ -164,6 +164,123 @@ dem bestehenden `writeback.py` bleibt unverändert. **Kein automatisches Schreib
 Die **Stilllegung** wird eine Handlung, die der Agent vorschlagen kann, wenn eine Tabelle nur
 noch tote Kanten hat — mit dem bestehenden Beweis-Ablauf (`parity.py`, `confirm`).
 
+### Schicht 4 — Die Werkbank (Oberfläche)
+
+**Kein Bericht, ein Labor.** Ein Dashboard, das nur Zahlen anzeigt, beweist nichts — man kann
+nicht unterscheiden, ob es rechnet oder ob jemand die Zahlen hingeschrieben hat. Eine Jurorin
+der letzten Runde wörtlich: *„Ich kann es nicht selbst erleben, nur glauben."* Bei einem
+Werkzeug, dessen Kernaussage „nichts behaupten ohne Beleg" lautet, ist eine Demo, der man
+glauben muss, ein Selbstwiderspruch.
+
+**Vier Bereiche, ein Bildschirm:**
+- **Deklariert** (links oben) — der Lineage-Baum, Kanten anklickbar
+- **Gemessen** (links unten) — Abfragen pro Tabelle als Balken. Tabellen ohne Datenlage sind
+  *sichtbar leer*, nicht auf null gesetzt — der Unterschied muss auch optisch einer sein
+- **Kanten-Register** (rechts oben) — das Urteil pro Kante, live, aufklappbar zu Zeitachse und
+  Modell-Einschätzung
+- **Live-Protokoll** (rechts unten) — jedes Ereignis, jede Neubewertung, jeder Schreibvorgang,
+  jeder Modellaufruf mit Kosten. *Der Beweis, dass gerechnet und nicht abgespielt wird.*
+
+**Steuerpult — sechs Knöpfe, die beide Wahrheitsquellen verändern:**
+
+| Knopf | Tut | Sichtbare Folge |
+|---|---|---|
+| Abfrage absetzen | schreibt echte Query-Entität mit 2 subjects | Kante wird `missing` |
+| Kante eintragen | schreibt Lineage-Kante | Kante wird sofort `dead` |
+| Kante entfernen | nimmt deklarierte Kante weg | bei Verkehr → `missing` |
+| **Warehouse trennen** | simuliert fehlende Nutzungsanbindung | alle betroffenen → **`unknown`, nicht `dead`** |
+| Zeit vorspulen | verschiebt Beobachtungsfenster | Kanten altern sichtbar |
+| Lauf starten | vollständiger Abgleich | Fortschritt, Dauer, Abdeckung |
+
+**Der Knopf, der die Demo trägt, ist „Warehouse trennen"** — er führt in fünf Sekunden vor, was
+in der alten Fassung ein stiller Fehler war. Ein Prüfer sieht unmittelbar, dass das Werkzeug den
+Unterschied zwischen „nichts gemessen" und „nichts passiert" wirklich macht.
+
+**Demo-Ablauf fürs Video (~40 s):** Kante eintragen → erscheint als `dead` → Abfrage absetzen →
+wird `confirmed` → Warehouse trennen → wird `unknown`. Dreimal in drei Richtungen, ohne dass
+jemand etwas erklären muss.
+
+**Technisch:** statischer Export (wie beim Schwesterprojekt, damit ohne laufende Instanz
+aufrufbar), plus Betriebsmodus gegen eine echte DataHub-Instanz, wenn eine da ist — dann
+schreiben die Knöpfe wirklich. Ohne Instanz läuft dieselbe Oberfläche gegen aufgezeichnete
+Läufe, **sichtbar als Aufzeichnung gekennzeichnet**, nicht als Live-Betrieb getarnt.
+
+### Gestaltung — bindend, nicht Geschmackssache
+
+Joels Vorgabe wörtlich (06.08.): *verständlich, schön, erklärend und beruhigend, modern,
+SaaS-Vibe, professionell — ohne AI-Slop-Look.*
+
+**Was das konkret heisst:**
+
+- **Beruhigend statt alarmierend.** Das Werkzeug meldet Probleme; wenn die Oberfläche selbst
+  auch noch schreit, wird sie unbenutzbar. Rot ist reserviert für den *Zustand* einer Kante,
+  nirgends für Rahmen, Kopfzeilen oder Knöpfe. Gedeckte Grundfarbe, viel Weissraum, ruhige
+  Übergänge.
+- **Erklärend eingebaut, nicht als Handbuch daneben.** Jeder der vier Zustände trägt an Ort und
+  Stelle einen Satz, was er bedeutet. Wer `unknown` zum ersten Mal sieht, muss nicht raten. Die
+  Abdeckungs-Angabe steht *über* den Ergebnissen, nicht in einer Fussnote.
+- **Zwei Quellen, zwei Farben, durchgehend.** Deklariert und Gemessen bekommen je eine Farbe,
+  die auf jedem Bildschirm dieselbe bleibt. Das ist Informationsgestaltung, keine Dekoration —
+  wer die Farbe einmal gelernt hat, liest jede weitere Ansicht schneller.
+- **Zustand hat eine Form, nicht nur eine Zahl.** Chip, Streifen, Punkt — was Aufmerksamkeit
+  braucht, muss auf einen Blick erkennbar sein, ohne zu lesen.
+- **SaaS-Handwerk:** echte Typo-Hierarchie, Tabellenziffern wo Zahlen untereinanderstehen,
+  sichtbarer Tastatur-Fokus, helles und dunkles Thema gleichwertig gepflegt, breite Inhalte
+  scrollen in ihrem eigenen Container statt die Seite zu verschieben.
+
+**Verboten, weil es sofort nach KI-Ausgabe aussieht:** Emoji als Abschnittsmarken, Farbverlauf
+im Kopfbereich, alles zentriert, überall dieselbe grosse Eckenrundung, Akzentstreifen an
+gerundeten Karten, Creme-Grundton mit Terrakotta-Akzent, Inter oder Space Grotesk als
+Standardschrift, riesiger Hero-Bereich ohne Inhalt.
+
+**Der Massstab:** Ein Betrachter soll denken „das ist ein Produkt", nicht „das ist ein
+Hackathon-Projekt". Beim Schwesterprojekt gab eine Jurorin 3/10, weil die Demo statisch war
+und nichts erklärte — die Gestaltung ist hier keine Kür, sie ist eines der sechs
+Bewertungskriterien.
+
+**Nicht streichbar.** Ohne Werkbank ist die Demo wieder etwas, dem man glauben muss — und genau
+das hat in der Jury-Simulation die schlechteste Einzelnote bekommen (3/10 Submission Quality).
+
+## Der Lasttest — Pflicht, nicht Kür
+
+Bisher getestet mit **zwei** Abfragen. Eine echte Firma erzeugt sechsstellige Zahlen täglich.
+Ein Werkzeug, das „nichts behaupten ohne Messung" führt und dann „skaliert schon" behauptet,
+widerlegt sich selbst.
+
+**Drei Bruchkandidaten:**
+1. **Abholen der Abfragen** — der offensichtliche Engpass. Bekannte Vorbelastung: die
+   Lineage-Abfrage liefert nachweislich über 100'000 Zeichen ohne eingebaute Seitenbegrenzung.
+   Bei Abfragen mit Volltext ist dasselbe zu erwarten.
+2. **Ko-Okkurrenz-Rechnung** — bei ~3 Tabellen je Abfrage sind 100'000 Abfragen rund 300'000
+   Paare. Für sich harmlos; der Aufwand steckt im Beschaffen, nicht im Rechnen.
+3. **Speicher** — alle Abfragen gleichzeitig halten ist der naive Weg. Alternative: strömend
+   verarbeiten mit laufender Zählung.
+
+**Geplanter Ausweg (Architektur, kein Messergebnis):** grober Durchgang über die verdichteten
+Zahlen (eine Zahl pro Tabelle und Zeitfenster, unabhängig von der Abfragezahl), Detailblick nur
+bei auffälligen Kanten. Damit hängt der teure Teil an der Zahl *verdächtiger Kanten*, nicht an
+der Gesamtzahl der Abfragen — bei 384 Kanten und 41 Auffälligkeiten also 41 Detailabrufe statt
+100'000.
+
+**Messplan, drei Stufen:**
+
+| Stufe | Tabellen | Abfragen | Zweck |
+|---|---|---|---|
+| S | 50 | 1'000 | Grundlinie, alles im Speicher |
+| M | 500 | 10'000 | erste Seitenbegrenzung nötig? |
+| L | 5'000 | 100'000 | der Ernstfall |
+
+Je Stufe zu messen: Dauer grober Durchgang · Dauer Detailblick je Kante · Spitzenspeicher ·
+Anzahl Schnittstellen-Aufrufe · **bricht etwas, und wo genau mit Fehlertext**.
+
+**Die entscheidende Zusatzfrage:** vollständiger Lauf gegen Tagesdelta — wie viel billiger? Ein
+Vollabgleich darf zwei Stunden dauern, solange der tägliche Nachlauf Minuten braucht. Das
+entscheidet, ob das Werkzeug in einer echten Firma benutzbar ist oder nur im Beispiel.
+
+**Wenn es kippt: die Zahl kommt trotzdem ins README**, mit der Grösse, ab der es nicht mehr
+trägt. Eine benannte Grenze ist ein Ergebnis; eine verschwiegene ist ein Fehler. Reicht die Zeit
+nur für Stufe M, wird hochgerechnet — und die Hochrechnung **als solche gekennzeichnet**.
+
 ## Architektur-Entscheidungen
 
 **Zwei Transportwege, bewusst:**
@@ -211,8 +328,8 @@ Bauvorhaben, aber ein sauberer Nebenbefund für den Upstream-Beitrag.
 |---|---|
 | **Rest 06.08.** | `recipe.yml` korrigieren, Nutzungsdaten seeden, erster echter Abgleich auf 28080 |
 | **Fr 07.08.** | Schicht 1 vollständig: Kanten-Register, vier Zustände, Abdeckungs-Prüfung, **Zeitachse (1b)**, Tests |
-| **Sa 08.08.** | Schicht 2 (Modell-Urteil mit Zitatpflicht) + Schicht 3 (Korrektur-Modus) + Wächter live |
-| **So 09.08.** | **Englisches** README, `examples/`, Video, Devpost-Text, Upstream-Beitrag |
+| **Sa 08.08.** | Schicht 2 (Modell-Urteil mit Zitatpflicht) + Schicht 3 (Korrektur-Modus) + Wächter live + **Schicht 4 (Werkbank mit Steuerpult)** |
+| **So 09.08.** | **Lasttest (3 Stufen)**, **englisches** README, `examples/`, Video, Devpost-Text, Upstream-Beitrag |
 | **Mo 10.08.** | Nur Abgabe. Kein Bauen. |
 
 **README auf Englisch** ist keine Kür: eine Jurorin gab 3/10 unter anderem, weil README und
@@ -226,9 +343,13 @@ gleichgewichteten Kategorien.
 2. **Korrektur-Modus** (Schicht 3, Schreiben) — Melden allein trägt den Befund.
 3. **Kontinuierlicher Wächter** — Rückfall auf einmaligen Lauf. Kostet die
    „fortlaufend"-Erzählung, nicht den Kern.
+4. **Lasttest-Stufe L** (100'000) — bei Zeitmangel bei Stufe M messen und hochrechnen, die
+   Hochrechnung **als Hochrechnung kennzeichnen**. Niemals eine ungemessene Zahl als gemessen
+   ausgeben.
 
-**Nie gestrichen:** der Abgleich selbst (Schicht 1), die Belege pro Kante, das englische README,
-das Video, der `examples/`-Ordner, die Apache-2.0-Datei.
+**Nie gestrichen:** der Abgleich selbst (Schicht 1), die Belege pro Kante, **die Werkbank**
+(ohne sie ist die Demo wieder Glaubenssache — schlechteste Einzelnote der letzten Runde), das
+englische README, das Video, der `examples/`-Ordner, die Apache-2.0-Datei.
 
 ## Verifikation
 
