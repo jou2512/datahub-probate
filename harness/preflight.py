@@ -10,6 +10,14 @@ veroeffentlichte Zahlen erhoben hat; 28080 laeuft auf derselben Version
 v1.5.0.6, serverEnv core - das Ergebnis ueberträgt sich unveraendert).
 Port 8080 wird unter keinen Umstaenden angefasst - dort laeuft eine
 WhatsApp-Bridge.
+
+Eigener urlopen-Aufruf, kein Import von probate.gms -- deshalb OHNE dessen
+Redirect-Schutz (Security-Review-Fund C3, 2026-08-07: ein 3xx wuerde
+gefolgt und der Authorization-Header mitgeschickt). Unkritisch nur, weil
+dieses Modul nie einen Token setzt -- _post() unten haengt keinen
+Authorization-Header an. Bleibt das so, MUSS dieses Modul nie einen Token
+tragen; sobald eines Tages doch, muss es entweder ueber probate.gms laufen
+oder denselben Schutz selbst bekommen.
 """
 
 from __future__ import annotations

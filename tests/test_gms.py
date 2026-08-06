@@ -3,7 +3,7 @@ import json
 import threading
 
 import pytest
-from probate.gms import Gms, GmsError, _urllib_transport
+from probate.gms import _OPENER, Gms, GmsError, _urllib_transport
 
 
 class FakeTransport:
@@ -89,14 +89,18 @@ class _FakeResponse:
 def test_urllib_transport_sends_bearer_token_when_given(monkeypatch):
     """Live-Fund (Jury-Review 2026-08-06): ohne Token laeuft probate als
     __datahub_system -- funktioniert nur ohne Zugriffskontrolle. Das
-    Personal Access Token muss als Authorization-Header ankommen."""
+    Personal Access Token muss als Authorization-Header ankommen.
+
+    Patcht _OPENER.open() statt urllib.request.urlopen() (Review-Runde 2,
+    2026-08-07): send() ruft seit dem Wegfall von install_opener() den
+    module-level Opener explizit auf, nicht mehr die globale Funktion."""
     captured = {}
 
-    def fake_urlopen(req, timeout):
+    def fake_open(req, timeout):
         captured["auth"] = req.get_header("Authorization")
         return _FakeResponse(json.dumps({"ok": True}).encode())
 
-    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    monkeypatch.setattr(_OPENER, "open", fake_open)
     send = _urllib_transport("secret-pat-123")
     send("GET", "http://x/api/graphql", None)
     assert captured["auth"] == "Bearer secret-pat-123"
@@ -105,11 +109,11 @@ def test_urllib_transport_sends_bearer_token_when_given(monkeypatch):
 def test_urllib_transport_sends_no_auth_header_without_a_token(monkeypatch):
     captured = {}
 
-    def fake_urlopen(req, timeout):
+    def fake_open(req, timeout):
         captured["auth"] = req.get_header("Authorization")
         return _FakeResponse(json.dumps({"ok": True}).encode())
 
-    monkeypatch.setattr("urllib.request.urlopen", fake_urlopen)
+    monkeypatch.setattr(_OPENER, "open", fake_open)
     send = _urllib_transport(None)
     send("GET", "http://x/api/graphql", None)
     assert captured["auth"] is None
@@ -189,6 +193,82 @@ def test_upsert_accepts_a_record_with_a_legit_nested_urn():
     t = FakeTransport([(200, [{"urn": LEGIT_NESTED_URN}])])
     out = Gms("http://x", transport=t).upsert("dataset", [{"urn": LEGIT_NESTED_URN}])
     assert out == [{"urn": LEGIT_NESTED_URN}]
+
+
+# --- Finding C4, Review-Runde 2: Allowlist statt Denylist -----------------
+#
+# Miss aus Runde 1: eine reine Denylist ("verboten: " \ Leerraum {} ? # ..")
+# liess Prozent-Encoding durch, weil "%2e%2e" keines der verbotenen Zeichen
+# enthaelt -- urllib dekodiert %2e erst beim eigentlichen Request, nicht
+# beim String-Vergleich hier. Diese Tests pinnen genau die live gemeldeten
+# Bypaesse plus den NUL-Byte-Fall, den die neue Allowlist automatisch
+# mitschliesst.
+
+
+@pytest.mark.parametrize(
+    "bad_urn",
+    [
+        "urn:li:dataset:%2e%2e%2fadmin%2fsecret",
+        "urn:li:dataset:%2e%2e/%2e%2e/etc/passwd",
+        "urn:li:dataset:\x00nul-byte",
+        "urn:li:dataset:with%20percent",
+    ],
+)
+def test_get_aspect_rejects_percent_encoded_and_nul_urns_before_any_transport_call(bad_urn):
+    """Live widerlegter Fund (Review-Runde 1): validate() mit der alten
+    Denylist akzeptierte 'urn:li:dataset:%2e%2e%2fadmin%2fsecret' und
+    'urn:li:dataset:%2e%2e/%2e%2e/etc/passwd'. Die Allowlist verbietet "%"
+    kategorisch (kein einziges "%" in irgendeiner URN im Repo, siehe
+    URN_RE-Kommentar) -- und schliesst damit auch NUL-Bytes automatisch
+    mit, ohne einen eigenen Sonderfall dafuer zu brauchen."""
+    t = FakeTransport([])
+    with pytest.raises(GmsError):
+        Gms("http://x", transport=t).get_aspect("dataset", bad_urn, "datasetProperties")
+    assert t.calls == []
+
+
+def test_validate_urn_rejects_a_non_string_urn_with_gmserror_not_typeerror():
+    """MINOR (Review-Runde 2): record.get('urn') kann in einem malformten
+    Record alles sein. Ohne isinstance-Guard wirft URN_RE.match() ein
+    TypeError statt eines GmsError -- der 'loud, not crash'-Vertrag gilt
+    auch hier."""
+    from probate.gms import _validate_urn
+
+    with pytest.raises(GmsError):
+        _validate_urn(12345)
+    with pytest.raises(GmsError):
+        _validate_urn(None)
+    with pytest.raises(GmsError):
+        _validate_urn(["urn:li:dataset:x"])
+
+
+def test_upsert_rejects_a_record_with_a_non_string_urn_before_any_transport_call():
+    t = FakeTransport([])
+    with pytest.raises(GmsError):
+        Gms("http://x", transport=t).upsert("dataset", [{"urn": 42}])
+    assert t.calls == []
+
+
+# Repo-weiter Grep (2026-08-07): `grep -rohE "urn:li:[A-Za-z]+:..." probate/
+# harness/ examples/ probate_action/ ui/` fand keine URN-Literale mit "/"
+# im Identifier-Teil (nur in Kommentaren/Docstrings ueber Plattform-
+# Datensatznamen erwaehnt) -- "/" bleibt trotzdem erlaubt, weil die
+# Aufgabenstellung fuer Finding C4 das ausdruecklich fuer manche
+# Plattform-Datensatznamen verlangt; es gibt im aktuellen Repo nur keinen
+# Beleg dafuer, der als zweites Beispiel dienen koennte.
+LEGIT_SEEDLAB_URNS = [
+    "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
+    "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customer_ltv_report_v3,PROD)",
+    "urn:li:query:probate_load-s-000000",
+    "urn:li:versionSet:(probate-probe,dataset)",
+]
+
+
+@pytest.mark.parametrize("legit_urn", LEGIT_SEEDLAB_URNS)
+def test_get_aspect_accepts_every_legit_urn_shape_found_in_the_repo(legit_urn):
+    t = FakeTransport([(200, {"value": {}})])
+    body = Gms("http://x", transport=t).get_aspect("dataset", legit_urn, "datasetProperties")
+    assert body == {"value": {}}
 
 
 # --- Finding C3: kein Redirect folgen -------------------------------------

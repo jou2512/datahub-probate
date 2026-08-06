@@ -1,4 +1,9 @@
-"""Der einzige Weg nach draussen.
+"""Der einzige VALIDIERTE Weg nach draussen.
+
+harness/preflight.py spricht GMS zusaetzlich direkt an (eigener urlopen-
+Aufruf, kein Import von hier) -- ohne den Redirect-Schutz aus Fund C3
+weiter unten. Heute Nacht unkritisch, weil preflight.py nie einen Token
+setzt (siehe dessen eigenes Docstring), aber es ist NICHT derselbe Schutz.
 
 Fallen sind hier eingebaut, damit sie niemand sonst noch einmal tritt:
 
@@ -17,13 +22,16 @@ Fallen sind hier eingebaut, damit sie niemand sonst noch einmal tritt:
    per Default (gemessen auf dieser Maschine, Python 3.11.9/3.11.2). Ein
    einzelnes "302 Location: https://collector.attacker/x" von der GMS-Basis-
    URL wuerde den Bearer-PAT an ein beliebiges Ziel weiterreichen. GMS
-   redirected bei einem regulaeren API-Aufruf nie -- also wird global ein
-   Opener installiert, der 3xx NICHT folgt (siehe _install_no_redirect_opener
-   unten).
-5. Security-Review-Fund (C4, 2026-08-07): get_aspect/delete_aspect/upsert
-   interpolieren die URN unquotiert in den OpenAPI-Pfad. "../" oder "?" in
-   einer URN schreibt den Request-Pfad um. _validate_urn() prueft das vor
-   jeder Interpolation (siehe dort fuer die erlaubte Grammatik).
+   redirected bei einem regulaeren API-Aufruf nie -- also wird ein Opener
+   gebaut, der 3xx NICHT folgt, und explizit in send() verwendet (kein
+   globaler install_opener()-Seiteneffekt -- Review-Runde 2, 2026-08-07).
+5. Security-Review-Fund (C4, 2026-08-07, verschaerft in Runde 2): reine
+   Denylists gegen Pfad-Traversal sind ein bekannt schwaches Muster --
+   Runde 1 verbot ".." als Teilstring, liess aber Prozent-Encoding
+   ("%2e%2e") durch, weil urllib das erst beim eigentlichen Request
+   dekodiert, nicht beim String-Vergleich. _validate_urn() ist deshalb
+   eine ALLOWLIST: nur Zeichen, die tatsaechlich in einer URN in diesem
+   Repo vorkommen (siehe dort fuer die Grammatik und den Beleg-Grep).
 """
 
 from __future__ import annotations
@@ -53,35 +61,52 @@ class _NoRedirect(urllib.request.HTTPRedirectHandler):
         return None
 
 
-def _install_no_redirect_opener() -> None:
-    """Installiert den Opener global fuer urllib.request.urlopen().
-
-    Additiv statt eines Umbaus von send(): die einzige andere urlopen()-
-    Stelle im Repo (harness/preflight.py) spricht ebenfalls nur mit GMS,
-    fuer die dieselbe Regel gilt (GMS redirected nie). Empirisch geprueft
-    (2026-08-07, Python 3.11.2): ohne den Opener folgt urlopen() dem 302
-    und der Authorization-Header kommt beim Redirect-Ziel an; mit
-    install_opener(build_opener(_NoRedirect)) wirft urlopen() stattdessen
-    HTTPError(302), das Redirect-Ziel wird nie kontaktiert.
-    """
-    urllib.request.install_opener(urllib.request.build_opener(_NoRedirect))
-
-
-_install_no_redirect_opener()
+# Module-level, einmal gebauter Opener statt eines globalen
+# install_opener()-Seiteneffekts (Review-Runde 2, 2026-08-07): dieselbe
+# Redirect-Sperre, aber urllib.request.urlopen() bleibt fuer jeden anderen
+# Aufrufer im Prozess unveraendert -- nur send() unten benutzt _OPENER
+# explizit. Empirisch geprueft (2026-08-07, Python 3.11.2): ohne den
+# Opener folgt urlopen() dem 302 und der Authorization-Header kommt beim
+# Redirect-Ziel an; mit _OPENER.open() wirft es stattdessen HTTPError(302),
+# das Redirect-Ziel wird nie kontaktiert.
+_OPENER = urllib.request.build_opener(_NoRedirect)
 
 
 # Erlaubte URN-Grammatik fuer die Pfad-Interpolation (Finding C4).
-# Verschachtelte DataHub-URNs enthalten legitim ( ) , : und auch / (manche
-# Plattform-Datensatznamen, z.B. postgres-Schemas) -- deshalb wird / NICHT
-# verboten. Verboten sind nur Zeichen/Teilstrings, die eine OpenAPI-Pfad-
-# Interpolation umschreiben koennen: " \ Leerraum { } ? # sowie ".." (Path-
-# Traversal). Alternative waere Prozent-Encoding der URN, aber ob GMS
+#
+# ALLOWLIST statt Denylist (Review-Runde 2, 2026-08-07): Runde 1 verbot
+# nur einzelne Zeichen + die Teilzeichenkette "..". Live widerlegt --
+# "urn:li:dataset:%2e%2e%2fadmin%2fsecret" enthaelt keines der verbotenen
+# Zeichen und wurde akzeptiert, weil urllib "%2e" erst beim eigentlichen
+# Request dekodiert, nicht beim String-Vergleich hier. Denylists gegen
+# Traversal sind ein bekannt schwaches Muster (%2e%2e ist der erste
+# Scanner-Versuch) -- ob GMS %2e ueberhaupt normalisiert, ist ungeprueft,
+# und genau diese Ungewissheit ist der Punkt.
+#
+# Grammatik per Beleg statt Vermutung: `grep -rohE "urn:li:[A-Za-z]+:..."
+# probate/ harness/ examples/ probate_action/ ui/` (2026-08-07) --
+# jedes Zeichen ausserhalb [A-Za-z0-9_.:,()/-] in echten URN-Literalen
+# war ausschliesslich "{" / "}", und die stammen alle aus Python-Format-
+# Platzhaltern VOR der Interpolation (z.B. "{PLATFORM}", "{qid}",
+# "{n:05d}") -- nie aus einer tatsaechlichen Laufzeit-URN. Kein einziges
+# "%" in irgendeiner URN im Repo. Erlaubt: Gross-/Kleinbuchstaben, Ziffern,
+# `_ . : , ( ) -` und `/` (Plattform-Datensatznamen wie postgres-Schemas
+# brauchen den Slash legitim). Alles andere -- inkl. "%", NUL, Steuer-
+# zeichen, Leerraum, `"` `\` `{` `}` `?` `#` -- wird abgelehnt.
+#
+# Die Allowlist erlaubt weiterhin einzelne "." und "/", also bleibt der
+# explizite ".."-Substring-Check noetig: er faengt Traversal aus echten
+# (nicht prozent-encodierten) Zeichen wie "urn:li:dataset:../../etc".
+#
+# Alternative waere Prozent-Encoding der URN vor dem Senden, aber ob GMS
 # encodierte URNs in Pfaden akzeptiert, ist heute Nacht nicht geprueft --
 # Validierung statt Encoding ist der risikoaermere Weg.
-URN_RE = re.compile(r'^urn:li:[a-zA-Z]+:[^"\\{}?#\s]+$')
+URN_RE = re.compile(r"^urn:li:[A-Za-z]+:[A-Za-z0-9_.:,()/-]+$")
 
 
-def _validate_urn(urn: str) -> None:
+def _validate_urn(urn: object) -> None:
+    if not isinstance(urn, str):
+        raise GmsError(f"URN muss ein String sein, ist {type(urn).__name__}")
     if not URN_RE.match(urn) or ".." in urn:
         raise GmsError(f"URN verletzt das erlaubte Pfad-Muster: {urn[:200]!r}")
 
@@ -94,7 +119,7 @@ def _urllib_transport(token: str | None) -> Callable[[str, str, Any], tuple[int,
         if token:
             req.add_header("Authorization", f"Bearer {token}")
         try:
-            with urllib.request.urlopen(req, timeout=30) as r:
+            with _OPENER.open(req, timeout=30) as r:
                 raw = r.read().decode()
                 return r.status, (json.loads(raw) if raw.strip() else None)
         except urllib.error.HTTPError as e:
