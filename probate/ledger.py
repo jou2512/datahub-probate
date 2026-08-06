@@ -48,3 +48,47 @@ class Bucket:
     bucket_ms: int
     total_sql_queries: int
     unique_user_count: int
+
+
+_DAY_MS = 86_400_000
+
+
+@dataclass(frozen=True)
+class Coverage:
+    """Wie weit reicht unser Blick ueberhaupt?
+
+    Diese Frage wird VOR jeder Klassifikation beantwortet. Ohne sie ist
+    jede Aussage ueber eine Kante eine Behauptung ueber Daten, die es
+    vielleicht gar nicht gibt.
+    """
+
+    buckets_seen: int
+    oldest_bucket_ms: int | None
+    newest_bucket_ms: int | None
+    reason: str  # leer = abgedeckt; sonst warum nicht
+
+    @property
+    def has_window(self) -> bool:
+        return self.buckets_seen > 0
+
+    @property
+    def days_span(self) -> int | None:
+        if self.oldest_bucket_ms is None or self.newest_bucket_ms is None:
+            return None
+        return (self.newest_bucket_ms - self.oldest_bucket_ms) // _DAY_MS
+
+    def to_json(self) -> dict:
+        return {
+            "buckets_seen": self.buckets_seen,
+            "oldest_bucket_ms": self.oldest_bucket_ms,
+            "newest_bucket_ms": self.newest_bucket_ms,
+            "days_span": self.days_span,
+            "reason": self.reason,
+        }
+
+
+def coverage_from_buckets(buckets: tuple[Bucket, ...]) -> Coverage:
+    if not buckets:
+        return Coverage(0, None, None, "keine Nutzungs-Zeitfenster im Katalog")
+    ordered = sorted(buckets, key=lambda b: b.bucket_ms)
+    return Coverage(len(ordered), ordered[0].bucket_ms, ordered[-1].bucket_ms, "")
