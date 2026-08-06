@@ -50,3 +50,18 @@ def test_upsert_raises_when_nothing_was_written():
     t = FakeTransport([(200, [])])
     with pytest.raises(GmsError):
         Gms("http://x", transport=t).upsert("dataset", [{"urn": "u"}])
+
+
+def test_delete_aspect_sends_delete_to_the_aspect_url():
+    t = FakeTransport([(200, None)])
+    Gms("http://x", transport=t).delete_aspect("dataset", "u", "deprecation")
+    method, url, payload = t.calls[0]
+    assert method == "DELETE"
+    assert url == "http://x/openapi/v3/entity/dataset/u/deprecation"
+    assert payload is None
+
+
+def test_delete_aspect_raises_on_non_200():
+    t = FakeTransport([(404, "not found")])
+    with pytest.raises(GmsError):
+        Gms("http://x", transport=t).delete_aspect("dataset", "u", "deprecation")

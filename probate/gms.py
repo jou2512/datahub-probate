@@ -79,3 +79,16 @@ class Gms:
         if status != 200:
             raise GmsError(f"get_aspect HTTP {status}: {str(body)[:200]}")
         return body if isinstance(body, dict) else None
+
+    def delete_aspect(self, entity_type: str, urn: str, aspect: str) -> None:
+        """Fuer den Rueckwaertsgang: ein Aspekt, den es vorher nicht gab,
+
+        wird beim Revert nicht auf einen erfundenen Leerwert gesetzt,
+        sondern geloescht. Live gegen 28080 verifiziert (2026-08-06):
+        DELETE /openapi/v3/entity/<typ>/<urn>/<aspekt> -> HTTP 200,
+        get_aspect() liefert danach wieder None.
+        """
+        url = f"{self.base}/openapi/v3/entity/{entity_type.lower()}/{urn}/{aspect.lower()}"
+        status, body = self._send("DELETE", url, None)
+        if status != 200:
+            raise GmsError(f"delete_aspect {entity_type}.{aspect} HTTP {status}: {str(body)[:200]}")
