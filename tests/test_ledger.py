@@ -316,7 +316,7 @@ def test_state_sweep_over_declared_x_window_x_pair_query():
 
 # --- Task 5: Beschaffung ------------------------------------------------
 
-from probate.ledger import fetch_cooccurrence, fetch_declared_edges, fetch_usage
+from probate.ledger import fetch_cooccurrence, fetch_declared_edges, fetch_usage, usage_evidence
 
 
 class FakeGms:
@@ -327,9 +327,11 @@ class FakeGms:
         self.graphql_by_call = list(graphql_by_call or [])
         self.aspects = aspects or {}
         self.queries_sent = []
+        self.graphql_call_count = 0
 
     def graphql(self, query, variables=None):
         self.queries_sent.append((query, variables))
+        self.graphql_call_count += 1
         return self.graphql_by_call.pop(0)
 
     def get_aspect(self, entity_type, urn, aspect):
@@ -381,7 +383,9 @@ def test_fetch_cooccurrence_keeps_the_query_urn_as_evidence_per_target():
         aspects={("query", "urn:li:query:q1", "querysubjects"): {
             "value": {"subjects": [{"entity": "urn:x"}, {"entity": "urn:other"}]}}},
     )
-    assert fetch_cooccurrence(g, "urn:x") == {"urn:other": ["urn:li:query:q1"]}
+    cooc, total = fetch_cooccurrence(g, "urn:x")
+    assert cooc == {"urn:other": ["urn:li:query:q1"]}
+    assert total == 1
 
 
 def test_fetch_cooccurrence_never_reports_the_focus_dataset_as_its_own_consumer():
@@ -391,7 +395,9 @@ def test_fetch_cooccurrence_never_reports_the_focus_dataset_as_its_own_consumer(
         aspects={("query", "urn:li:query:q1", "querysubjects"): {
             "value": {"subjects": [{"entity": "urn:x"}]}}},
     )
-    assert fetch_cooccurrence(g, "urn:x") == {}
+    cooc, total = fetch_cooccurrence(g, "urn:x")
+    assert cooc == {}
+    assert total == 1
 
 
 def test_fetch_cooccurrence_collects_every_query_that_touches_the_same_target():
@@ -406,4 +412,35 @@ def test_fetch_cooccurrence_collects_every_query_that_touches_the_same_target():
                 "value": {"subjects": [{"entity": "urn:x"}, {"entity": "urn:o"}]}},
         },
     )
-    assert fetch_cooccurrence(g, "urn:x") == {"urn:o": ["urn:li:query:q1", "urn:li:query:q2"]}
+    cooc, total = fetch_cooccurrence(g, "urn:x")
+    assert cooc == {"urn:o": ["urn:li:query:q1", "urn:li:query:q2"]}
+    assert total == 2
+
+
+def test_fetch_cooccurrence_total_is_the_search_total_not_the_page_length():
+    """IMPORTANT 2 (Review Fix-Runde 1): COOCCURRENCE_Q begrenzt auf
+    count=200. Bei mehr echten Treffern waere `len(searchResults)` eine
+    Unterzaehlung -- `total` aus der Suchantwort ist die einzige Zahl,
+    die als `queries_seen` gefahrlos in classify_edges darf."""
+    g = FakeGms(
+        [{"searchAcrossEntities": {"total": 350, "searchResults": [
+            {"entity": {"urn": f"urn:li:query:q{i}"}} for i in range(200)]}}],
+        aspects={},
+    )
+    cooc, total = fetch_cooccurrence(g, "urn:x")
+    assert total == 350
+    assert total != 200
+
+
+def test_usage_evidence_fetches_buckets_exactly_once():
+    """IMPORTANT 3 (Review Fix-Runde 1): Coverage und Timeline duerfen
+    strukturell nicht aus zwei getrennten `fetch_usage`-Aufrufen stammen
+    -- sonst koennte eine Race den Divergenz-Zweig in classify_edges
+    ausloesen, ohne dass die Daten wirklich widerspruechlich sind."""
+    g = FakeGms([{"dataset": {"usageStats": {"buckets": [
+        {"bucket": 10 * DAY, "metrics": {"totalSqlQueries": 5, "uniqueUserCount": 2}},
+    ]}}}])
+    cov, tl = usage_evidence(g, "urn:x")
+    assert g.graphql_call_count == 1
+    assert cov.buckets_seen == 1
+    assert tl.buckets == (Bucket(10 * DAY, 5, 2),)

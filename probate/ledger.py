@@ -335,12 +335,19 @@ query($urn: String!, $count: Int!) {
 """
 
 
-def fetch_usage(gms, urn: str, range_: str = "MONTH") -> tuple[Bucket, ...]:
+def fetch_usage(gms, urn: str) -> tuple[Bucket, ...]:
     """Rohe Zeitfenster, nicht summiert.
 
     Ein Bucket mit `totalSqlQueries: null` ist ein Bucket mit null
     Verkehr, kein fehlender Bucket -- er belegt, dass hingesehen wurde.
     Wer ihn wegfiltert, macht aus `dead` ein `unknown`.
+
+    Kein `range_`-Parameter mehr (Review Fix-Runde 1, IMPORTANT 4): `USAGE_Q`
+    hat `range: MONTH` fest im Query-String stehen, ein frueherer
+    `range_="ALL"`-Parameter wurde nie eingesetzt und haette still
+    MONTH-Daten geliefert -- eine Falle-4-Klasse (erfundene/wirkungslose
+    Felder werden verworfen, nicht abgelehnt). Wer einen anderen Bereich
+    braucht, baut eine eigene Abfrage statt eines stummen Parameters.
     """
     data = gms.graphql(USAGE_Q, {"urn": urn})
     stats = (data.get("dataset") or {}).get("usageStats") or {}
@@ -361,8 +368,9 @@ def fetch_declared_edges(gms, urn: str, count: int = 200) -> set[str]:
     return {r["entity"]["urn"] for r in rels if r.get("entity")}
 
 
-def fetch_cooccurrence(gms, urn: str) -> dict[str, list[str]]:
-    """Ko-Okkurrenz MIT Beleg: Ziel-URN -> Liste der Query-URNs.
+def fetch_cooccurrence(gms, urn: str) -> tuple[dict[str, list[str]], int]:
+    """Ko-Okkurrenz MIT Beleg: Ziel-URN -> Liste der Query-URNs, plus die
+    ECHTE Gesamtzahl der Query-Treffer fuer diesen Fokus.
 
     `targets.fetch_measured` liefert dieselbe Information als blosse
     Menge und wirft die Query-URN weg. Genau die ist aber der Beleg, den
@@ -372,6 +380,16 @@ def fetch_cooccurrence(gms, urn: str) -> dict[str, list[str]]:
     Ko-Okkurrenz ist damit UNGERICHTET -- das steht im Beleg jeder
     missing-Kante und darf beim Schreiben (correct.py) nicht als
     gemessene Richtung ausgegeben werden.
+
+    Rueckgabe `(dict, total)` (Review Fix-Runde 1, IMPORTANT 2): `total`
+    ist das `total`-Feld der Suchantwort, NICHT `len(searchResults)`.
+    `COOCCURRENCE_Q` (`_QUERY_SEARCH_Q` aus targets.py) begrenzt auf
+    `count: 200` -- bei mehr Treffern waere ein `len()` der zurueck-
+    gegebenen Seite eine Unterzaehlung. `total` ist die einzige Zahl, die
+    `classify_edges` als `queries_seen` gefahrlos verwenden darf; ein
+    Aufrufer, der bisher `len(searchResults)` selbst nachgezaehlt hat
+    (siehe Task-5-Report, Concern 2), muss diesen zweiten Aufruf jetzt
+    nicht mehr machen.
 
     Zeitstempel-Messschritt (Step 1, 07.08., `harness/runs/
     query-timestamp-probe.json`): eine Query-Entitaet TRAEGT einen
@@ -387,9 +405,11 @@ def fetch_cooccurrence(gms, urn: str) -> dict[str, list[str]]:
     Detail-Ebene kann `created.time` pro Paar-Query zusaetzlich zeigen.
     """
     hits = gms.graphql(COOCCURRENCE_Q, {"urn": urn})
+    search = hits.get("searchAcrossEntities") or {}
+    total = int(search.get("total") or 0)
     query_urns = [
         r["entity"]["urn"]
-        for r in (hits.get("searchAcrossEntities") or {}).get("searchResults", [])
+        for r in search.get("searchResults", [])
         if r.get("entity")
     ]
     out: dict[str, list[str]] = {}
@@ -401,4 +421,21 @@ def fetch_cooccurrence(gms, urn: str) -> dict[str, list[str]]:
             other = s.get("entity")
             if other and other != urn:
                 out.setdefault(other, []).append(q_urn)
-    return out
+    return out, total
+
+
+def usage_evidence(gms, urn: str) -> tuple[Coverage, Timeline]:
+    """Coverage UND Timeline aus genau EINEM `fetch_usage`-Aufruf.
+
+    Review Fix-Runde 1, IMPORTANT 3: bislang war "aus denselben Bucket-
+    Daten bauen" reine Aufrufer-Konvention (Task-4-Review-Obligation 2),
+    nicht strukturell erzwungen -- ein Aufrufer haette `fetch_usage`
+    versehentlich zweimal aufrufen koennen (einmal fuer Coverage, einmal
+    fuer Timeline), und bei zwei Netzwerk-Antworten aus unterschiedlichen
+    Momenten waere genau der Divergenz-Zweig in `classify_edges`
+    ("Abdeckung und Zeitachse widersprechen sich" -> unknown) durch eine
+    Race entstanden, nicht durch eine echte Dateninkonsistenz. Diese
+    Funktion macht den Einzel-Fetch zur einzigen Schnittstelle.
+    """
+    buckets = fetch_usage(gms, urn)
+    return coverage_from_buckets(buckets), Timeline(buckets)

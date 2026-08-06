@@ -1,0 +1,273 @@
+{
+  "seeded": true,
+  "seeded_statement": "Laeuft gegen den geseedeten Beispielkatalog (namespace probate_seedlab, harness/seed_lineage_lab.py) -- keine echte Warehouse-Nutzung.",
+  "gms_url": "http://localhost:28080",
+  "manifest": "examples\\seedlab-manifest.json",
+  "generated_at": "2026-08-06T23:47:24.983180+00:00",
+  "now_ms": 1786060044983,
+  "all_four_states_matched_expected": true,
+  "pairs": {
+    "confirmed": {
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)",
+      "expected_state": "confirmed",
+      "state": "confirmed",
+      "matches_expected": true,
+      "evidence": {
+        "query_urns": [
+          "urn:li:query:probate-seedlab-confirmed"
+        ],
+        "source": "declared lineage + query co-occurrence"
+      },
+      "queries_seen": 1,
+      "buckets_checked": 3,
+      "coverage": {
+        "buckets_seen": 3,
+        "oldest_bucket_ms": 1785801600000,
+        "newest_bucket_ms": 1785974400000,
+        "days_span": 2,
+        "reason": ""
+      },
+      "timeline": {
+        "last_covered_ms": 1785974400000,
+        "dead_since_days": 0,
+        "dead_since_is_lower_bound": false,
+        "series": [
+          [
+            1785801600000,
+            28
+          ],
+          [
+            1785888000000,
+            35
+          ],
+          [
+            1785974400000,
+            40
+          ]
+        ]
+      }
+    },
+    "dead": {
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_downstream,PROD)",
+      "expected_state": "dead",
+      "state": "dead",
+      "matches_expected": true,
+      "evidence": {
+        "reason": "im geprueften Fenster nie gemessen",
+        "buckets_checked": 31,
+        "source": "declared lineage"
+      },
+      "queries_seen": 0,
+      "buckets_checked": 31,
+      "coverage": {
+        "buckets_seen": 31,
+        "oldest_bucket_ms": 1783382400000,
+        "newest_bucket_ms": 1785974400000,
+        "days_span": 30,
+        "reason": ""
+      },
+      "timeline": {
+        "last_covered_ms": null,
+        "dead_since_days": 30,
+        "dead_since_is_lower_bound": true,
+        "series": [
+          [
+            1783382400000,
+            0
+          ],
+          [
+            1783468800000,
+            0
+          ],
+          [
+            1783555200000,
+            0
+          ],
+          [
+            1783641600000,
+            0
+          ],
+          [
+            1783728000000,
+            0
+          ],
+          [
+            1783814400000,
+            0
+          ],
+          [
+            1783900800000,
+            0
+          ],
+          [
+            1783987200000,
+            0
+          ],
+          [
+            1784073600000,
+            0
+          ],
+          [
+            1784160000000,
+            0
+          ],
+          [
+            1784246400000,
+            0
+          ],
+          [
+            1784332800000,
+            0
+          ],
+          [
+            1784419200000,
+            0
+          ],
+          [
+            1784505600000,
+            0
+          ],
+          [
+            1784592000000,
+            0
+          ],
+          [
+            1784678400000,
+            0
+          ],
+          [
+            1784764800000,
+            0
+          ],
+          [
+            1784851200000,
+            0
+          ],
+          [
+            1784937600000,
+            0
+          ],
+          [
+            1785024000000,
+            0
+          ],
+          [
+            1785110400000,
+            0
+          ],
+          [
+            1785196800000,
+            0
+          ],
+          [
+            1785283200000,
+            0
+          ],
+          [
+            1785369600000,
+            0
+          ],
+          [
+            1785456000000,
+            0
+          ],
+          [
+            1785542400000,
+            0
+          ],
+          [
+            1785628800000,
+            0
+          ],
+          [
+            1785715200000,
+            0
+          ],
+          [
+            1785801600000,
+            0
+          ],
+          [
+            1785888000000,
+            0
+          ],
+          [
+            1785974400000,
+            0
+          ]
+        ]
+      }
+    },
+    "missing": {
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)",
+      "expected_state": "missing",
+      "state": "missing",
+      "matches_expected": true,
+      "evidence": {
+        "query_urns": [
+          "urn:li:query:probate-seedlab-missing"
+        ],
+        "cooccurrence_count": 1,
+        "direction_evidence": "co-occurrence (undirected)",
+        "source": "query co-occurrence"
+      },
+      "queries_seen": 1,
+      "buckets_checked": 3,
+      "coverage": {
+        "buckets_seen": 3,
+        "oldest_bucket_ms": 1785801600000,
+        "newest_bucket_ms": 1785974400000,
+        "days_span": 2,
+        "reason": ""
+      },
+      "timeline": {
+        "last_covered_ms": 1785974400000,
+        "dead_since_days": 0,
+        "dead_since_is_lower_bound": false,
+        "series": [
+          [
+            1785801600000,
+            19
+          ],
+          [
+            1785888000000,
+            24
+          ],
+          [
+            1785974400000,
+            31
+          ]
+        ]
+      }
+    },
+    "unknown": {
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_downstream,PROD)",
+      "expected_state": "unknown",
+      "state": "unknown",
+      "matches_expected": true,
+      "evidence": {
+        "reason": "keine Nutzungs-Zeitfenster im Katalog",
+        "source": "declared lineage"
+      },
+      "queries_seen": 0,
+      "buckets_checked": 0,
+      "coverage": {
+        "buckets_seen": 0,
+        "oldest_bucket_ms": null,
+        "newest_bucket_ms": null,
+        "days_span": null,
+        "reason": "keine Nutzungs-Zeitfenster im Katalog"
+      },
+      "timeline": {
+        "last_covered_ms": null,
+        "dead_since_days": null,
+        "dead_since_is_lower_bound": false,
+        "series": []
+      }
+    }
+  }
+}
