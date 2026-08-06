@@ -1,16 +1,22 @@
 """Der einzige Weg nach draussen.
 
-Zwei Fallen sind hier eingebaut, damit sie niemand sonst noch einmal tritt:
+Drei Fallen sind hier eingebaut, damit sie niemand sonst noch einmal tritt:
 
 1. POST /openapi/v3/entity/<typ> nimmt eine LISTE. Ein Objekt liefert
    HTTP 200 und ein leeres [] - erfolgreich aussehender Nichtschreibvorgang.
 2. GraphQL meldet Fehler mit HTTP 200. Wer nur den Status-Code prueft,
    haelt eine Fehlermeldung fuer ein Ergebnis.
+3. Live-Fund (Jury-Review 2026-08-06): ohne Token authentifiziert probate
+   sich als urn:li:corpuser:__datahub_system -- das funktioniert nur gegen
+   eine Instanz OHNE Zugriffskontrolle. Gegen eine echte, abgesicherte GMS
+   braucht es ein Personal Access Token. Vorher gab es dafuer keinen Weg
+   ausser einem Code-Kommentar in succession.py -- jetzt --token/DATAHUB_TOKEN.
 """
 
 from __future__ import annotations
 
 import json
+import os
 import urllib.error
 import urllib.request
 from typing import Any, Callable
@@ -20,16 +26,21 @@ class GmsError(RuntimeError):
     pass
 
 
-def _urllib_transport(method: str, url: str, payload: Any) -> tuple[int, Any]:
-    data = json.dumps(payload).encode() if payload is not None else None
-    req = urllib.request.Request(url, data=data, method=method)
-    req.add_header("Content-Type", "application/json")
-    try:
-        with urllib.request.urlopen(req, timeout=30) as r:
-            raw = r.read().decode()
-            return r.status, (json.loads(raw) if raw.strip() else None)
-    except urllib.error.HTTPError as e:
-        return e.code, e.read().decode()[:400]
+def _urllib_transport(token: str | None) -> Callable[[str, str, Any], tuple[int, Any]]:
+    def send(method: str, url: str, payload: Any) -> tuple[int, Any]:
+        data = json.dumps(payload).encode() if payload is not None else None
+        req = urllib.request.Request(url, data=data, method=method)
+        req.add_header("Content-Type", "application/json")
+        if token:
+            req.add_header("Authorization", f"Bearer {token}")
+        try:
+            with urllib.request.urlopen(req, timeout=30) as r:
+                raw = r.read().decode()
+                return r.status, (json.loads(raw) if raw.strip() else None)
+        except urllib.error.HTTPError as e:
+            return e.code, e.read().decode()[:400]
+
+    return send
 
 
 class Gms:
@@ -37,11 +48,17 @@ class Gms:
         self,
         base_url: str = "http://localhost:18080",
         timeout: int = 30,
+        token: str | None = None,
         transport: Callable[[str, str, Any], tuple[int, Any]] | None = None,
     ) -> None:
+        """`token`: explizites Personal Access Token. Fehlt es, wird
+        DATAHUB_TOKEN aus der Umgebung gelesen (leer -> kein Header,
+        genau das bisherige, jetzt bewusste statt zufaellige Verhalten
+        gegen unabgesicherte lokale Instanzen)."""
         self.base = base_url.rstrip("/")
         self.timeout = timeout
-        self._send = transport or _urllib_transport
+        self.token = token if token is not None else os.environ.get("DATAHUB_TOKEN")
+        self._send = transport or _urllib_transport(self.token)
 
     def graphql(self, query: str, variables: dict | None = None) -> dict:
         payload: dict[str, Any] = {"query": query}

@@ -10,6 +10,7 @@ from __future__ import annotations
 
 import hashlib
 import inspect
+import sys
 from dataclasses import dataclass
 from typing import Callable
 
@@ -39,16 +40,31 @@ class RuleOutcome:
     urn: str
     passed: bool
     definition_md5: str
+    errored: str | None = None
+    """Live-Fund (2026-08-06, Jury-Review): eine werfende Regel wurde bisher
+    lautlos zu FAILURE -- nicht unterscheidbar von einer Regel, die
+    tatsaechlich geprueft hat und Nein sagt. Ein kaputtes Rule-Objekt
+    (z.B. KeyError nach einer Schema-Aenderung) haette fuer immer wie ein
+    sauberes, gepruftes Nein ausgesehen. TestResults.pdl kennt nur
+    SUCCESS/FAILURE (kein drittes Feld moeglich), also bleibt der
+    DataHub-Aspekt bei FAILURE -- aber lokal (hier, in errored) und auf
+    stderr wird der Fehler laut, statt sich in der stillen Mehrheit der
+    echten Failures zu verstecken."""
 
 
 def evaluate(rules: list[Rule], facts: dict) -> list[RuleOutcome]:
     outcomes = []
     for rule in rules:
+        errored = None
         try:
             passed = bool(rule.check(facts))
-        except Exception:  # noqa: BLE001 - eine geworfene Regel ist ein Nein, kein Ja
+        except Exception as exc:  # noqa: BLE001 - eine geworfene Regel ist ein Nein, kein Ja,
+            # aber ein LAUTES Nein: siehe RuleOutcome.errored oben.
             passed = False
-        outcomes.append(RuleOutcome(rule.id, rule.urn, passed, rule.definition_md5))
+            errored = f"{type(exc).__name__}: {exc}"
+            print(f"  WARNUNG: Regel '{rule.id}' ist gescheitert, nicht fehlgeschlagen: "
+                  f"{errored}", file=sys.stderr)
+        outcomes.append(RuleOutcome(rule.id, rule.urn, passed, rule.definition_md5, errored))
     return outcomes
 
 

@@ -1,11 +1,18 @@
 {
-  "predecessor": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customers_v3,PROD)",
-  "successor": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customers_v4,PROD)",
+  "predecessor": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customers_v7,PROD)",
+  "successor": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customers_v8,PROD)",
   "live_consumers": 1,
   "consumers": [
-    "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customer_ltv_report_v2,PROD)"
+    "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customer_ltv_report_v4,PROD)"
   ],
   "parity_ok": true,
   "parity_reasons": [],
-  "signed": 1
+  "form_urn": "urn:li:form:probate-7b0b947ba0ed",
+  "prompt_id": "probate-7b0b947ba0ed-confirm",
+  "property_urn": "urn:li:structuredProperty:probate_migrated",
+  "awaiting_confirmation": [],
+  "signed": [
+    "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customer_ltv_report_v4,PROD)"
+  ],
+  "signed_count": 1
 }

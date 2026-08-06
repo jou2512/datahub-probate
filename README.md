@@ -23,12 +23,22 @@ begründetes Nein.
 ## Der Ablauf, ein echter Lauf
 
 ```
-$ probate start --from customers_v3 --to customers_v4
+$ probate start --from customers_v7 --to customers_v8
 { "live": 1, "dead_wood": 0, "missing_lineage": 1, "live_targets": 1 }        → examples/campaign-start.json
 
-$ probate apply --from customers_v3 --to customers_v4 --old-rows 48213 --new-rows 48213
-{ "live_consumers": 1, "parity_ok": true, "signed": 1 }                       → examples/campaign-apply.json
+$ probate apply --from customers_v7 --to customers_v8 --old-rows 9000 --new-rows 9000
+{ "live_consumers": 1, "parity_ok": true, "awaiting_confirmation": [...] }    → schlaegt vor, signiert NICHT
+
+$ probate confirm --entity '<konsument-urn>' --evidence "Report gegen v8 geprueft, Zahlen stimmen."
+1/1 Konsumenten signiert.                                                     → examples/campaign-apply.json
 ```
+
+**`apply` schlägt vor, `confirm` signiert — nie dieselbe Instanz.** Live-Fund aus einer
+externen Jury-Simulation (2026-08-06): die erste Fassung liess `apply` sich selbst zum Owner
+der Konsumenten-Tabelle machen und danach selbst `verifyForm` aufrufen — eine Selbstbescheinigung,
+keine Unterschrift, und genau die Behauptung ohne Beleg, gegen die dieses Projekt antritt.
+Jetzt bricht `apply` nach dem Vorschlag ab; `confirm` ist ein eigener, expliziter Befehl mit
+menschlich geschriebenem `--evidence`-Text, den probate nie selbst aufruft.
 
 Live gegen eine echte DataHub-Instanz (v1.5.0.6) gemessen, 2026-08-06. Vorher/Nachher der
 Regelauswertung, direkt aus dem Katalog zurückgelesen:
@@ -63,14 +73,14 @@ REFUSED - keine Umschaltung ohne Beweis:
 | `probate/succession.py` | Nachfolge nur gegen Beweis, feste Reihenfolge (Zusage → Version verknüpfen → erst dann abkündigen) |
 | `probate/campaign.py` | die Unterschrift über DataHubs eigene Formular-Oberfläche, inkl. Owner-Absicherung |
 | `probate_action/watcher.py` | Rückfall-Erkennung über den Aspekt, nicht über den Actor (Ingest/Propagation sind actor-seitig nicht von echten Zugriffen zu unterscheiden) |
-| `probate/cli.py` | `start` (messen, dry-run) · `apply` (der ganze Ablauf) · `status` · `revert` |
+| `probate/cli.py` | `start` (messen) · `apply` (Beweis + Vorschlag, signiert nicht) · `confirm` (menschliche Unterschrift, ein Konsument) · `status` · `revert` |
 | `harness/audit_claims.py` | prüft jede Zahl in diesem README gegen die Lauf-Artefakte, Exit 1 bei Drift |
 
 ## Nachprüfen, ohne irgendetwas zu installieren
 
 ```bash
 uv run --python 3.11 --with pytest --with acryl-datahub-actions python -m pytest tests/ -q
-# 55 passed
+# 61 passed
 
 uv run --python 3.11 python harness/audit_claims.py
 # Alle 3 Zahlen decken sich mit den Laeufen.
@@ -87,8 +97,9 @@ Zahlen misst, die nicht verunreinigt werden dürfen. Gegen die eigene Instanz mi
 umleiten.
 
 ```bash
-probate start --from '<vorgaenger-urn>' --to '<nachfolger-urn>'
-probate apply --from '<vorgaenger-urn>' --to '<nachfolger-urn>' --old-rows N --new-rows N
+probate start   --from '<vorgaenger-urn>' --to '<nachfolger-urn>'
+probate apply   --from '<vorgaenger-urn>' --to '<nachfolger-urn>' --old-rows N --new-rows N
+probate confirm --entity '<konsument-urn>' --evidence '<warum, von einem Menschen geschrieben>'
 probate revert   # nimmt jeden journalisierten Schreibvorgang dieser Session zurueck
 ```
 
@@ -96,10 +107,17 @@ probate revert   # nimmt jeden journalisierten Schreibvorgang dieser Session zur
 Warehouse-Anbindung zum Selbstzählen eingebaut. Eine erfundene Zählung wäre schlimmer als eine
 fehlende — genau das Prinzip, das dieses Projekt selbst durchsetzt.
 
+**Gegen eine abgesicherte Instanz:** `--token <PAT>` oder `DATAHUB_TOKEN` in der Umgebung.
+Ohne Token authentifiziert probate sich als `urn:li:corpuser:__datahub_system` — das
+funktioniert nur gegen eine Instanz ohne Zugriffskontrolle (z.B. eine lokale
+`docker quickstart`). Live-Fund aus derselben Jury-Simulation: das stand vorher nur in einem
+Code-Kommentar, nicht im README.
+
 ## Was live gefunden wurde, nicht im Bauplan stand
 
-Neun eigenständige Funde beim Bauen gegen eine echte Instanz, jeder mit Commit-Beleg in der
-Git-Historie:
+Zwölf eigenständige Funde beim Bauen gegen eine echte Instanz, jeder mit Commit-Beleg in der
+Git-Historie — die letzten drei kamen aus einer externen Jury-Simulation, nicht aus eigener
+Prüfung, und wiegen am schwersten:
 
 1. `POST /openapi/v3/entity/<typ>` verlangt eine **Liste** — ein Objekt liefert HTTP 200 mit
    leerem `[]` und schreibt nichts.
@@ -120,6 +138,17 @@ Git-Historie:
 9. Pythons eingebautes `hash()` ist für Strings **nicht stabil über Prozessläufe**
    (PYTHONHASHSEED) — eine VersionSet-URN, die darauf aufbaute, wäre bei jedem Neustart eine
    andere gewesen. Ersetzt durch `hashlib.sha1`.
+10. **`apply` machte probate zum Konsumenten-Owner und liess es sich selbst verifizieren** —
+    keine Unterschrift, eine Selbstbescheinigung, und im README nicht als Grenze benannt (anders
+    als die Kafka-Lücke unten). Behoben: `apply` schlägt nur noch vor (`assign`/`autofill`),
+    `confirm` ist ein eigener Befehl mit menschlich geschriebenem Beleg-Text, den probate nie
+    selbst aufruft.
+11. **`ruleset.evaluate()` verschluckte eine werfende Regel lautlos zu `FAILURE`** — nicht
+    unterscheidbar von einem echten, geprüften Nein. Ein kaputtes Rule-Objekt (z.B. `KeyError`
+    nach einer Schema-Änderung) hätte für immer wie ein sauberes Ergebnis ausgesehen. Behoben:
+    `RuleOutcome.errored` trägt die Ursache, eine Warnung geht auf stderr.
+12. **Keine Auth-Story.** Ohne Token läuft probate als `urn:li:corpuser:__datahub_system` — nur
+    gegen eine Instanz ohne Zugriffskontrolle nutzbar. Behoben: `--token`/`DATAHUB_TOKEN`.
 
 ## Bewusste Lücke
 

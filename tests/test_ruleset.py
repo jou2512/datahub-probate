@@ -44,3 +44,20 @@ def test_a_rule_that_raises_counts_as_failing_not_as_passing():
     boom = Rule("boom", "wirft", lambda f: 1 / 0)
     out = evaluate([boom], {})
     assert out[0].passed is False
+
+
+def test_a_rule_that_raises_is_marked_errored_not_indistinguishable_from_a_real_no(capsys):
+    """Live-Fund (Jury-Review 2026-08-06): vorher war ein kaputtes Rule-Objekt
+    (z.B. KeyError nach Schema-Aenderung) nicht von einem echten, geprueften
+    Nein zu unterscheiden. errored traegt jetzt die Ursache, und eine
+    Warnung geht auf stderr."""
+    boom = Rule("boom", "wirft", lambda f: 1 / 0)
+    out = evaluate([boom], {})
+    assert out[0].errored is not None
+    assert "ZeroDivisionError" in out[0].errored
+    assert "boom" in capsys.readouterr().err
+
+
+def test_a_rule_that_returns_normally_is_not_marked_errored():
+    out = evaluate(RULES, {"successor": "urn:x", "parity_ok": False})
+    assert all(o.errored is None for o in out)

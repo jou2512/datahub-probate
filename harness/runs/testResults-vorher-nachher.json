@@ -1,0 +1,19 @@
+{
+  "nachher": {
+    "passing": [
+      {
+        "test": "urn:li:test:has-successor",
+        "type": "SUCCESS"
+      },
+      {
+        "test": "urn:li:test:parity-proven",
+        "type": "SUCCESS"
+      },
+      {
+        "test": "urn:li:test:all-consumers-signed",
+        "type": "SUCCESS"
+      }
+    ],
+    "failing": []
+  }
+}
