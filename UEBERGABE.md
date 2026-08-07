@@ -133,6 +133,10 @@ Dann pro Treffer `get_aspect("query", urn, "querysubjects")` → alle berührten
 | 14 | `/aspects?action=getTimeseriesAspectValues` braucht das Pflichtfeld **`limit`**, sonst HTTP 500 `NullPointerException: "limit" is null` |
 | 15 | Graph-/Suchindex hinkt Writes **und Deletes** nach (~30 s beobachtet, 07.08.) — Lösch-Verifikation über `get_aspect` (Primärspeicher), **nie** über `searchAcrossEntities`/`lineage` |
 | 16 | `claude -p` lädt im Repo-Verzeichnis **`CLAUDE.md`/`AGENTS.md`** und antwortet als Coding-Agent: 54,9 s, Markdown-umhüllt, kein parsbares JSON. Mit striktem `--system-prompt`: 20–27 s, sauberes JSON (gemessen 07.08., `probate/judge.py`) |
+| 17 | `gms.delete_aspect` löscht bei **Timeseries**-Aspekten nur den **jüngsten Wert**, nicht die Historie. Voller Wipe nur über `POST /entities?action=delete` (live belegt 07.08.) |
+| 18 | `get_aspect` ist **blind für Timeseries-Daten** — Bucket-Verifikation ausschliesslich über `getTimeseriesAspectValues` (mit Pflichtfeld `limit`, Falle 14) |
+| 19 | `usageStats`-Aggregation (GraphQL, ES-gestützt) hinkte **>75 s** nach — für Verifikation die Rohsumme aus dem Primärspeicher nehmen, nicht die Aggregation |
+| 20 | **Alle Quickstart-Container melden `unhealthy`** (zwei Stapel, 2 bzw. 4 Tage alt) — das ist ein Healthcheck-Flag, **kein** Funktionsausfall: GMS antwortet HTTP 200, `seedlab_verdicts.py` läuft Exit 0. Kafka zeigte 5362 `COORDINATOR_NOT_AVAILABLE` in 3 h; bei stalen ES-Kanten hilft `restoreIndices` (resynct ES aus MySQL, umgeht Kafka) |
 
 ---
 
