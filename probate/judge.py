@@ -26,8 +26,11 @@ from __future__ import annotations
 
 import json
 import re
+import subprocess
 from dataclasses import dataclass
 from typing import Callable
+
+from probate.ledger import Coverage, Edge, EdgeVerdict, Timeline
 
 # Live-Fund (07.08., gegen 28080 -- weicht vom Brief ab, siehe Docstring
 # unten): `Owner.owner` ist `OwnerType`, eine UNION aus `CorpUser` und
@@ -489,3 +492,170 @@ def judge_edge(verdict, up_ctx: dict, down_ctx: dict,
         used_model=True,
         fallback_reason="",
     )
+
+
+# --- Task 10: der echte Transport -------------------------------------
+#
+# Alles oberhalb dieser Zeile ist der Modell-freie/injizierbare Teil und
+# bleibt vollstaendig offline testbar. Ab hier: die EINE konkrete
+# Anbindung an einen echten Prozess. `runner` existiert ausschliesslich,
+# damit kein Test je `subprocess.run` selbst aufruft -- ein Fake steht
+# an seiner Stelle, `claude_cli_transport` selbst bleibt ungetestet nur
+# in dem Sinn, dass sie NIE mit dem echten Binary getestet wird; das
+# Live-Zeugnis dafuer liegt in `harness/runs/judge-transport-probe.json`,
+# nicht in der Test-Suite (Hard Rule: offline-only in Tests).
+#
+# Gemessener Zusatzfund (07.08., live gegen 2.1.223, Beleg im Probe-
+# Artefakt): OHNE `--system-prompt` laedt `claude -p` in DIESEM Ordner
+# automatisch dieses Repos `CLAUDE.md`/`AGENTS.md` und antwortet als
+# volle Coding-Session -- erkennt den eigenen Prompt als Zitat aus
+# `judge.py`, kommentiert ihn ("★ Insight ..."), haengt Markdown-Fences
+# um das JSON und verfehlt damit die eigene Zitatpflicht-Pruefung, weil
+# `raw` dann kein reines JSON-Objekt mehr ist (`judge_edge` faellt in
+# genau diesem Fall auf "Antwort war kein JSON" zurueck -- kein Bug in
+# `judge_edge`, sondern ein ungeeigneter Rohtext vom Transport). Ein
+# expliziter `--system-prompt`, der Werkzeugnutzung und Prosa verbietet,
+# behebt das messbar: derselbe Prompt liefert danach ein sauberes
+# `{"important": ..., "quote": ...}` ohne Umhuellung. Ohne diesen Fund
+# waere die Vorgabe aus dem Architektur-Entscheid (nur `-p` + `--output-
+# format json`) auf DIESER Maschine lauffaehig, aber praktisch nutzlos
+# gewesen -- jeder Aufruf haette am JSON-Parsing gescheitert, nicht am
+# Transport selbst.
+_JUDGE_SYSTEM_PROMPT = (
+    "You are a strict JSON-only responder. Output only the requested JSON "
+    "object and nothing else. Never explain, never use tools, never add "
+    "commentary, headers, or markdown code fences."
+)
+#
+# Timeout-Entscheid: 60s. Gemessen (07.08., live gegen `claude -p` mit
+# einem trivialen Prompt): `duration_ms` im Umschlag lag bei ~7s fuer
+# einen einzelnen Turn ohne Tool-Nutzung. 60s ist damit kein knapper,
+# sondern ein grosszuegiger Puffer (~8x) fuer Netzwerk-/Modell-Varianz --
+# und vor allem eine harte Grenze gegen den Fall, den die Aufgabe nennt:
+# eine haengende CLI (z.B. ein interaktiver Login-Prompt, auf den nie
+# jemand antwortet) darf den Ledger-Lauf nicht auf unbestimmte Zeit
+# mitreissen. Ein `timeout`-Parameter bleibt injizierbar, falls ein
+# Aufrufer mit mehr Kanten pro Lauf einen anderen Wert braucht.
+def claude_cli_transport(timeout: int = 60, binary: str = "claude",
+                         runner=None) -> JudgeTransport:
+    """Vorgabe-Transport auf DIESER Maschine.
+
+    Gemessen 2026-08-07: `claude --version` -> 2.1.223, ANTHROPIC_API_KEY
+    ist NICHT gesetzt, `claude -p ... --output-format json` laeuft trotzdem
+    (eigene Session-Authentifizierung, kein API-Key noetig) und liefert
+    ein JSON-Objekt mit einem `result`-Feld -- LIVE bestaetigt, nicht nur
+    aus der Doku uebernommen (Beleg: `harness/runs/judge-transport-probe.json`).
+    Deshalb die CLI und nicht das SDK -- eine Vorgabe, die an einer
+    fehlenden Umgebungsvariable scheitert, ist keine.
+
+    `runner` ist injizierbar (Vorgabe `subprocess.run`) -- jeder Test in
+    `tests/test_judge.py` uebergibt einen Fake, nie den echten Prozess
+    (Hard Rule: offline-only). Drei Fehlwege, jeder wird zu einem
+    benannten `JudgeTransportError` und NIE zu einer leeren Antwort:
+      1. Timeout       -> eigene Meldung mit der Sekundenzahl
+      2. Prozess nicht startbar (Binary fehlt) -> eigene Meldung
+      3. Exit-Code != 0 -> Exit-Code + stderr woertlich (gekappt auf 300
+         Zeichen, damit ein wortreicher Fehlertext das Artefakt nicht
+         sprengt -- die ersten 300 Zeichen tragen bei einer CLI-
+         Fehlermeldung fast immer schon die Ursache, z.B. "not logged in")
+      4. Umschlag kein lesbares JSON mit `result`-Feld -> eigene Meldung
+
+    Das Feld `result` im JSON-Umschlag ist LIVE bestaetigt (s.o.), keine
+    Annahme mehr. Weicht die Struktur auf einer anderen Maschine/Version
+    ab, wird HIER korrigiert -- nicht in `judge_edge`, das den Umschlag
+    nie sieht (der Transport reicht nur den rohen Modell-Text durch).
+
+    `--system-prompt` ist Pflicht, kein Komfort (s. Modul-Kommentar oben):
+    ohne ihn laedt die CLI dieses Repos eigene `CLAUDE.md` und antwortet
+    als Coding-Agent statt als JSON-Antworter -- gemessen, nicht vermutet.
+    """
+    run_proc = runner or subprocess.run
+
+    def send(prompt: str) -> str:
+        cmd = [binary, "-p", prompt, "--output-format", "json",
+               "--system-prompt", _JUDGE_SYSTEM_PROMPT]
+        try:
+            proc = run_proc(cmd, capture_output=True, text=True,
+                            timeout=timeout, check=False)
+        except subprocess.TimeoutExpired:
+            raise JudgeTransportError(
+                f"{binary} -p: Zeitueberschreitung nach {timeout}s")
+        except OSError as exc:
+            raise JudgeTransportError(
+                f"{binary} -p: Prozess nicht startbar ({exc})")
+
+        if proc.returncode != 0:
+            raise JudgeTransportError(
+                f"{binary} -p exit {proc.returncode}: {(proc.stderr or '')[:300]}")
+
+        try:
+            parsed = json.loads(proc.stdout)
+            result = parsed.get("result", "")
+        except Exception as exc:
+            raise JudgeTransportError(f"{binary} -p: Umschlag nicht lesbar ({exc})")
+        return result
+
+    return send
+
+
+# --- Task 10: nur AUFFAELLIGE Kanten bekommen ein Urteil ----------------
+#
+# Der Lastentwurf der Spec (s. Docstring unten): der teure Teil (ein
+# Modellaufruf pro Kante) haengt an der Zahl der Abweichungen, nicht an
+# der Gesamtzahl der Kanten. `confirmed` braucht kein Urteil -- der
+# deterministische Befund steht bereits fest und ist die guenstigste,
+# belastbarste Aussage, die es dazu gibt.
+DEVIATING_STATES = ("dead", "missing", "unknown")
+
+
+def _verdict_from_json(row: dict) -> EdgeVerdict:
+    """Baut aus EINER bereits klassifizierten Ledger-Zeile (dict, wie sie
+    `EdgeVerdict.to_json()` erzeugt hat) wieder ein `EdgeVerdict`, damit
+    `judge_edge` denselben Typ bekommt wie im Direktaufruf.
+
+    `coverage`/`timeline` werden bewusst mit leeren Platzhaltern gefuellt,
+    nicht aus der Zeile rekonstruiert: weder `build_prompt` noch
+    `judge_edge` lesen diese beiden Felder (s. `EdgeVerdict`-Nutzung oben
+    in dieser Datei) -- sie tragen nur `edge.key()`, `state` und
+    `evidence` in den Prompt. Eine vollstaendige Rekonstruktion aus der
+    flachen `to_json()`-Form waere verlorene Arbeit fuer Werte, die nie
+    gelesen werden.
+    """
+    return EdgeVerdict(
+        edge=Edge(row["upstream"], row["downstream"]),
+        state=row["state"], evidence=row.get("evidence") or {},
+        coverage=Coverage(0, None, None, ""), timeline=Timeline(()),
+    )
+
+
+def judge_ledger(gms, ledger: dict, transport: JudgeTransport | None,
+                 limit: int = 20) -> list[dict]:
+    """Urteilt nur ueber ABWEICHENDE Kanten.
+
+    Bestaetigte Kanten brauchen kein Urteil -- und der teure Teil haengt
+    damit an der Zahl der Auffaelligkeiten, nicht an der Gesamtzahl der
+    Kanten (Lastentwurf der Spec: wenige Detailabruf statt Zehntausende).
+    `limit` ist ein hartes Sicherheitsnetz obendrauf, kein Ersatz fuer den
+    Filter -- selbst bei vielen Abweichungen bricht ein Lauf nicht durch
+    einen unbegrenzten Modell-Fächer.
+
+    Kontext-Cache pro URN, nicht pro Kante: ein Dataset kann auf beiden
+    Seiten mehrerer Kanten auftauchen (z.B. als Downstream von A und
+    Upstream von B), und `gather_context` waere sonst ein wiederholter
+    GraphQL-Aufruf fuer denselben Inhalt -- API-Aufrufzahl ist eine
+    gemessene Groesse in diesem Projekt (`_Counting` in `ledger.py`),
+    kein Nebenschauplatz.
+    """
+    rows = [r for r in ledger.get("edges", []) if r.get("state") in DEVIATING_STATES][:limit]
+    ctx_cache: dict[str, dict] = {}
+
+    def ctx(urn: str) -> dict:
+        if urn not in ctx_cache:
+            ctx_cache[urn] = gather_context(gms, urn)
+        return ctx_cache[urn]
+
+    return [
+        judge_edge(_verdict_from_json(r), ctx(r["upstream"]), ctx(r["downstream"]),
+                   transport).to_json()
+        for r in rows
+    ]

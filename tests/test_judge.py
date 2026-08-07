@@ -559,3 +559,135 @@ def test_m4_important_with_an_empty_reason_is_discarded():
         source_field="description"))
     assert j.used_model is False
     assert j.fallback_reason == "keine Begruendung geliefert"
+
+
+# --- Task 10: `claude -p`-Transport und judge_ledger ----------------------
+#
+# Offline-only, wie ueberall in dieser Datei: kein Test hier ruft je den
+# echten Prozess auf. `runner` ist die injizierte Stelle, an der
+# `claude_cli_transport` einen Fake statt `subprocess.run` bekommt. Das
+# Live-Zeugnis fuer die echte CLI liegt in
+# `harness/runs/judge-transport-probe.json`, nicht hier.
+
+from probate.judge import claude_cli_transport, judge_ledger
+
+
+class FakeProc:
+    def __init__(self, returncode, stdout, stderr=""):
+        self.returncode, self.stdout, self.stderr = returncode, stdout, stderr
+
+
+def test_transport_extracts_the_result_field_from_the_cli_envelope():
+    calls = []
+
+    def runner(cmd, **kw):
+        calls.append(cmd)
+        return FakeProc(0, json.dumps({"result": '{"important": true}'}))
+
+    t = claude_cli_transport(runner=runner)
+    assert t("hallo") == '{"important": true}'
+    assert calls[0][:2] == ["claude", "-p"]
+    assert "--output-format" in calls[0]
+
+
+def test_a_nonzero_exit_becomes_a_named_transport_error_not_an_empty_answer():
+    def runner(cmd, **kw):
+        return FakeProc(1, "", "not logged in")
+
+    with pytest.raises(JudgeTransportError) as e:
+        claude_cli_transport(runner=runner)("hallo")
+    assert "not logged in" in str(e.value)
+
+
+def test_a_timeout_becomes_a_transport_error_too():
+    import subprocess
+
+    def runner(cmd, **kw):
+        raise subprocess.TimeoutExpired(cmd, 60)
+
+    with pytest.raises(JudgeTransportError):
+        claude_cli_transport(runner=runner)("hallo")
+
+
+def test_a_missing_binary_becomes_a_transport_error_not_an_uncaught_oserror():
+    """Ein OSError (Binary nicht gefunden, z.B. `claude` nicht im PATH) ist
+    strukturell derselbe Fehlweg wie ein Timeout oder ein Exit != 0 -- der
+    Aufrufer soll nie eine nackte `FileNotFoundError` sehen muessen, nur
+    den einen benannten Transport-Fehler."""
+    def runner(cmd, **kw):
+        raise FileNotFoundError("[WinError 2] Das System kann die angegebene Datei nicht finden")
+
+    with pytest.raises(JudgeTransportError) as e:
+        claude_cli_transport(runner=runner)("hallo")
+    assert "nicht startbar" in str(e.value)
+
+
+def test_an_envelope_without_a_readable_result_field_yields_an_empty_string_not_a_crash():
+    """Ein Umschlag, der zwar gueltiges JSON ist, aber kein `result`-Feld
+    traegt, ist kein Transport-Fehlschlag (der Prozess hat geantwortet,
+    exit 0) -- er liefert einen leeren rohen Text. `judge_edge` faengt das
+    bereits als eigenen, benannten Fehlweg ab ("Antwort war kein JSON" bei
+    einem leeren String) -- der Transport selbst crasht hier nicht."""
+    def runner(cmd, **kw):
+        return FakeProc(0, json.dumps({"something_else": 1}))
+
+    assert claude_cli_transport(runner=runner)("hallo") == ""
+
+
+def test_judge_ledger_only_judges_deviating_edges_never_confirmed_ones():
+    """Der Modellaufruf haengt an der Zahl AUFFAELLIGER Kanten, nicht an
+    der Gesamtzahl -- das ist der Lastentwurf aus der Spec."""
+    ledger = {"edges": [
+        {"edge": "a->b", "state": "confirmed", "upstream": "a", "downstream": "b",
+         "evidence": {}, "coverage": {}, "timeline": {}},
+        {"edge": "a->c", "state": "dead", "upstream": "a", "downstream": "c",
+         "evidence": {}, "coverage": {}, "timeline": {}},
+    ]}
+    seen = []
+
+    class G:
+        def graphql(self, q, v=None):
+            seen.append(v["urn"])
+            return {"dataset": None}
+
+    out = judge_ledger(G(), ledger, transport=None, limit=20)
+    assert [j["edge"] for j in out] == ["a->c"]
+    assert "b" not in seen
+
+
+def test_judge_ledger_respects_the_hard_limit():
+    ledger = {"edges": [
+        {"edge": f"a->x{i}", "state": "dead", "upstream": "a", "downstream": f"x{i}",
+         "evidence": {}, "coverage": {}, "timeline": {}} for i in range(5)]}
+
+    class G:
+        def graphql(self, q, v=None):
+            return {"dataset": None}
+
+    assert len(judge_ledger(G(), ledger, transport=None, limit=2)) == 2
+
+
+def test_judge_ledger_caches_context_per_urn_not_per_edge():
+    """Ein Dataset, das auf beiden Seiten mehrerer Kanten auftaucht, darf
+    nur EINMAL abgefragt werden -- API-Aufrufzahl ist eine gemessene
+    Groesse in diesem Projekt, kein Nebenschauplatz (s. `_Counting` in
+    `ledger.py`)."""
+    ledger = {"edges": [
+        {"edge": "a->shared", "state": "dead", "upstream": "a", "downstream": "shared",
+         "evidence": {}, "coverage": {}, "timeline": {}},
+        {"edge": "shared->b", "state": "dead", "upstream": "shared", "downstream": "b",
+         "evidence": {}, "coverage": {}, "timeline": {}},
+    ]}
+
+    class G:
+        def __init__(self):
+            self.calls = 0
+
+        def graphql(self, q, v=None):
+            self.calls += 1
+            return {"dataset": None}
+
+    g = G()
+    judge_ledger(g, ledger, transport=None, limit=20)
+    # 3 eindeutige URNs (a, shared, b) -> 3 gather_context-Aufrufe, nicht 4
+    assert g.calls == 3

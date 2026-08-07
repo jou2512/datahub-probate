@@ -1,0 +1,24 @@
+{
+  "measured_at": "2026-08-07T01:09:54Z",
+  "binary": "claude",
+  "command_shape": [
+    "claude",
+    "-p",
+    "<prompt>",
+    "--output-format",
+    "json",
+    "--system-prompt",
+    "<siehe judge.py:_JUDGE_SYSTEM_PROMPT>"
+  ],
+  "timeout_s": 60,
+  "note": "--system-prompt ist Pflicht: ohne ihn laedt die CLI in diesem Repo-Ordner automatisch CLAUDE.md/AGENTS.md und antwortet als Coding-Agent statt als reiner JSON-Antworter (gemessen, s. judge.py Modul-Kommentar 'Task 10: der echte Transport').",
+  "transport_call_ok": true,
+  "transport_error": null,
+  "transport_duration_s": 24.76,
+  "raw_reply_len_chars": 348,
+  "judged_with_model": true,
+  "fallback_reason": "",
+  "important": true,
+  "source_field": "description",
+  "quote_matched": "Gepruefter Kundenstammdatensatz, revisionsrelevant fuer den Jahresabschluss"
+}
