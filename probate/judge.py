@@ -67,15 +67,23 @@ def gather_context(gms, urn: str) -> dict:
     """
     d = (gms.graphql(CONTEXT_Q, {"urn": urn}).get("dataset")) or {}
     props = d.get("properties") or {}
+    # `.get(key, "")` faellt nur bei FEHLENDEM Schluessel auf den Default
+    # zurueck -- steht der Schluessel mit Wert `None` da (z.B. ein Owner,
+    # der zu keinem der beiden Inline-Fragmente passt, oder ein Domain-
+    # Name, der explizit null ist), liefert `.get()` `None` weiter. Darum
+    # ueberall `or ""` statt eines Default-Arguments: das faengt sowohl
+    # den fehlenden Schluessel als auch den expliziten `None`-Wert ab und
+    # verhindert, dass ein `None` in einer Rueckgabe landet, die als
+    # `str`/`list[str]` deklariert ist (Review Fix-Runde 1).
     owners = [
-        (o.get("owner") or {}).get("urn", "")
+        (o.get("owner") or {}).get("urn") or ""
         for o in ((d.get("ownership") or {}).get("owners") or [])
     ]
     terms = [
-        (t.get("term") or {}).get("urn", "")
+        (t.get("term") or {}).get("urn") or ""
         for t in ((d.get("glossaryTerms") or {}).get("terms") or [])
     ]
-    domain = (((d.get("domain") or {}).get("domain") or {}).get("properties") or {}).get("name", "")
+    domain = (((d.get("domain") or {}).get("domain") or {}).get("properties") or {}).get("name") or ""
     parts = [props.get("name") or "", props.get("description") or "",
              *owners, *terms, domain]
     return {
