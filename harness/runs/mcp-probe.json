@@ -1,0 +1,294 @@
+{
+  "probe_generated_at_ms": 1786100050975,
+  "gms": "http://localhost:28080",
+  "seeded": true,
+  "seeded_statement": "Gemessen gegen den kuenstlich eingespielten Beispielkatalog (harness/seed_lineage_lab.py, Namespace probate_seedlab), nicht gegen echte Warehouse-Nutzung.",
+  "mcp_server_version_pinned": "0.6.0",
+  "latest_resolution": {
+    "mit_python_pin": {
+      "argv": "uvx --python 3.11 mcp-server-datahub@latest --version",
+      "exit_code": 0,
+      "resolved_version": "0.6.0",
+      "seconds": 12.4
+    },
+    "ohne_python_pin": {
+      "argv": "uvx mcp-server-datahub@latest --version",
+      "exit_code": 0,
+      "resolved_version": "0.6.0",
+      "seconds": 8.74
+    }
+  },
+  "tools_default": {
+    "mutation_env": "false",
+    "tool_count": 6,
+    "tools": [
+      "get_dataset_queries",
+      "get_entities",
+      "get_lineage",
+      "get_lineage_paths_between",
+      "list_schema_fields",
+      "search"
+    ],
+    "read_only_hinted": [
+      "get_dataset_queries",
+      "get_entities",
+      "get_lineage",
+      "get_lineage_paths_between",
+      "list_schema_fields",
+      "search"
+    ],
+    "session_boot_seconds": 13.76
+  },
+  "tools_mutation_enabled": {
+    "mutation_env": "true",
+    "tool_count": 18,
+    "tools": [
+      "add_owners",
+      "add_structured_properties",
+      "add_tags",
+      "add_terms",
+      "get_dataset_queries",
+      "get_entities",
+      "get_lineage",
+      "get_lineage_paths_between",
+      "list_schema_fields",
+      "remove_domains",
+      "remove_owners",
+      "remove_structured_properties",
+      "remove_tags",
+      "remove_terms",
+      "save_document",
+      "search",
+      "set_domains",
+      "update_description"
+    ],
+    "read_only_hinted": [
+      "get_dataset_queries",
+      "get_entities",
+      "get_lineage",
+      "get_lineage_paths_between",
+      "list_schema_fields",
+      "search"
+    ],
+    "session_boot_seconds": 9.86
+  },
+  "tool_count_default": 6,
+  "tool_count_with_mutations": 18,
+  "mutation_tools_added": [
+    "add_owners",
+    "add_structured_properties",
+    "add_tags",
+    "add_terms",
+    "remove_domains",
+    "remove_owners",
+    "remove_structured_properties",
+    "remove_tags",
+    "remove_terms",
+    "save_document",
+    "set_domains",
+    "update_description"
+  ],
+  "mutation_tool_count": 12,
+  "mcp_session_boot_seconds_cold": 13.76,
+  "mcp_session_boot_seconds_warm": 9.4,
+  "timestamps": {
+    "question": "Traegt eine Query-Entitaet ueber den MCP-Server eine Zeitangabe?",
+    "answer": "nein",
+    "keys_present_in_response": [
+      "lastModified"
+    ],
+    "any_numeric_time_value": false,
+    "source_evidence": "src/mcp_server_datahub/gql/queries.gql (0.6.0): der ganze 'created { time actor }'-Block ist auskommentiert, und in 'lastModified' ist genau die Zeile '# time' auskommentiert -- abgefragt wird nur 'actor'.",
+    "consequence": "Die Alters-Achse von probate (dead vs. confirmed) kann NICHT aus Query-Entitaeten des MCP-Servers kommen. Sie haengt unveraendert an den Dataset-Nutzungs-Buckets aus fetch_usage, fuer die der MCP-Server ueberhaupt kein Werkzeug anbietet.",
+    "sample_response": {
+      "start": 0,
+      "total": 1,
+      "count": 200,
+      "queries": [
+        {
+          "urn": "urn:li:query:probate-seedlab-missing",
+          "properties": {
+            "source": "MANUAL",
+            "statement": {
+              "value": "INSERT INTO probate_seedlab.missing_downstream SELECT * FROM probate_seedlab.missing_upstream",
+              "language": "SQL"
+            },
+            "lastModified": {
+              "actor": "urn:li:corpuser:datahub"
+            }
+          },
+          "subjects": [
+            "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
+            "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)"
+          ]
+        }
+      ]
+    }
+  },
+  "comparisons": [
+    {
+      "expected_edge_state": "confirmed",
+      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
+      "maps_identical": true,
+      "totals_identical": true,
+      "total": 1,
+      "cooccurrence_targets": [
+        "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)"
+      ],
+      "mcp": {
+        "seconds": 0.587,
+        "response_chars": 508,
+        "tool_calls": 1,
+        "total": 1,
+        "map": {
+          "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)": [
+            "urn:li:query:probate-seedlab-confirmed"
+          ]
+        }
+      },
+      "graphql": {
+        "seconds": 0.046,
+        "gms_calls": 2,
+        "total": 1,
+        "map": {
+          "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)": [
+            "urn:li:query:probate-seedlab-confirmed"
+          ]
+        }
+      }
+    },
+    {
+      "expected_edge_state": "dead",
+      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+      "maps_identical": true,
+      "totals_identical": true,
+      "total": 0,
+      "cooccurrence_targets": [],
+      "mcp": {
+        "seconds": 0.413,
+        "response_chars": 33,
+        "tool_calls": 1,
+        "total": 0,
+        "map": {}
+      },
+      "graphql": {
+        "seconds": 0.02,
+        "gms_calls": 1,
+        "total": 0,
+        "map": {}
+      }
+    },
+    {
+      "expected_edge_state": "missing",
+      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
+      "maps_identical": true,
+      "totals_identical": true,
+      "total": 1,
+      "cooccurrence_targets": [
+        "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)"
+      ],
+      "mcp": {
+        "seconds": 0.458,
+        "response_chars": 498,
+        "tool_calls": 1,
+        "total": 1,
+        "map": {
+          "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)": [
+            "urn:li:query:probate-seedlab-missing"
+          ]
+        }
+      },
+      "graphql": {
+        "seconds": 0.036,
+        "gms_calls": 2,
+        "total": 1,
+        "map": {
+          "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)": [
+            "urn:li:query:probate-seedlab-missing"
+          ]
+        }
+      }
+    },
+    {
+      "expected_edge_state": "unknown",
+      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)",
+      "maps_identical": true,
+      "totals_identical": true,
+      "total": 0,
+      "cooccurrence_targets": [],
+      "mcp": {
+        "seconds": 0.435,
+        "response_chars": 33,
+        "tool_calls": 1,
+        "total": 0,
+        "map": {}
+      },
+      "graphql": {
+        "seconds": 0.019,
+        "gms_calls": 1,
+        "total": 0,
+        "map": {}
+      }
+    }
+  ],
+  "mcp_focuses_compared": 4,
+  "mcp_maps_identical_all_four_states": true,
+  "mcp_totals_identical_all_four_states": true,
+  "mcp_seconds_total": 1.893,
+  "graphql_seconds_total": 0.121,
+  "mcp_tool_calls_total": 4,
+  "graphql_gms_calls_total": 6,
+  "end_to_end": {
+    "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
+    "graphql": {
+      "seconds": 0.075,
+      "api_calls": 4,
+      "cooccurrence_source": "graphql"
+    },
+    "mcp": {
+      "seconds": 0.474,
+      "session_boot_seconds": 9.19,
+      "seconds_including_boot": 9.661,
+      "api_calls": 3,
+      "cooccurrence_source": "mcp"
+    },
+    "verdict_counts_identical": true,
+    "edge_field_diffs": [
+      "edges[0].coverage.window_end_ms",
+      "edges[0].coverage.window_start_ms"
+    ],
+    "edge_diffs_are_wall_clock_only": true,
+    "note": "coverage.window_start_ms/window_end_ms weichen ab, weil beide Laeufe ihr Nutzungsfenster zur ECHTEN aktuellen Zeit bilden (ledger.run() reicht das simulierte now_ms bewusst NICHT an die Rohablage durch). Jedes andere Feld -- Zustand, Beleg, Query-URN, Bucket-Zahlen -- ist identisch."
+  },
+  "end_to_end_verdicts_identical": true,
+  "end_to_end_graphql_seconds": 0.075,
+  "end_to_end_mcp_seconds": 9.661,
+  "end_to_end_graphql_api_calls": 4,
+  "end_to_end_mcp_api_calls": 3,
+  "telemetry": {
+    "telemetrie_aus": {
+      "env": "DATAHUB_TELEMETRY_ENABLED=false",
+      "call_seconds": [
+        0.086,
+        0.094,
+        0.085
+      ],
+      "median_seconds": 0.086
+    },
+    "telemetrie_an": {
+      "env": "DATAHUB_TELEMETRY_ENABLED=true",
+      "call_seconds": [
+        0.401,
+        0.426,
+        0.391
+      ],
+      "median_seconds": 0.401
+    }
+  },
+  "telemetry_median_seconds_off": 0.086,
+  "telemetry_median_seconds_on": 0.401,
+  "telemetry_overhead_seconds": 0.315,
+  "mcp_can_serve_cooccurrence": true,
+  "mcp_probe_verdict": "get_dataset_queries liefert den Ko-Okkurrenz-Lesevorgang vollstaendig: Karte und echte Gesamtzahl stimmen ueber alle vier Labor-Zustaende mit dem GraphQL-Weg ueberein, EIN Werkzeugaufruf statt 1+N GMS-Rundlaeufen. Was der MCP-Server NICHT liefert, ist die Zeitachse: Query-Entitaeten kommen ohne jeden Zeitstempel zurueck (queries.gql hat sie auskommentiert), und fuer die Dataset-Nutzungs-Buckets gibt es kein Werkzeug. probate kann seine Ko-Okkurrenz also ueber MCP lesen, sein Alters-Urteil nicht.",
+  "mcp_probe_duration_seconds": 90.4
+}

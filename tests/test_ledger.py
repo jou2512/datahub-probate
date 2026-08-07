@@ -776,3 +776,56 @@ def test_coverage_thin_reflects_real_measured_bucket_counts_not_the_old_span_heu
     out_thin = run(g_thin, focus="urn:x", now_ms=50 * DAY)
     assert out_thin["coverage_buckets_seen"] == 1
     assert out_thin["coverage_thin"] is True
+
+
+# --- Task 26: die Ko-Okkurrenz-Quelle ist austauschbar --------------------
+
+def test_run_uses_the_graphql_way_by_default_and_says_so_in_the_artifact():
+    """Der Vorgabe-Lauf muss Feld fuer Feld der von vorher bleiben --
+    ein neuer Schalter darf den bestehenden Weg nicht verschieben."""
+    out = run(_gms_for_run(), focus="urn:x", now_ms=50 * DAY)
+    assert out["cooccurrence_source"] == "graphql"
+    assert out["api_calls"] == 6
+
+
+def test_run_takes_an_injected_cooccurrence_source_and_labels_the_artifact():
+    """`--cooccurrence-source mcp` reicht hier eine Funktion mit derselben
+    Signatur herein. Geprueft wird beides: dass ihr Ergebnis tatsaechlich
+    verwendet wird (die Kante entsteht aus IHRER Karte) und dass das
+    Artefakt hinterher noch sagen kann, welcher Weg es war -- sonst waeren
+    zwei Laeufe mit gleichen Zahlen nicht mehr unterscheidbar."""
+    seen = []
+
+    def fake_source(gms, urn):
+        seen.append(urn)
+        gms.calls += 1
+        return {"urn:li:dataset:o": ["urn:li:query:qmcp"]}, 1
+
+    fake_source.source_name = "mcp"
+    out = run(_gms_for_run(), focus="urn:x", now_ms=50 * DAY,
+              cooccurrence_fn=fake_source)
+    assert seen == ["urn:x"]
+    assert out["cooccurrence_source"] == "mcp"
+    o_edge = next(e for e in out["edges"] if e["downstream"] == "urn:li:dataset:o")
+    assert "urn:li:query:qmcp" in _json_task6.dumps(o_edge)
+
+
+def test_an_unlabelled_injected_source_is_called_custom_not_silently_graphql():
+    """Eine Quelle ohne `source_name` als 'graphql' auszugeben waere eine
+    falsche Herkunftsangabe im Artefakt -- schlimmer als gar keine."""
+    def bare_source(gms, urn):
+        return {}, 0
+
+    out = run(_gms_for_run(), focus="urn:x", now_ms=50 * DAY,
+              cooccurrence_fn=bare_source)
+    assert out["cooccurrence_source"] == "custom"
+
+
+def test_a_failing_cooccurrence_source_aborts_the_run_instead_of_writing_a_partial():
+    """Ein Fehlschlag im MCP-Weg darf nicht als 'keine gemeinsame Query'
+    durchgehen -- dann waere jede missing-Kante lautlos verschwunden."""
+    def boom(gms, urn):
+        raise RuntimeError("MCP-Sitzung weg")
+
+    with pytest.raises(RuntimeError, match="MCP-Sitzung weg"):
+        run(_gms_for_run(), focus="urn:x", now_ms=50 * DAY, cooccurrence_fn=boom)

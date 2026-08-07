@@ -154,6 +154,18 @@ def main() -> int:
                     help="Modell-Urteil ueber auffaellige Kanten (einziger Modellaufruf im Projekt)")
     lg.add_argument("--judge-limit", dest="judge_limit", type=int, default=20,
                     help="Obergrenze der Kanten, die dem Modell vorgelegt werden")
+    lg.add_argument("--cooccurrence-source", dest="cooccurrence_source",
+                    choices=("graphql", "mcp"), default="graphql",
+                    help="Woher die Ko-Okkurrenz kommt. 'graphql' (Vorgabe) ist der "
+                         "gemessene Weg ueber GMS; 'mcp' befragt stattdessen DataHubs "
+                         "eigenen MCP-Server (get_dataset_queries) -- gleicher Vertrag, "
+                         "andere Kosten, s. harness/runs/mcp-probe.json")
+    lg.add_argument("--mcp-version", dest="mcp_version", default=None,
+                    help="Version von mcp-server-datahub fuer --cooccurrence-source mcp; "
+                         "Vorgabe ist der gepinnte Wert in probate/mcp_transport.py. "
+                         "'@latest' ist bewusst KEINE Option -- verschiedene Versionen "
+                         "registrieren verschiedene Werkzeugmengen, eine Zahl ohne "
+                         "Version waere keine Messung")
 
     pr = sub.add_parser(
         "propose",
@@ -382,8 +394,32 @@ def main() -> int:
         # hier je ein write_text passiert -- ein Fehlschlag mitten im Lauf
         # hinterlaesst also gar kein Artefakt statt eines unvollstaendigen,
         # das Vollstaendigkeit behaupten wuerde (global-constraints.md).
-        out = ledger_run(gms, args.focus, now_ms, lineage_count=args.lineage_count,
-                         judge_transport=transport, judge_limit=args.judge_limit)
+        # --cooccurrence-source mcp faehrt einen echten Unterprozess hoch
+        # (uvx + MCP-Server ueber stdio). Das ist teuer und optional, darum
+        # steht der Import hier und nicht oben: ein Lauf auf dem Vorgabe-Weg
+        # soll das Paket 'mcp' nicht einmal brauchen. Die Sitzung wird
+        # zuverlaessig wieder geschlossen (finally), sonst bliebe der
+        # Serverprozess nach einem GmsError als Waise stehen.
+        cooccurrence_fn = None
+        mcp_session = None
+        if args.cooccurrence_source == "mcp":
+            from probate.mcp_transport import (
+                DEFAULT_MCP_VERSION, McpSession, make_cooccurrence_fetcher,
+            )
+            mcp_session = McpSession(
+                gms_url=args.gms,
+                version=args.mcp_version or DEFAULT_MCP_VERSION,
+                token=args.token,
+            )
+            mcp_session.open()
+            cooccurrence_fn = make_cooccurrence_fetcher(mcp_session.call_tool)
+        try:
+            out = ledger_run(gms, args.focus, now_ms, lineage_count=args.lineage_count,
+                             judge_transport=transport, judge_limit=args.judge_limit,
+                             cooccurrence_fn=cooccurrence_fn)
+        finally:
+            if mcp_session is not None:
+                mcp_session.close()
         out["gms"] = args.gms
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.out).write_text(json.dumps(out, indent=2), encoding="utf-8")

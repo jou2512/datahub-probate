@@ -54,7 +54,22 @@ RUN_FILES = (
     "watcher-live.json",
     "upstream-properties-probe.json",
     "full-vs-delta.json",
+    "mcp-probe.json",
 )
+# mcp-probe.json (aufgenommen 2026-08-07): die eigene Messung von DataHubs
+# MCP-Server, erzeugt von harness/mcp_probe.py. Sie traegt die Zahlen, mit
+# denen das README ueberhaupt erst etwas ueber den MCP-Weg sagen darf --
+# Werkzeug-Anzahl, Gleichheit beider Ko-Okkurrenz-Wege, Kosten je Weg.
+# Zwei Namens-Entscheidungen sind Absicht, nicht Geschmack: der
+# Erzeugungszeitstempel heisst hier 'probe_generated_at_ms' und nicht
+# 'generated_at_ms', weil ledger.json denselben Namen mit einem anderen
+# Wert traegt und der Merge sonst mit ConflictingClaim abbraeche -- zwei
+# Laeufe, die zu verschiedenen Zeiten stattfanden, widersprechen sich
+# nicht, sie sind nur zwei Laeufe. Und die generischen Namen
+# ('all_maps_identical', 'session_boot_seconds', 'verdict', ...) tragen
+# ein 'mcp_'- bzw. 'mcp_probe_'-Praefix, damit ein spaeteres Artefakt
+# denselben Begriff ueber eine ANDERE Sache verwenden kann, ohne dass hier
+# etwas kollidiert.
 # full-vs-delta.json (aufgenommen 2026-08-07): beantwortet die Frage, die
 # die Spezifikation selbst als entscheidend bezeichnet -- "ein Vollabgleich
 # darf zwei Stunden dauern, solange der taegliche Nachlauf Minuten braucht".

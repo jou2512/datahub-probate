@@ -87,5 +87,28 @@
   "loadtest_smoke_coarse_peak_mb": 0.63,
   "loadtest_smoke_coarse_suspicious": 50,
 
-  "loadtest_s_smoke_total_seconds": 107.05
+  "loadtest_s_smoke_total_seconds": 107.05,
+
+  "mcp_server_version_pinned": "0.6.0",
+  "tool_count_default": 6,
+  "tool_count_with_mutations": 18,
+  "mutation_tool_count": 12,
+  "mcp_focuses_compared": 4,
+  "mcp_maps_identical_all_four_states": true,
+  "mcp_totals_identical_all_four_states": true,
+  "mcp_can_serve_cooccurrence": true,
+  "mcp_tool_calls_total": 4,
+  "graphql_gms_calls_total": 6,
+  "mcp_seconds_total": 1.893,
+  "graphql_seconds_total": 0.121,
+  "mcp_session_boot_seconds_cold": 13.76,
+  "mcp_session_boot_seconds_warm": 9.4,
+  "end_to_end_verdicts_identical": true,
+  "end_to_end_graphql_seconds": 0.075,
+  "end_to_end_mcp_seconds": 9.661,
+  "end_to_end_graphql_api_calls": 4,
+  "end_to_end_mcp_api_calls": 3,
+  "telemetry_median_seconds_off": 0.086,
+  "telemetry_median_seconds_on": 0.401,
+  "telemetry_overhead_seconds": 0.315
 }

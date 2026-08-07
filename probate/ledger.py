@@ -713,7 +713,8 @@ class _Counting:
 
 
 def run(gms, focus: str, now_ms: int, lineage_count: int = 200,
-        judge_transport=None, judge_limit: int = 20) -> dict:
+        judge_transport=None, judge_limit: int = 20,
+        cooccurrence_fn=None) -> dict:
     """Ein vollstaendiger Abgleich fuer ein Fokus-Dataset.
 
     Reihenfolge ist Absicht: erst beide Quellen holen, dann fuer JEDES
@@ -746,6 +747,16 @@ def run(gms, focus: str, now_ms: int, lineage_count: int = 200,
     `judge_transport is not None` ist das einzige Signal, ob der Zweig
     laeuft; `judge_limit` bleibt reine Obergrenze, kein Schalter.
 
+    `cooccurrence_fn` (Vorgabe `None` -> `fetch_cooccurrence`, der
+    GraphQL-Weg): die EINZIGE Stelle, an der die Ko-Okkurrenz-Quelle
+    ausgetauscht werden kann. `probate.mcp_transport` liefert eine
+    Funktion mit derselben Signatur `(gms, urn) -> (map, total)`, die
+    stattdessen DataHubs eigenen MCP-Server befragt. Bewusst ein
+    Parameter und kein Modul-Schalter: globaler Zustand haette bedeutet,
+    dass ein Vergleichslauf die Quelle des naechsten beeinflusst. Der
+    Vorgabewert bleibt der GraphQL-Weg -- ein Aufrufer, der nichts
+    angibt, bekommt exakt den Lauf von vorher, Feld fuer Feld.
+
     Ein Fehlschlag beim Urteilen EINER Kante darf den Lauf nicht abbrechen
     (Auftragsvorgabe) -- das haelt bereits `judge_edge`/`judge_ledger`
     selbst: jeder Transport-Fehlschlag faellt PRO KANTE auf den
@@ -758,7 +769,7 @@ def run(gms, focus: str, now_ms: int, lineage_count: int = 200,
     """
     counting = _Counting(gms)
     declared = fetch_declared_edges(counting, focus, count=lineage_count)
-    cooccurred, queries_seen = fetch_cooccurrence(counting, focus)
+    cooccurred, queries_seen = (cooccurrence_fn or fetch_cooccurrence)(counting, focus)
 
     # WICHTIG: eigene Wall-Clock-Messung, NICHT das `now_ms`-Argument von
     # `run()`. `now_ms` kann eine simulierte Zeit sein (`ui/serve.py`s
@@ -791,6 +802,14 @@ def run(gms, focus: str, now_ms: int, lineage_count: int = 200,
     out = {
         "focus": focus,
         "gms": getattr(gms, "base", ""),
+        # Welcher Weg die Ko-Okkurrenz geliefert hat. Steht im Artefakt,
+        # weil zwei Laeufe mit identischen Zahlen sonst nicht mehr
+        # unterscheidbar waeren -- und der Vergleich der beiden Wege genau
+        # davon lebt, dass man hinterher noch weiss, welcher welcher war.
+        "cooccurrence_source": (
+            "graphql" if cooccurrence_fn is None
+            else getattr(cooccurrence_fn, "source_name", "custom")
+        ),
         "seeded": True,  # der Beispielkatalog liefert keine echte Warehouse-Nutzung
         "generated_at_ms": now_ms,
         "edges_total": len(verdicts),
