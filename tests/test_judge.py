@@ -221,9 +221,16 @@ DEAD = EdgeVerdict(
     coverage=Coverage(30, 10 * DAY, 40 * DAY, ""),
     timeline=Timeline((Bucket(40 * DAY, 0, 0),)))
 
-UP = {"urn": "urn:up", "name": "fin_year_end", "description": "Jahresabschluss, revisionsrelevant",
+# Fix-Runde 1 (C1): die Beschreibung braucht mindestens drei durch
+# Whitespace getrennte Woerter, sonst wuerde jedes woertliche Zitat
+# daraus an der eigenen Mindestlaenge scheitern, bevor es ueberhaupt zum
+# Kontext-Abgleich kommt. "Jahresabschluss, revisionsrelevant" (die
+# urspruengliche Brief-Fixture) hatte nur zwei -- deshalb "Geprüfter"
+# ergaenzt.
+UP = {"urn": "urn:up", "name": "fin_year_end",
+      "description": "Geprüfter Jahresabschluss, revisionsrelevant",
       "owners": ["urn:li:corpuser:anna"], "glossary_terms": [], "domain": "Finance",
-      "text": "fin_year_end\nJahresabschluss, revisionsrelevant\nurn:li:corpuser:anna\nFinance"}
+      "text": "fin_year_end\nGeprüfter Jahresabschluss, revisionsrelevant\nurn:li:corpuser:anna\nFinance"}
 DOWN = {"urn": "urn:down", "name": "tmp_42", "description": "", "owners": [],
         "glossary_terms": [], "domain": "", "text": "tmp_42"}
 
@@ -235,19 +242,21 @@ def _reply(**kw):
 def test_a_judgement_with_a_verbatim_quote_from_the_context_is_kept():
     j = judge_edge(DEAD, UP, DOWN, transport=_reply(
         important=True, reason="Betrifft eine revisionsrelevante Tabelle.",
-        quote="Jahresabschluss, revisionsrelevant", source_field="description"))
+        quote="Geprüfter Jahresabschluss, revisionsrelevant", source_field="description"))
     assert j.used_model is True
     assert j.important is True
-    assert j.quote == "Jahresabschluss, revisionsrelevant"
+    assert j.quote == "Geprüfter Jahresabschluss, revisionsrelevant"
 
 
 def test_a_quote_that_is_not_in_the_context_is_discarded():
     """Der wichtigste Test der Schicht: ein erfundenes Zitat ist
     schlimmer als kein Urteil. Ohne Beleg faellt es auf den
-    deterministischen Befund zurueck."""
+    deterministischen Befund zurueck. Drei Woerter, damit der Test die
+    C2-Kontextpruefung trifft statt vorher an der C1-Mindestlaenge
+    abzuprallen (siehe Fix-Runde-1-Tests weiter unten fuer C1 isoliert)."""
     j = judge_edge(DEAD, UP, DOWN, transport=_reply(
         important=True, reason="Klingt wichtig.",
-        quote="unternehmenskritischer Datenschatz", source_field="description"))
+        quote="unternehmenskritischer strategischer Datenschatz", source_field="description"))
     assert j.used_model is False
     assert j.important is False
     assert j.quote == ""
@@ -275,7 +284,11 @@ def test_a_transport_that_raises_falls_back_instead_of_propagating():
 
     j = judge_edge(DEAD, UP, DOWN, transport=boom)
     assert j.used_model is False
-    assert j.fallback_reason.startswith("Transport gescheitert:")
+    # Fix-Runde 1 (I4): der Exception-Typname wird jetzt vorangestellt,
+    # damit "unsere eigene Prompt-Baustelle" nie mit "der Transport hat
+    # geantwortet und einen Fehler gemeldet" verwechselt werden kann.
+    assert j.fallback_reason == (
+        "Transport gescheitert (JudgeTransportError): claude -p exit 1: not logged in")
     assert "not logged in" in j.fallback_reason
 
 
@@ -288,9 +301,12 @@ def test_no_transport_at_all_means_the_deterministic_finding_verbatim():
 
 def test_whitespace_differences_do_not_break_an_otherwise_valid_quote():
     j = judge_edge(DEAD, UP, DOWN, transport=_reply(
-        important=True, reason="r", quote="Jahresabschluss,   revisionsrelevant",
+        important=True, reason="r", quote="Geprüfter   Jahresabschluss,   revisionsrelevant",
         source_field="description"))
     assert j.used_model is True
+    # M1: gespeichert wird der TATSAECHLICHE Katalog-Ausschnitt (einfache
+    # Leerzeichen), nicht die Mehrfach-Leerzeichen-Schreibung des Modells.
+    assert j.quote == "Geprüfter Jahresabschluss, revisionsrelevant"
 
 
 def test_the_prompt_contains_both_contexts_and_the_state_but_no_instruction_to_invent():
@@ -320,7 +336,7 @@ def test_a_quote_that_only_matches_after_changing_case_is_discarded():
     schreibung -- eine Kette, die den Case aendert, ist keine woertliche
     Uebernahme mehr und faellt darum wie ein erfundenes Zitat zurueck."""
     j = judge_edge(DEAD, UP, DOWN, transport=_reply(
-        important=True, reason="r", quote="JAHRESABSCHLUSS, REVISIONSRELEVANT",
+        important=True, reason="r", quote="GEPRÜFTER JAHRESABSCHLUSS, REVISIONSRELEVANT",
         source_field="description"))
     assert j.used_model is False
     assert j.fallback_reason == "Zitat steht nicht im gelesenen Kontext"
@@ -355,7 +371,191 @@ def test_a_state_field_smuggled_into_the_model_reply_cannot_alter_the_verdict():
     koennte, und das Original-`EdgeVerdict` bleibt unveraendert (es ist
     ohnehin frozen)."""
     j = judge_edge(DEAD, UP, DOWN, transport=_reply(
-        important=True, reason="r", quote="Jahresabschluss, revisionsrelevant",
+        important=True, reason="r", quote="Geprüfter Jahresabschluss, revisionsrelevant",
         source_field="description", state="confirmed"))
     assert not hasattr(j, "state")
     assert DEAD.state == "dead"
+
+
+# --- Fix-Runde 1 (Opus-Review, 07.08.) --------------------------------
+#
+# Fuenf gemessene Luecken in der Zitatpflicht selbst -- der
+# Rueckfall-Mechanismus (Trichter, Zustands-Immunitaet, Fail-Closed bei
+# Case/Homoglyph/ZWSP) wurde bestaetigt und bleibt unveraendert. Diese
+# Tests belegen je EINE der fuenf Luecken UND ihre exakte Grenze.
+
+def test_c1_a_one_character_quote_is_rejected_the_measured_exploit():
+    """Der exakte Exploit aus dem Review: `quote="e"` erfuellte vorher
+    die Zitatpflicht syntaktisch (ein einzelnes Zeichen findet sich
+    fast immer im Text) und lieferte ein voll erfundenes Urteil mit "e"
+    als Beleg aus. Das ist die BILLIGSTE Art, wie ein schwaches Modell
+    die Anweisung "character-for-character" erfuellt -- der erwartete
+    Produktionsfehler, keine Exotik."""
+    j = judge_edge(DEAD, UP, DOWN, transport=_reply(
+        important=True, reason="Unternehmenskritisch, Revision betroffen.",
+        quote="e", source_field="description"))
+    assert j.used_model is False
+    assert j.important is False
+    assert j.fallback_reason == "Zitat zu kurz, kein Beleg"
+
+
+def test_c1_boundary_eleven_chars_fails_twelve_chars_passes_the_length_gate():
+    """Grenzwert Zeichenanzahl: 11 vs. 12 Zeichen, Wortzahl (3) konstant
+    gehalten. Beide Zitate sind frei erfunden (nicht im Kontext) --
+    genau DESHALB zeigt der Uebergang von "Zitat zu kurz" zu "Zitat
+    steht nicht im gelesenen Kontext" eindeutig, dass 12 Zeichen die
+    Laengen-Pruefung ueberhaupt erst passieren laesst, unabhaengig vom
+    spaeteren Kontext-Abgleich."""
+    eleven = "aaa bbb ccc"  # 3+1+3+1+3 = 11 Zeichen, 3 Tokens
+    assert len(eleven) == 11
+    j_short = judge_edge(DEAD, UP, DOWN, transport=_reply(
+        important=True, reason="r", quote=eleven, source_field="description"))
+    assert j_short.fallback_reason == "Zitat zu kurz, kein Beleg"
+
+    twelve = "aaaa bbb ccc"  # 4+1+3+1+3 = 12 Zeichen, 3 Tokens
+    assert len(twelve) == 12
+    j_ok_length = judge_edge(DEAD, UP, DOWN, transport=_reply(
+        important=True, reason="r", quote=twelve, source_field="description"))
+    assert j_ok_length.fallback_reason == "Zitat steht nicht im gelesenen Kontext"
+
+
+def test_c1_boundary_two_tokens_fails_three_tokens_passes_the_token_gate():
+    """Grenzwert Wortzahl: 2 vs. 3 durch Whitespace getrennte Tokens,
+    Zeichenzahl komfortabel ueber 12 gehalten. Zeigt, dass die
+    Zeichen-Untergrenze allein NICHT genuegt -- eine lange Kette ohne
+    genug Wortgrenzen ("aaaaaaaaaaaabbbbbbbbbbbb" in zwei Tokens) waere
+    sonst genauso ein Fragment wie ein einzelnes Zeichen."""
+    two_tokens = "aaaaaaaaaaaa bbbbbbbbbbbb"  # 25 Zeichen, 2 Tokens
+    assert len(two_tokens) > 12 and len(two_tokens.split()) == 2
+    j_short = judge_edge(DEAD, UP, DOWN, transport=_reply(
+        important=True, reason="r", quote=two_tokens, source_field="description"))
+    assert j_short.fallback_reason == "Zitat zu kurz, kein Beleg"
+
+    three_tokens = "aaaaaaaaaaaa bbbbbbbbbbbb cc"  # 28 Zeichen, 3 Tokens
+    assert len(three_tokens.split()) == 3
+    j_ok_length = judge_edge(DEAD, UP, DOWN, transport=_reply(
+        important=True, reason="r", quote=three_tokens, source_field="description"))
+    assert j_ok_length.fallback_reason == "Zitat steht nicht im gelesenen Kontext"
+
+
+def test_c2_a_quote_welded_across_two_fields_of_the_same_side_is_rejected():
+    """Vorher wurde `name + "\\n" + description + ...` zu einem String
+    verschmolzen und DANACH normalisiert -- ein Zitat, das am Ende von
+    `name` beginnt und am Anfang von `description` weitergeht, sah
+    danach wie ein zusammenhaengender Treffer aus, obwohl es das in
+    KEINEM einzelnen Feld je war. Drei Tokens, damit C1 nicht vorher
+    greift."""
+    welded = "fin_year_end Geprüfter Jahresabschluss,"  # name + Anfang description
+    assert len(welded) >= 12 and len(welded.split()) == 3
+    j = judge_edge(DEAD, UP, DOWN, transport=_reply(
+        important=True, reason="r", quote=welded, source_field="description"))
+    assert j.used_model is False
+    assert j.fallback_reason == "Zitat steht nicht im gelesenen Kontext"
+
+
+def test_c2_a_quote_welded_across_upstream_and_downstream_is_rejected():
+    """Derselbe Fehler ueber die DATENSATZ-Grenze: `owner` (upstream) +
+    `domain` (upstream) + `name` (downstream) waren im alten,
+    verschmolzenen Korpus contiguous ("...anna Finance tmp_42") und
+    haetten dort validiert -- keins der beiden Segmente (upstream ODER
+    downstream, je einzeln) enthaelt den vollen String."""
+    welded = "urn:li:corpuser:anna Finance tmp_42"  # UP.owner + UP.domain + DOWN.name
+    assert len(welded) >= 12 and len(welded.split()) == 3
+    j = judge_edge(DEAD, UP, DOWN, transport=_reply(
+        important=True, reason="r", quote=welded, source_field="owner"))
+    assert j.used_model is False
+    assert j.fallback_reason == "Zitat steht nicht im gelesenen Kontext"
+
+
+def test_i2_important_as_the_string_false_is_parsed_as_false_not_coerced_to_true():
+    """Der gemessene Fehler: `bool("false")` ist `True`, weil jeder
+    nichtleere String truthy ist -- das haette die Gewichtung, die
+    einzige Aussage, die dieses Modul treffen darf, exakt umgedreht.
+    Die explizite String-Zuordnung liest "false" korrekt als das echte
+    Bool `False`, kein Rueckfall noetig -- das Urteil bleibt gueltig,
+    nur eben nicht wichtig."""
+    j = judge_edge(DEAD, UP, DOWN, transport=_reply(
+        important="false", reason="r",
+        quote="Geprüfter Jahresabschluss, revisionsrelevant",
+        source_field="description"))
+    assert j.used_model is True
+    assert j.important is False
+
+
+def test_i2_important_as_the_string_true_is_accepted():
+    j = judge_edge(DEAD, UP, DOWN, transport=_reply(
+        important="true", reason="r",
+        quote="Geprüfter Jahresabschluss, revisionsrelevant",
+        source_field="description"))
+    assert j.used_model is True
+    assert j.important is True
+
+
+def test_i2_important_as_a_non_boolean_type_is_rejected():
+    j = judge_edge(DEAD, UP, DOWN, transport=_reply(
+        important=["ja"], reason="r",
+        quote="Geprüfter Jahresabschluss, revisionsrelevant",
+        source_field="description"))
+    assert j.used_model is False
+    assert j.fallback_reason == "important-Feld nicht boolesch"
+
+
+def test_i3_source_field_is_derived_from_the_actual_match_never_trusted_from_the_model():
+    """Eine falsche Beleg-BEZEICHNUNG ist dieselbe Fehlerklasse wie ein
+    falsches Zitat (I3). Das Modell behauptet `source_field="owner"`,
+    obwohl das Zitat woertlich aus `description` stammt -- die
+    zurueckgegebene Antwort traegt trotzdem das WAHRE Label, weil es aus
+    dem Treffer abgeleitet wird statt vom Modell uebernommen."""
+    j = judge_edge(DEAD, UP, DOWN, transport=_reply(
+        important=True, reason="r",
+        quote="Geprüfter Jahresabschluss, revisionsrelevant",
+        source_field="owner"))
+    assert j.used_model is True
+    assert j.source_field == "description"
+
+
+def test_i4_a_non_serialisable_evidence_value_is_our_own_bug_not_a_transport_failure():
+    """`build_prompt(...)` liegt jetzt AUSSERHALB des Transport-try: ein
+    Fehler beim Prompt-Bau (hier `json.dumps` an einem `datetime`-Wert in
+    `verdict.evidence`) ist ein Bug in UNSEREM Code, kein Transport-
+    Fehlschlag, und darf nicht als "Transport gescheitert" getarnt
+    werden -- er schlaegt durch, der Transport wird nie aufgerufen."""
+    import datetime
+
+    bad = EdgeVerdict(
+        edge=Edge("urn:up", "urn:down"), state="dead",
+        evidence={"when": datetime.datetime(2026, 1, 1)},
+        coverage=Coverage(1, 0, 0, ""), timeline=Timeline(()))
+
+    def never_called(prompt):
+        raise AssertionError("Transport haette nie aufgerufen werden duerfen")
+
+    with pytest.raises(TypeError):
+        judge_edge(bad, UP, DOWN, transport=never_called)
+
+
+def test_m2_a_context_with_nothing_readable_on_either_side_gets_its_own_reason():
+    """"Nichts wurde gelesen" und "im Gelesenen nicht gefunden" sind
+    verschiedene Aussagen (M2). Ein Kontext ganz ohne lesbare Felder auf
+    BEIDEN Seiten bekommt eine eigene Meldung statt der generischen
+    "nicht gefunden"."""
+    empty_up = {"urn": "urn:up", "name": "", "description": "", "owners": [],
+                "glossary_terms": [], "domain": "", "text": ""}
+    empty_down = {"urn": "urn:down", "name": "", "description": "", "owners": [],
+                  "glossary_terms": [], "domain": "", "text": ""}
+    j = judge_edge(DEAD, empty_up, empty_down, transport=_reply(
+        important=True, reason="r", quote="irgendein laengeres Zitat",
+        source_field="description"))
+    assert j.used_model is False
+    assert j.fallback_reason == "kein lesbarer Kontext vorhanden"
+
+
+def test_m4_important_with_an_empty_reason_is_discarded():
+    """`used_model=True` mit leerem `reason` war erreichbar (M4) -- eine
+    Gewichtung ohne Begruendung ist keine verwertbare Aussage."""
+    j = judge_edge(DEAD, UP, DOWN, transport=_reply(
+        important=True, reason="",
+        quote="Geprüfter Jahresabschluss, revisionsrelevant",
+        source_field="description"))
+    assert j.used_model is False
+    assert j.fallback_reason == "keine Begruendung geliefert"

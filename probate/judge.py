@@ -119,6 +119,27 @@ def gather_context(gms, urn: str) -> dict:
 # Projekts: "jede generierte Metadaten-Aussage traegt ihr Beleg-Artefakt
 # oder wird zu `unbekannt`").
 
+# Fix-Runde 1 (Opus-Review, 07.08.): fuenf gemessene Luecken in der
+# Zitatpflicht selbst, nicht im Rueckfall-Mechanismus (der wurde
+# bestaetigt: Zustands-Immunitaet, Rueckfall-Trichter und das
+# Fail-Closed bei Homoglyphen/ZWSP/Interpunktion sind unveraendert
+# richtig). Konkret behoben:
+#   C1 (kritisch) - ein Ein-Zeichen-Zitat wie "e" erfuellte die Pflicht
+#       und machte sie wirkungslos; jetzt eine Mindestlaenge (s.
+#       `_QUOTE_MIN_CHARS`/`_QUOTE_MIN_TOKENS`).
+#   C2 - ein Zitat, das ueber Feld- ODER Datensatz-Grenzen hinweg
+#       zusammengeschweisst war (weil `text` mit "\n" verschmolzen und
+#       DANACH normalisiert wurde), validierte faelschlich; jetzt wird
+#       PRO FELD-SEGMENT gesucht, upstream und downstream getrennt.
+#   I2 - `bool(parsed.get("important"))` liess jeden nichtleeren String
+#       (inkl. dem String "false") als True durch; jetzt nur ein echtes
+#       Bool oder die exakten Strings "true"/"false".
+#   I3 - `source_field` kam ungeprueft vom Modell; jetzt wird es aus dem
+#       tatsaechlich TREFFENDEN Segment abgeleitet (faellt aus C2 ab).
+#   I4 - `build_prompt(...)` lag INNERHALB des Transport-try; ein Fehler
+#       beim Prompt-Bau (z.B. nicht-serialisierbare Evidence) hiess
+#       faelschlich "Transport gescheitert". Jetzt ausserhalb -- ein
+#       solcher Fehler ist ein Bug in UNSEREM Code und schlaegt durch.
 JudgeTransport = Callable[[str], str]
 
 
@@ -210,7 +231,7 @@ def build_prompt(verdict, up_ctx: dict, down_ctx: dict) -> str:
 
 
 def _normalise(s: str) -> str:
-    """Normalisierungs-Entscheid (dokumentiert, wie im Auftrag verlangt):
+    r"""Normalisierungs-Entscheid (dokumentiert, wie im Auftrag verlangt):
 
     NUR Whitespace wird zusammengefasst (mehrere Leerzeichen/Zeilenumbrueche
     -> ein Leerzeichen, Raender getrimmt) -- weil GraphQL-Text und ein
@@ -226,8 +247,143 @@ def _normalise(s: str) -> str:
     Case-insensitive zu pruefen wuerde die Zitatpflicht aufweichen: ein
     Modell koennte dann jedes Wort im Korpus in beliebiger Schreibung als
     "Beleg" ausgeben.
+
+    Gemessenes Unicode-Verhalten (M6, 07.08., `re.sub(r"\s+", ...)` unter
+    Python 3.11.9 mit Unicode-Strings, nicht ASCII-Modus):
+    - GESCHUETZTES Leerzeichen (NBSP, U+00A0) FAELLT in ein normales
+      Leerzeichen ZUSAMMEN -- `\s` matched es, weil Python-`str.isspace()`
+      es als Whitespace fuehrt (Unicode-Kategorie Zs). Ein per Copy-Paste
+      aus einer Webseite eingeschlepptes NBSP im Zitat bricht den
+      Vergleich also NICHT.
+    - Zero-Width-Space (ZWSP, U+200B) FAELLT NICHT zusammen -- Kategorie
+      Cf (Format), kein Whitespace fuer `\s`. Ein Zitat mit eingeschmuggeltem
+      ZWSP bleibt ein ANDERER String und findet im echten Katalogtext
+      (der kein ZWSP enthaelt) keinen Treffer -- fail-closed, nicht
+      fail-open.
+    - Homoglyphen (z.B. kyrillisches "а" U+0430 statt lateinischem "a"
+      U+0061) werden von `\s+`/`.strip()` ueberhaupt nicht beruehrt --
+      unterschiedliche Codepoints bleiben unterschiedliche Codepoints,
+      der Substring-Vergleich schlaegt fehl. Ebenfalls fail-closed.
     """
     return re.sub(r"\s+", " ", s).strip()
+
+
+# --- Zitatpflicht: Mindestlaenge (C1) --------------------------------------
+#
+# Gemessener Exploit (Opus-Review, 07.08.): quote="e" erfuellte vorher
+# "character-for-character im Kontext", weil ein einzelnes Zeichen fast
+# immer irgendwo im Text vorkommt -- das ist die BILLIGSTE Art, wie ein
+# schwaches Modell die Zitatpflicht syntaktisch erfuellt, ohne inhaltlich
+# etwas zu belegen. Zwei UNABHAENGIGE Untergrenzen, beide muessen halten
+# (kein XOR): eine lange Zeichenkette ohne Wortgrenzen ("aaaaaaaaaaaa")
+# waere sonst genauso ein Fragment wie ein einzelnes Zeichen.
+_QUOTE_MIN_CHARS = 12
+_QUOTE_MIN_TOKENS = 3
+
+
+def _quote_too_short(quote_norm: str) -> bool:
+    """Prueft auf dem BEREITS whitespace-normalisierten Zitat -- sonst
+    liesse sich die Zeichen-Untergrenze mit eingestreuten Leerzeichen
+    ("a    b    c") erschleichen, ohne dass mehr Substanz drin waere."""
+    return len(quote_norm) < _QUOTE_MIN_CHARS or len(quote_norm.split(" ")) < _QUOTE_MIN_TOKENS
+
+
+def _parse_important(value) -> bool | None:
+    """Nur ein ECHTES Bool zaehlt, oder die exakten Strings "true"/"false"
+    (Gross-/Kleinschreibung gleichgueltig) -- alles andere ist ungueltig.
+
+    `bool(x)` (die alte Pruefung, I2) haette JEDEN nichtleeren String als
+    True gelesen -- den String "false" eingeschlossen, was die einzige
+    Aussage, die dieses Modul ueberhaupt treffen darf (Gewichtung), genau
+    umgedreht haette. LLMs geben JSON-Booleans routinemaessig als String
+    aus, darum die explizite String-Zuordnung statt eines reinen
+    `isinstance(value, bool)`-Verbots.
+    """
+    if isinstance(value, bool):
+        return value
+    if isinstance(value, str):
+        low = value.strip().lower()
+        if low == "true":
+            return True
+        if low == "false":
+            return False
+    return None
+
+
+# --- Zitatpflicht: Segmente statt verschmolzenem Korpus (C2) --------------
+#
+# Vorher wurde `up_ctx["text"] + "\n" + down_ctx["text"]` zu EINEM String
+# verschmolzen und DANACH normalisiert -- die Normalisierung ersetzt jeden
+# Zeilenumbruch (auch den zwischen zwei FELDERN und den zwischen den
+# beiden SEITEN) durch ein einzelnes Leerzeichen. Ein "Zitat", das am
+# Ende von Feld A beginnt und am Anfang von Feld B endet (oder gar
+# upstream mit downstream verschweisst), sah danach aus wie ein
+# zusammenhaengender Treffer, obwohl es das an keiner einzelnen Stelle im
+# Katalog je war. Jetzt wird PRO FELD-SEGMENT gesucht, nie ueber ein
+# `\n` hinweg -- und upstream/downstream werden als zwei GETRENNTE
+# Kontexte geprueft, nie gemeinsam verschmolzen. Die Feld-Labels selbst
+# (name/description/owner/glossary/domain) stehen nur hier, direkt im
+# `_segments`-Aufbau -- dieselben fuenf wie im `source_field`-Enum im
+# Prompt oben, kein zweites Register dafuer.
+
+
+def _segments(ctx: dict) -> list[tuple[str, str]]:
+    """Labeled Feld-Segmente EINES Kontexts (eine Seite), direkt aus den
+    STRUKTURIERTEN Feldern gebaut -- nicht aus dem `text`-Blob.
+
+    Nur so laesst sich ein Treffer auf sein tatsaechliches Herkunftsfeld
+    zurueckfuehren (I3): ein simples `text.split("\\n")` haette bei
+    mehreren Ownern/Glossar-Begriffen mehrere gleich aussehende Zeilen
+    geliefert, ohne dass man noch weiss, welche zu welchem Feld gehoert.
+    Leere Felder werden nicht als Segment gefuehrt -- ein leerer String
+    waere ein Substring von allem und wuerde jede Laengen-Pruefung ad
+    absurdum fuehren.
+    """
+    segs: list[tuple[str, str]] = []
+    if ctx.get("name"):
+        segs.append(("name", ctx["name"]))
+    if ctx.get("description"):
+        segs.append(("description", ctx["description"]))
+    for owner in ctx.get("owners") or []:
+        if owner:
+            segs.append(("owner", owner))
+    for term in ctx.get("glossary_terms") or []:
+        if term:
+            segs.append(("glossary", term))
+    if ctx.get("domain"):
+        segs.append(("domain", ctx["domain"]))
+    return segs
+
+
+def _extract_span(quote_norm: str, original_text: str) -> str:
+    """Liefert den TATSAECHLICHEN Ausschnitt aus dem Original-Segment, der
+    zum normalisierten Zitat passt -- nicht die Schreibung des Modells
+    (M1). Wer die Evidenz spaeter im Katalog nachschlaegt, soll den Text
+    finden, der dort wirklich steht (Original-Whitespace inklusive); das
+    Modell darf beim Abtippen umformatieren (Mehrfach-Leerzeichen), aber
+    was gespeichert wird, bleibt wortwoertlich Katalog-Text.
+
+    Baut ein Regex aus den normalisierten Toerten mit `\\s+` zwischen
+    ihnen (statt genau EINEM Leerzeichen), damit auch ein Original mit
+    mehrfachem/anderem Whitespace an dieser Stelle noch trifft. Ein
+    Fehlschlag hier (sollte bei einem bereits bestaetigten Normalform-
+    Treffer nicht vorkommen) faellt sicher auf das normalisierte Zitat
+    selbst zurueck, statt eine Exception zu werfen.
+    """
+    tokens = quote_norm.split(" ")
+    pattern = r"\s+".join(re.escape(t) for t in tokens)
+    m = re.search(pattern, original_text)
+    return m.group(0) if m else quote_norm
+
+
+def _match_in_context(quote_norm: str, ctx: dict) -> tuple[str, str] | None:
+    """Sucht das normalisierte Zitat in den Feld-Segmenten EINER Seite --
+    nie ueber zwei Segmente hinweg (C2). Gibt `(Feld-Label,
+    Original-Ausschnitt)` beim ersten Treffer zurueck, sonst `None`."""
+    for label, text in _segments(ctx):
+        if quote_norm in _normalise(text):
+            return label, _extract_span(quote_norm, text)
+    return None
 
 
 def _fallback(verdict, why: str) -> Judgement:
@@ -255,26 +411,42 @@ def judge_edge(verdict, up_ctx: dict, down_ctx: dict,
     Modell durfte ihn nur gewichten -- `Judgement` hat kein Feld, ueber
     das ein Reply ihn aendern koennte (s. `Judgement`-Docstring).
 
-    Reihenfolge der Fehlwege, jeder mit eigenem `fallback_reason`:
-      1. kein Transport injiziert                 -> "kein Transport konfiguriert"
-      2. Transport wirft (JudgeTransportError o.ae.) -> "Transport gescheitert: <exc>"
-      3. Antwort ist kein JSON-Objekt               -> "Antwort war kein JSON"
-      4. kein (nutzbares) Zitat im JSON              -> "kein Zitat geliefert"
-      5. Zitat ist kein woertlicher Teilstring des
-         gelesenen Kontexts (nach Whitespace-Norm.)  -> "Zitat steht nicht im gelesenen Kontext"
+    Reihenfolge der Fehlwege, jeder mit eigenem `fallback_reason` (Fix-
+    Runde 1 fuegt Schritte 2b/3b/3c/5b ein, s. Modul-Kommentar oben):
+      1. kein Transport injiziert                    -> "kein Transport konfiguriert"
+      2. Prompt-Bau schlaegt fehl (I4)                -> KEIN Fallback, propagiert (Bug in unserem Code)
+      2b. Transport wirft                             -> "Transport gescheitert (<ExceptionTyp>): <exc>"
+      3. Antwort ist kein JSON-Objekt                 -> "Antwort war kein JSON"
+      3a. kein (nutzbares) Zitat im JSON               -> "kein Zitat geliefert"
+      3b. Zitat zu kurz (C1)                          -> "Zitat zu kurz, kein Beleg"
+      3c. `important` ist kein echtes Bool (I2)        -> "important-Feld nicht boolesch"
+      3d. `reason` fehlt/ist leer (M4)                 -> "keine Begruendung geliefert"
+      5. kein Segment auf keiner Seite lesbar (M2)     -> "kein lesbarer Kontext vorhanden"
+      5b. Zitat in keinem Feld-Segment gefunden (C2)   -> "Zitat steht nicht im gelesenen Kontext"
 
     Garbage-Feldwerte (z.B. `quote` als Zahl statt Text, eine JSON-Antwort,
-    die eine Liste statt eines Objekts ist) duerfen NICHT crashen -- sie
-    werden strukturell wie der jeweils naechstliegende Fehlweg behandelt,
-    nie mit einer unbehandelten Exception durchgereicht.
+    die eine Liste statt eines Objekts ist, ein `important` als Liste)
+    duerfen NICHT crashen -- sie werden strukturell wie der jeweils
+    naechstliegende Fehlweg behandelt, nie mit einer unbehandelten
+    Exception durchgereicht. Die EINE Ausnahme ist Schritt 2 (I4): ein
+    Fehler beim Bau UNSERES EIGENEN Prompts (z.B. nicht-JSON-serialisier-
+    bare Evidence in `verdict.evidence`) ist kein Transport-Ereignis und
+    wird nicht als eins getarnt -- er schlaegt durch, wie jeder andere
+    Programmfehler auch.
     """
     if transport is None:
         return _fallback(verdict, "kein Transport konfiguriert")
 
+    # I4: AUSSERHALB des try -- ein Fehler hier (z.B. `json.dumps` in
+    # `build_prompt` scheitert an einem nicht-serialisierbaren Evidence-
+    # Wert) ist ein Bug in UNSEREM Code, kein Transport-Fehlschlag, und
+    # darf nicht als "Transport gescheitert" fehletikettiert werden.
+    prompt = build_prompt(verdict, up_ctx, down_ctx)
+
     try:
-        raw = transport(build_prompt(verdict, up_ctx, down_ctx))
+        raw = transport(prompt)
     except Exception as exc:  # jeder Transportfehler, nicht nur unserer
-        return _fallback(verdict, f"Transport gescheitert: {exc}")
+        return _fallback(verdict, f"Transport gescheitert ({type(exc).__name__}): {exc}")
 
     try:
         parsed = json.loads(raw)
@@ -284,20 +456,36 @@ def judge_edge(verdict, up_ctx: dict, down_ctx: dict,
         return _fallback(verdict, "Antwort war kein JSON")
 
     quote_raw = parsed.get("quote")
-    quote = quote_raw.strip() if isinstance(quote_raw, str) else ""
-    if not quote:
+    quote_norm = _normalise(quote_raw) if isinstance(quote_raw, str) else ""
+    if not quote_norm:
         return _fallback(verdict, "kein Zitat geliefert")
 
-    corpus = _normalise(f"{up_ctx.get('text', '')}\n{down_ctx.get('text', '')}")
-    if _normalise(quote) not in corpus:
+    if _quote_too_short(quote_norm):
+        return _fallback(verdict, "Zitat zu kurz, kein Beleg")
+
+    important = _parse_important(parsed.get("important"))
+    if important is None:
+        return _fallback(verdict, "important-Feld nicht boolesch")
+
+    reason_raw = parsed.get("reason")
+    reason = reason_raw.strip() if isinstance(reason_raw, str) else ""
+    if not reason:
+        return _fallback(verdict, "keine Begruendung geliefert")
+
+    if not _segments(up_ctx) and not _segments(down_ctx):
+        return _fallback(verdict, "kein lesbarer Kontext vorhanden")
+
+    match = _match_in_context(quote_norm, up_ctx) or _match_in_context(quote_norm, down_ctx)
+    if match is None:
         return _fallback(verdict, "Zitat steht nicht im gelesenen Kontext")
+    matched_field, matched_span = match
 
     return Judgement(
         edge_key=verdict.edge.key(),
-        important=bool(parsed.get("important")),
-        reason=str(parsed.get("reason") or ""),
-        quote=quote,
-        source_field=str(parsed.get("source_field") or ""),
+        important=important,
+        reason=reason,
+        quote=matched_span,  # M1: der TATSAECHLICHE Katalog-Ausschnitt, nicht die Schreibung des Modells
+        source_field=matched_field,  # I3: abgeleitet aus dem Treffer, nie vom Modell uebernommen
         used_model=True,
         fallback_reason="",
     )
