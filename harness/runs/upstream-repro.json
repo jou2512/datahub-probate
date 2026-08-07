@@ -1,0 +1,273 @@
+{
+  "generated_at": "2026-08-07T11:06:29.638981+00:00",
+  "gms_url": "http://localhost:28080",
+  "datahub_version": "v1.5.0.6",
+  "namespace": "probate_upstream",
+  "anchor_utc_midnight_ms": 1786060800000,
+  "probes": [
+    {
+      "finding": "01-usagestats-range-argument-required-but-nullable",
+      "probed_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+      "claim": "All arguments of Dataset.usageStats are nullable in the schema, yet any call that omits `range` fails with HTTP 500 'Name is null' instead of a 400-class validation error.",
+      "schema_arg_kinds": {
+        "resource": "SCALAR",
+        "range": "ENUM",
+        "startTimeMillis": "SCALAR",
+        "timeZone": "SCALAR"
+      },
+      "schema_non_null_args": [],
+      "cases": {
+        "no_args": "GraphQL meldet Fehler: [{\"message\": \"Name is null\", \"locations\": [{\"line\": 1, \"column\": 41}], \"path\": [\"dataset\", \"usageStats\"], \"extensions\": {\"code\": 500, \"type\": \"SERVER_ERROR\", \"classification\": \"DataFetchingExceptio",
+        "range_only": "ok",
+        "startTimeMillis_only": "GraphQL meldet Fehler: [{\"message\": \"Name is null\", \"locations\": [{\"line\": 1, \"column\": 41}], \"path\": [\"dataset\", \"usageStats\"], \"extensions\": {\"code\": 500, \"type\": \"SERVER_ERROR\", \"classification\": \"DataFetchingExceptio",
+        "timeZone_only": "GraphQL meldet Fehler: [{\"message\": \"Name is null\", \"locations\": [{\"line\": 1, \"column\": 41}], \"path\": [\"dataset\", \"usageStats\"], \"extensions\": {\"code\": 500, \"type\": \"SERVER_ERROR\", \"classification\": \"DataFetchingExceptio",
+        "startTimeMillis_and_range": "ok"
+      },
+      "variants_failing_with_500": [
+        "no_args",
+        "startTimeMillis_only",
+        "timeZone_only"
+      ],
+      "reproduced": true
+    },
+    {
+      "finding": "06-mcp-server-datahub-comments-out-query-timestamps",
+      "claim": "mcp-server-datahub's bundled GraphQL documents comment out QueryProperties.created entirely and lastModified.time as well, so every query entity reaches an MCP client with no timestamp. The server offers both fields and returns real values for them. The failure is silent: results arrive, they are simply always undated, which makes any age-based judgement impossible over MCP.",
+      "mcp_server_datahub_version": "0.6.0",
+      "client_documents": {
+        "queries.gql": {
+          "path": "C:\\Users\\joel2\\AppData\\Local\\uv\\cache\\archive-v0\\fG-ZqRBYnB6dVFay\\Lib\\site-packages\\mcp_server_datahub\\gql\\queries.gql",
+          "commented_out_lines": [
+            "# created {",
+            "#   time",
+            "#   actor",
+            "# }",
+            "# time"
+          ],
+          "effective_requests_created": false,
+          "effective_requests_time": false,
+          "created_appears_only_in_comments": true,
+          "time_appears_only_in_comments": true
+        },
+        "query_entity.gql": {
+          "path": "C:\\Users\\joel2\\AppData\\Local\\uv\\cache\\archive-v0\\fG-ZqRBYnB6dVFay\\Lib\\site-packages\\mcp_server_datahub\\gql\\query_entity.gql",
+          "commented_out_lines": [],
+          "effective_requests_created": false,
+          "effective_requests_time": false,
+          "created_appears_only_in_comments": false,
+          "time_appears_only_in_comments": false
+        }
+      },
+      "client_drops_all_timestamps": true,
+      "server_QueryProperties_fields": {
+        "statement": "QueryStatement",
+        "source": "QuerySource",
+        "name": "String",
+        "description": "String",
+        "created": "AuditStamp",
+        "createdOn": "ResolvedAuditStamp",
+        "lastModified": "AuditStamp",
+        "origin": "Entity",
+        "customProperties": null
+      },
+      "server_offers_created": true,
+      "server_offers_lastModified": true,
+      "server_returns_timestamps_live": true,
+      "server_sample": [
+        {
+          "urn": "urn:li:query:bdc4b851a09917e3",
+          "properties": {
+            "created": {
+              "time": 1754300000000,
+              "actor": "urn:li:corpuser:datahub"
+            },
+            "lastModified": {
+              "time": 1754300000000,
+              "actor": "urn:li:corpuser:datahub"
+            }
+          }
+        },
+        {
+          "urn": "urn:li:query:probate-seedlab-confirmed",
+          "properties": {
+            "created": {
+              "time": 1754300000000,
+              "actor": "urn:li:corpuser:datahub"
+            },
+            "lastModified": {
+              "time": 1754300000000,
+              "actor": "urn:li:corpuser:datahub"
+            }
+          }
+        }
+      ],
+      "reproduced": true
+    },
+    {
+      "finding": "02-gettimeseriesaspectvalues-limit-null-pointer",
+      "claim": "POST /aspects?action=getTimeseriesAspectValues without the optional-looking `limit` field returns HTTP 500 NullPointerException instead of applying a default or returning 400.",
+      "probed_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+      "status_without_limit": 500,
+      "error_without_limit": "{\"exceptionClass\":\"com.linkedin.restli.server.RestLiServiceException\",\"stackTrace\":\"com.linkedin.restli.server.RestLiServiceException [HTTP Status:500]: java.lang.NullPointerException: Cannot invoke \\\"java.lang.Integer.intValue()\\\" because \\\"limit\\\" is null\\n\\tat com.linkedin.metadata.resources.restli.RestliUtils.toTask(RestliUtils.java:49)\\n\\tat com.linkedin.metadata.resources.restli.RestliUtils.",
+      "status_with_limit": 200,
+      "rows_with_limit": 8,
+      "rows_expected": 8,
+      "reproduced": true
+    },
+    {
+      "finding": "03-usagestats-uniqueusercount-aggregation-is-always-zero",
+      "claim": "Dataset.usageStats.aggregations.uniqueUserCount returns 0 while the buckets in the same response report non-zero uniqueUserCount, and statsSummary.uniqueUserCountLast30Days repeats the 0. totalSqlQueries, the sibling scalar on the same aspect, aggregates correctly from the same rows. A writer that sets DatasetUsageStatistics.uniqueUserCount -- the field the Python SDK exposes -- gets it echoed back per bucket but silently zeroed in every aggregate.",
+      "datasets": [
+        {
+          "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+          "bucket_unique_user_counts": [
+            4,
+            3,
+            0,
+            0,
+            0,
+            0,
+            0,
+            0
+          ],
+          "max_bucket_unique_user_count": 4,
+          "aggregations_uniqueUserCount": 0,
+          "aggregations_users": [],
+          "aggregations_totalSqlQueries": 52,
+          "primary_store_totalSqlQueries": 52,
+          "primary_store_max_uniqueUserCount": 4,
+          "stats_summary": {
+            "queryCountLast30Days": 0,
+            "uniqueUserCountLast30Days": 0
+          },
+          "aspect_carries_userCounts_array": false,
+          "contradiction": true
+        },
+        {
+          "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
+          "bucket_unique_user_counts": [
+            3,
+            4,
+            5
+          ],
+          "max_bucket_unique_user_count": 5,
+          "aggregations_uniqueUserCount": 0,
+          "aggregations_users": [],
+          "aggregations_totalSqlQueries": 103,
+          "primary_store_totalSqlQueries": 103,
+          "primary_store_max_uniqueUserCount": 5,
+          "stats_summary": {
+            "queryCountLast30Days": 103,
+            "uniqueUserCountLast30Days": 0
+          },
+          "aspect_carries_userCounts_array": false,
+          "contradiction": true
+        }
+      ],
+      "datasets_contradicting": 2,
+      "datasets_probed": 2,
+      "likely_cause": "The aggregate appears to be derived from the optional `userCounts` array rather than from the scalar `uniqueUserCount`; with no `userCounts` written, `users` comes back [] and the count comes back 0. Reporting 0 rather than null then asserts a measurement that was never made.",
+      "reproduced": true
+    },
+    {
+      "finding": "04-usagestats-buckets-are-a-dense-calendar-grid",
+      "claim": "usageStats.buckets is a DENSE per-day calendar grid spanning the oldest to the newest really-written row, not the list of measurements. Days that were never written are present as buckets with null metrics. len(buckets) is therefore a calendar span, not a count of measurements -- here 125 buckets for 8 rows. None of this is stated in the schema description or the docs, and the null-vs-zero distinction (never written vs measured zero traffic) is the only thing separating the two.",
+      "sparse": {
+        "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+        "rows_in_primary_store": 8,
+        "buckets_from_aggregation": 125,
+        "predicted_span_days": 125,
+        "interpolated_buckets": 117,
+        "oldest_row_ms": 1775347200000,
+        "newest_row_ms": 1786060800000,
+        "zero_rows_in_primary_store": 6,
+        "zero_buckets_in_aggregation": 6,
+        "null_metric_buckets_in_aggregation": 117,
+        "primary_store_total": 52,
+        "aggregation_total": 52,
+        "span_matches_bucket_count": true,
+        "role": "gappy history -- expect buckets > rows"
+      },
+      "dense_control": {
+        "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
+        "rows_in_primary_store": 3,
+        "buckets_from_aggregation": 3,
+        "predicted_span_days": 3,
+        "interpolated_buckets": 0,
+        "oldest_row_ms": 1785888000000,
+        "newest_row_ms": 1786060800000,
+        "zero_rows_in_primary_store": 0,
+        "zero_buckets_in_aggregation": 0,
+        "null_metric_buckets_in_aggregation": 0,
+        "primary_store_total": 103,
+        "aggregation_total": 103,
+        "span_matches_bucket_count": true,
+        "role": "consecutive days -- expect buckets == rows"
+      },
+      "empty_control": {
+        "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)",
+        "rows_in_primary_store": 0,
+        "buckets_from_aggregation": 0,
+        "predicted_span_days": 0,
+        "interpolated_buckets": 0,
+        "oldest_row_ms": null,
+        "newest_row_ms": null,
+        "zero_rows_in_primary_store": 0,
+        "zero_buckets_in_aggregation": 0,
+        "null_metric_buckets_in_aggregation": 0,
+        "primary_store_total": 0,
+        "aggregation_total": null,
+        "span_matches_bucket_count": true,
+        "role": "no history -- expect 0 buckets"
+      },
+      "padding_is_null_not_zero": true,
+      "reproduced": true
+    },
+    {
+      "finding": "05-openapi-v3-get-aspect-returns-newest-timeseries-row-only",
+      "claim": "GET /openapi/v3/entity/dataset/<urn>/datasetusagestatistics returns a single aspect value -- the newest row -- shaped exactly like a non-timeseries aspect. Nothing in the response says a history exists, so a client reading a timeseries aspect through the generic entity route silently sees 1 of N rows.",
+      "probed_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+      "rows_in_primary_store": 8,
+      "get_aspect_returned_rows": 1,
+      "get_aspect_timestamp": 1786060800000,
+      "newest_timestamp_in_store": 1786060800000,
+      "get_aspect_matches_newest_row": true,
+      "response_mentions_history": true,
+      "on_dataset_without_rows": null,
+      "reproduced": true
+    },
+    {
+      "finding": "unconfirmed-delete-aspect-on-timeseries-removes-only-newest-row",
+      "claim": "see docs/upstream/",
+      "reproduced": null,
+      "skipped": "needs freshly written timeseries history; the write path on this instance is stalled"
+    },
+    {
+      "finding": "unconfirmed-usagestats-aggregation-trails-the-primary-store",
+      "claim": "see docs/upstream/",
+      "reproduced": null,
+      "skipped": "needs freshly written timeseries history; the write path on this instance is stalled"
+    },
+    {
+      "finding": "unconfirmed-graph-index-trails-writes-and-deletes",
+      "claim": "see docs/upstream/",
+      "reproduced": null,
+      "skipped": "--no-seed: this probe has to write and then remove a lineage edge"
+    }
+  ],
+  "seed_diagnosis": {
+    "write_path_stalled": true,
+    "note": "--no-seed: nothing was written."
+  },
+  "probes_total": 9,
+  "probes_reproduced": 6,
+  "probes_not_reproduced": [],
+  "probes_not_measured": [
+    "unconfirmed-delete-aspect-on-timeseries-removes-only-newest-row",
+    "unconfirmed-usagestats-aggregation-trails-the-primary-store",
+    "unconfirmed-graph-index-trails-writes-and-deletes"
+  ],
+  "cleanup": {
+    "skipped": true
+  }
+}
