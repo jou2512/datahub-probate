@@ -376,10 +376,20 @@ def classify_edges(
 # Aggregation -- exakt die Route, die `harness/seed_lineage_lab.py::
 # _raw_usage_values` bereits fuer die Seed-Verifikation nutzt (dort zuerst
 # geloest: Rueckluse nach Purge+Rewrite gegen die Aggregation war live
-# unzuverlaessig, gegen die Rohablage sofort korrekt). `get_aspect` entfaellt
-# (Falle 18, UEBERGABE.md): fuer Zeitreihen-Aspekte liefert es IMMER `None`,
-# live bestaetigt sowohl mit vorhandenen als auch mit fehlenden Daten -- als
-# Rueckluse-Werkzeug fuer diesen Aspekttyp ist es blind.
+# unzuverlaessig, gegen die Rohablage sofort korrekt).
+#
+# KORREKTUR 07.08.2026, 12:20 -- die urspruengliche Begruendung hier war
+# falsch. Sie lautete, `get_aspect` liefere fuer Zeitreihen-Aspekte "IMMER
+# None" und sei fuer diesen Aspekttyp blind (Falle 18, UEBERGABE.md). Die
+# Gegenprobe widerlegt das: `get_aspect('dataset', <urn>,
+# 'datasetUsageStatistics')` gab an `probate_writetest.t4` den Aspekt samt
+# `totalSqlQueries` zurueck (geschrieben 123, gelesen 123).
+#
+# Der Griff zur Rohablage bleibt trotzdem richtig, aber aus dem anderen,
+# tatsaechlich gemessenen Grund: `get_aspect` liefert nur den JUENGSTEN Wert,
+# waehrend die Klassifikation ALLE Buckets im Fenster braucht -- und die
+# Aggregation hinkt (Falle 19, >75 s beobachtet). Rohablage ist die einzige
+# Route, die vollstaendig und ohne Verzug antwortet.
 #
 # `probate/gms.py` bleibt unveraendert (ausserhalb des Datei-Umfangs dieser
 # Aufgabe) und bietet weder diese Route noch rohe Zeitreihen-Werte als

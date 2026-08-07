@@ -728,11 +728,16 @@ def seed_queries(gms: Gms) -> None:
 #
 # Rueckluse-Abweichung vom Auftrag [hier haette Joel vielleicht anders
 # gewollt]: der Auftrag verlangte ausdruecklich `get_aspect` fuer die
-# Loesch-Bestaetigung. Live-Probe zeigt aber: `get_aspect()` liefert fuer
-# Zeitreihen-Aspekte IMMER `None` -- sowohl wenn Daten vorhanden sind
-# (zwei frisch geschriebene, bestaetigt per Rohzugriff) als auch danach.
-# Als Rueckluse-Werkzeug fuer DIESEN Aspekttyp ist es blind: es koennte
-# eine erfolgreiche Loeschung nie von einer gescheiterten unterscheiden.
+# Loesch-Bestaetigung.
+#
+# KORREKTUR 07.08.2026, 12:20: Hier stand, `get_aspect()` liefere fuer
+# Zeitreihen-Aspekte "IMMER None" und sei blind. Das ist widerlegt --
+# `get_aspect('dataset', <urn>, 'datasetUsageStatistics')` gab an
+# `probate_writetest.t4` den geschriebenen Wert zurueck (123 rein, 123
+# raus). Der Rohzugriff bleibt richtig, aber aus dem belegten Grund:
+# `get_aspect` zeigt nur den JUENGSTEN Bucket und kann darum "Historie
+# geloescht" nicht von "juengster Wert noch da" unterscheiden -- fuer eine
+# Loesch-Bestaetigung ueber die ganze Historie taugt es nicht.
 # Verwendet wird deshalb derselbe Rohzugriff, der die Diagnose belegt hat
 # (`/aspects?action=getTimeseriesAspectValues`, Falle 14: `limit` ist
 # Pflicht) -- das einzige Werkzeug, das bei Zeitreihen-Aspekten tatsaechlich
