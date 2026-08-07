@@ -268,6 +268,54 @@ def _dead_since_iso(evidence: dict) -> str | None:
     return _iso_day(last_covered_ms)
 
 
+def _resolve_editable_props_before(before: dict | None) -> dict:
+    """Wie `_resolve_aspect_before`, aber ohne `"upstreams"`-Pflichtfeld:
+    `editableDatasetProperties` hat kein Feld, dessen Anwesenheit die
+    gewrappte von der entpackten Form unterscheidet -- ein leerer Aspekt
+    (`{}`) ist hier gueltig (Dataset ohne jede kuratierte Property).
+    Deshalb nur entpacken (`value`-Schluessel, falls vorhanden), nie gegen
+    einen Pflicht-Schluessel pruefen.
+    """
+    if before is None:
+        return {}
+    if not isinstance(before, dict):
+        raise ValueError(
+            f"enrich_doc: 'before' hat eine unbekannte form: {before!r}"
+        )
+    value = before.get("value", before)
+    if not isinstance(value, dict):
+        raise ValueError(
+            f"enrich_doc: 'before.value' hat eine unbekannte form: {before!r}"
+        )
+    return value
+
+
+def merge_editable_description(before: dict | None, note: str) -> dict:
+    """Haengt eine probate-Notiz an -- ueberschreibt NIE eine bestehende
+    Beschreibung.
+
+    `editableDatasetProperties.description` ist im DataHub-UI die
+    kuratierte, von Menschen geschriebene Beschreibung. Anders als
+    `upstreamLineage.upstreams[].properties` (Task 12, `mark_dead`) gibt
+    es auf diesem Aspekt kein separates Feld, das probate exklusiv
+    gehoert -- also ist Anhaengen an `description`, niemals Ersetzen, die
+    einzige Operation, die menschliche Dokumentation nicht zerstoert.
+    Ein Klobbern der Beschreibung waere dieselbe Fehlerklasse wie das
+    stille Loeschen von `fineGrainedLineages` in `merge_upstreams`
+    (Task-12-Review, CRITICAL 1) -- nur auf einem Aspekt, den Menschen
+    tatsaechlich lesen.
+
+    Jeder andere Top-Level-Schluessel des Aspekts (z.B.
+    `customProperties`) bleibt unangetastet -- derselbe Grundsatz wie
+    `merge_upstreams`: der ganze aufgeloeste Wert ist die Basis, nicht
+    ein frisch gebautes `{"description": ...}`.
+    """
+    resolved = _resolve_editable_props_before(before)
+    old = (resolved.get("description") or "").strip()
+    text = f"{old}\n\n{note}" if old else note
+    return {**resolved, "description": text}
+
+
 def _has_real_entries(items) -> bool:
     """`["", "  "]` ist eine nicht-leere Liste, aber keine Substanz
     (Task-12-Review, Minor 9) -- mindestens ein Eintrag muss, getrimmt,
@@ -428,4 +476,46 @@ def apply_proposal(
         value = merge_upstreams(before, mark_dead={upstream: dead_since})
         return wb.aspect("dataset", p.target_urn, "upstreamLineage", value)
 
+    if p.kind == "enrich_doc":
+        # Kein Zustands-Gate wie `_require_dead_state`: `propose()` erzeugt
+        # `enrich_doc` ausschliesslich fuer `state == "confirmed"`, und
+        # anders als bei `mark_dead` gibt es keinen destruktiven Nebeneffekt
+        # bei einem falschen Zustand -- es wird angehaengt, nichts geloescht
+        # oder als tot markiert. `_require_substantive_evidence` (oben
+        # bereits gelaufen) verweigert ohnehin, wenn `query_urns` leer ist.
+        before = wb.gms.get_aspect("dataset", p.target_urn, "editableDatasetProperties") \
+            if hasattr(wb, "gms") else None
+        n = len(p.evidence.get("query_urns", []))
+        qword = "query" if n == 1 else "queries"
+        note = (
+            f"probate: observed usage from {upstream} in {n} measured "
+            f"{qword}, last covered {_iso_day(p.evidence.get('last_covered_ms'))} "
+            "(source: DataHub usage statistics, seeded data)."
+        )
+        value = merge_editable_description(before, note)
+        return wb.aspect("dataset", p.target_urn, "editableDatasetProperties", value)
+
     raise ValueError(f"unbekannte vorschlagsart: {p.kind}")
+
+
+def remove_edge(wb, upstream: str, downstream: str, now_ms: int = 0):
+    """Nimmt EINE deklarierte Kante weg -- nur auf ausdruecklichen Zuruf.
+
+    Kein Vorschlag erzeugt das automatisch: `propose()` kennt nur
+    `add_edge`/`mark_dead`/`enrich_doc`, alle additiv oder markierend.
+    Eine Kante zu entfernen ist die einzige nicht-additive Handlung in
+    diesem Modul, und sie passiert nur, wenn ein Mensch sie ausserhalb
+    des Vorschlags-Flusses ausloest -- z.B. weil eine Kante nachweislich
+    falsch deklariert war, nicht bloss tot. Das Journal deckt sie
+    trotzdem (`wb.aspect()` sichert den Vorher-Zustand, `revert_all()`
+    rollt sie wie jeden anderen Schreibvorgang zurueck).
+
+    `now_ms` wird bewusst entgegengenommen, aber hier nicht verwendet:
+    ein Drop hinterlaesst keinen Zeitstempel auf der Kante (es gibt nach
+    dem Entfernen keine Kante mehr, auf der einer stehen koennte) --
+    der Parameter haelt die Signatur symmetrisch zu `apply_proposal`
+    und dem Journal-Zeitstempel, den `writeback.py` beim Revert nutzt.
+    """
+    before = wb.gms.get_aspect("dataset", downstream, "upstreamLineage")
+    value = merge_upstreams(before, drop=[upstream])
+    return wb.aspect("dataset", downstream, "upstreamLineage", value)

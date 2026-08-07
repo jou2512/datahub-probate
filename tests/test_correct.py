@@ -521,3 +521,103 @@ def test_require_substantive_evidence_rejects_add_edge_with_only_blank_query_urn
         assert False, "haette werfen muessen"
     except ValueError:
         pass
+
+
+# --- Task 13: tote kante markieren (bereits mit Task 12 gebaut, hier nur
+# nochmal am eigentlichen mark_dead-Proposal aus propose() belegt), kante
+# entfernen (remove_edge, neu), doku aus beobachteter nutzung (enrich_doc,
+# neu -- propose() erzeugte diese Vorschlagsart bereits, apply_proposal
+# warf bisher ValueError darauf).
+
+from probate.correct import remove_edge  # noqa: E402
+
+
+def test_mark_dead_writes_the_last_covered_date_and_keeps_the_edge():
+    """Die Kante wird MARKIERT, nicht geloescht. Ein Werkzeug, das bei
+    duenner Datenlage Kanten entfernt, ist das Problem, nicht die
+    Loesung -- entfernt wird nur auf ausdruecklichen Zuruf (remove_edge)."""
+    wb = RecordingWb({("dataset", "urn:d", "upstreamLineage"): {"value": {"upstreams": [
+        {"dataset": "urn:up", "type": "TRANSFORMED", "auditStamp": {"time": 1, "actor": "x"}}]}}})
+    p = [x for x in propose(LEDGER) if x.kind == "mark_dead"][0]
+    apply_proposal(wb, p, now_ms=9)
+    _, urn, aspect, value, _ = wb.written[0]
+    assert urn == "urn:d"
+    assert aspect == "upstreamLineage"
+    kept = [u for u in value["upstreams"] if u["dataset"] == "urn:up"][0]
+    assert kept["properties"][DEAD_MARKER_KEY] == "1970-01-01"  # last_covered_ms=100
+
+
+def test_enrich_doc_appends_and_never_overwrites_an_existing_description():
+    wb = RecordingWb({("dataset", "urn:c", "editableDatasetProperties"): {
+        "value": {"description": "Bestehende Beschreibung."}}})
+    p = [x for x in propose(LEDGER) if x.kind == "enrich_doc"][0]
+    apply_proposal(wb, p, now_ms=9)
+    _, urn, aspect, value, _ = wb.written[0]
+    assert urn == "urn:c"
+    assert aspect == "editableDatasetProperties"
+    assert value["description"].startswith("Bestehende Beschreibung.")
+    assert "probate" in value["description"]
+
+
+def test_enrich_doc_preserves_other_top_level_keys_on_the_aspect():
+    """Derselbe Grundsatz wie fineGrainedLineages bei merge_upstreams:
+    ein unbekannter Top-Level-Schluessel des Aspekts wird nicht still
+    geloescht, nur weil enrich_doc nur description kennt."""
+    wb = RecordingWb({("dataset", "urn:c", "editableDatasetProperties"): {
+        "value": {"description": "Bestehende Beschreibung.",
+                   "customProperties": {"owner_team": "analytics"}}}})
+    p = [x for x in propose(LEDGER) if x.kind == "enrich_doc"][0]
+    apply_proposal(wb, p, now_ms=9)
+    _, _, _, value, _ = wb.written[0]
+    assert value["customProperties"] == {"owner_team": "analytics"}
+
+
+def test_enriched_documentation_names_the_data_as_seeded():
+    """Regel 3 der Uebergabe: geseedete Daten werden als geseedet
+    ausgewiesen -- auch in dem Text, der im Katalog landet."""
+    wb = RecordingWb()  # kein bestehender Aspekt
+    p = [x for x in propose(LEDGER) if x.kind == "enrich_doc"][0]
+    apply_proposal(wb, p, now_ms=9)
+    _, _, _, value, _ = wb.written[0]
+    assert "seeded" in value["description"]
+
+
+def test_apply_proposal_refuses_to_write_an_enrich_doc_with_vacuous_evidence():
+    wb = RecordingWb({("dataset", "urn:c", "editableDatasetProperties"): {
+        "value": {"description": "Bestehende Beschreibung."}}})
+    p = Proposal(kind="enrich_doc", edge_key="urn:up->urn:c", target_urn="urn:c",
+                 aspect="editableDatasetProperties", evidence={}, state="confirmed",
+                 human_summary="leer")
+    try:
+        apply_proposal(wb, p, now_ms=9)
+        assert False, "haette werfen muessen"
+    except ValueError:
+        pass
+    assert wb.written == []
+
+
+def test_remove_edge_drops_exactly_one_upstream_and_keeps_the_rest():
+    wb = RecordingWb({("dataset", "urn:d", "upstreamLineage"): {"value": {"upstreams": [
+        {"dataset": "urn:a", "type": "TRANSFORMED", "auditStamp": {"time": 1, "actor": "x"}},
+        {"dataset": "urn:b", "type": "TRANSFORMED", "auditStamp": {"time": 1, "actor": "x"}}]}}})
+    remove_edge(wb, upstream="urn:a", downstream="urn:d", now_ms=9)
+    _, urn, aspect, value, _ = wb.written[0]
+    assert urn == "urn:d"
+    assert aspect == "upstreamLineage"
+    assert [u["dataset"] for u in value["upstreams"]] == ["urn:b"]
+
+
+def test_remove_edge_from_a_dataset_with_no_lineage_aspect_yet_writes_an_empty_list():
+    """`merge_upstreams(None, drop=[...])` ist kein Fehlerfall -- es gibt
+    schlicht nichts zu droppen. Belegt, damit remove_edge sich nicht
+    stillschweigend auf eine Kante verlaesst, die es gar nicht gibt."""
+    wb = RecordingWb({})
+    remove_edge(wb, upstream="urn:a", downstream="urn:ohne-lineage", now_ms=9)
+    _, _, _, value, _ = wb.written[0]
+    assert value["upstreams"] == []
+
+
+def test_an_unknown_proposal_kind_is_loud():
+    import pytest
+    with pytest.raises(ValueError):
+        apply_proposal(RecordingWb(), Proposal("erfunden", "a->b", "b", "x", {}, "state", ""))
