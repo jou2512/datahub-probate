@@ -244,6 +244,38 @@ def test_traffic_with_a_queried_source_and_no_pair_is_dead():
     assert v[0].state == "dead"
 
 
+LOOKED_WITH_WINDOW = Coverage(30, 10 * DAY, 40 * DAY, "", window_start_ms=5 * DAY, window_end_ms=41 * DAY)
+
+
+def test_dead_by_zero_traffic_evidence_names_the_window_it_was_checked_against():
+    """Coordinator-Review IMPORTANT 2: 'im geprueften Fenster nie gemessen'
+    nannte bislang nirgends, WELCHES Fenster gemeint war -- die eine
+    Praemisse, die dead von unknown trennt, muss im Beleg selbst stehen."""
+    v = classify_edges(
+        focus="urn:up", declared={"urn:down"}, cooccurred={},
+        coverage_by_urn={"urn:down": LOOKED_WITH_WINDOW},
+        timeline_by_urn={"urn:down": Timeline((Bucket(40 * DAY, 0, 0),))},
+        now_ms=50 * DAY, queries_seen=0)
+    assert v[0].state == "dead"
+    assert v[0].evidence["window_start_ms"] == 5 * DAY
+    assert v[0].evidence["window_end_ms"] == 41 * DAY
+    assert v[0].evidence["window_days"] == 36
+
+
+def test_dead_by_queried_source_evidence_also_names_the_window():
+    """Derselbe Beleg-Anspruch gilt fuer den ZWEITEN dead-Zweig (Query-
+    Quellen-Gate Regel 3) -- beide dead-Verdikte ruhen auf demselben
+    Fenster, beide muessen es zeigen."""
+    v = classify_edges(
+        focus="urn:up", declared={"urn:down"}, cooccurred={},
+        coverage_by_urn={"urn:down": LOOKED_WITH_WINDOW},
+        timeline_by_urn={"urn:down": Timeline((Bucket(40 * DAY, 9, 2),))},
+        now_ms=50 * DAY, queries_seen=5)
+    assert v[0].state == "dead"
+    assert v[0].evidence["window_start_ms"] == 5 * DAY
+    assert v[0].evidence["window_end_ms"] == 41 * DAY
+
+
 def test_a_declared_self_edge_is_never_emitted():
     """IMPORTANT 3. Der Fokus ist niemals sein eigenes Ziel."""
     v = classify_edges(
@@ -449,6 +481,76 @@ def test_fetch_usage_validates_the_urn_before_building_the_url():
     assert g.sends_sent == []  # gar nicht erst gesendet
 
 
+def test_fetch_usage_accepts_an_explicit_now_ms_and_windows_from_it():
+    """Coordinator-Review IMPORTANT 2: das Fenster muss rekonstruierbar
+    sein. `now_ms` ist optional (Vorgabe: Wall-Clock), aber wenn gesetzt,
+    bestimmt es `startTimeMillis`/`endTimeMillis` deterministisch."""
+    from probate.ledger import USAGE_WINDOW_DAYS, _usage_window_ms
+
+    g = FakeGms(send_by_call=[_raw_usage_send([])])
+    fixed_now = 90 * DAY
+    fetch_usage(g, _USAGE_URN, now_ms=fixed_now)
+    _method, _url, payload = g.sends_sent[0]
+    expected_start, expected_end = _usage_window_ms(fixed_now)
+    assert payload["startTimeMillis"] == expected_start == fixed_now - USAGE_WINDOW_DAYS * DAY
+    assert payload["endTimeMillis"] == expected_end == fixed_now + DAY
+
+
+def test_fetch_usage_handles_hourly_granularity_volume_without_erroring():
+    """Coordinator-Review IMPORTANT 3: 32 Tage * 24 Stunden = 768 Zeilen
+    fuer ein Dataset mit stuendlicher Ingestion -- das alte Limit (500)
+    haette das mit GmsError abgewuergt, ohne dass irgendetwas kaputt war.
+    768 < 2000 (neues Limit) muss glatt durchgehen."""
+    entries = [(i * 3_600_000, 1, 1) for i in range(768)]  # stuendliche Buckets
+    g = FakeGms(send_by_call=[_raw_usage_send(entries)])
+    got = fetch_usage(g, _USAGE_URN)
+    assert len(got) == 768
+
+
+def test_coverage_from_buckets_carries_the_window_it_was_asked_with():
+    """Coordinator-Review IMPORTANT 2: `coverage_from_buckets` reicht das
+    gefragte Fenster durch, unabhaengig davon ob Buckets gefunden wurden."""
+    c_with_data = coverage_from_buckets((Bucket(10 * DAY, 5, 1),), window_start_ms=1000, window_end_ms=2000)
+    assert c_with_data.window_start_ms == 1000
+    assert c_with_data.window_end_ms == 2000
+    assert c_with_data.window_days == 0  # (2000-1000) // DAY, hier nur der Vollstaendigkeit halber < 1 Tag
+
+    c_empty = coverage_from_buckets((), window_start_ms=1000, window_end_ms=2000)
+    assert c_empty.window_start_ms == 1000
+    assert c_empty.window_end_ms == 2000
+
+    c_json = c_with_data.to_json()
+    assert c_json["window_start_ms"] == 1000
+    assert c_json["window_end_ms"] == 2000
+
+
+def test_coverage_from_buckets_defaults_the_window_to_none_when_not_given():
+    """Bestehende Aufrufer (Tests, `_NOT_ASKED`-Sentinel) kennen kein
+    Fenster -- `None` bleibt der ehrliche Nicht-Wert, kein erfundenes 0."""
+    c = coverage_from_buckets((Bucket(10 * DAY, 5, 1),))
+    assert c.window_start_ms is None
+    assert c.window_end_ms is None
+    assert c.window_days is None
+
+
+def test_usage_evidence_threads_one_now_ms_into_both_fetch_and_coverage_window():
+    """`usage_evidence` darf das Fenster in der Evidenz nicht aus einer
+    ZWEITEN, unabhaengigen Wall-Clock-Messung bauen -- sonst koennte das
+    Fenster im Artefakt geringfuegig vom tatsaechlich gesendeten Fenster
+    abweichen (dieselbe Race-Klasse wie beim EIN-Fetch-Vertrag selbst)."""
+    from probate.ledger import _usage_window_ms
+
+    g = FakeGms(send_by_call=[_raw_usage_send([(10 * DAY, 5, 2)])])
+    fixed_now = 90 * DAY
+    cov, _tl = usage_evidence(g, _USAGE_URN, now_ms=fixed_now)
+    expected_start, expected_end = _usage_window_ms(fixed_now)
+    _method, _url, payload = g.sends_sent[0]
+    assert payload["startTimeMillis"] == expected_start
+    assert payload["endTimeMillis"] == expected_end
+    assert cov.window_start_ms == expected_start
+    assert cov.window_end_ms == expected_end
+
+
 def test_fetch_declared_edges_passes_the_count_limit_into_the_query():
     """Falle 12: get_lineage liefert >100k Zeichen ohne Vorgabe."""
     g = FakeGms([{"dataset": {"lineage": {"relationships": [
@@ -612,3 +714,58 @@ def test_run_threads_queries_seen_from_cooccurrence_total_not_page_length():
     out = run(_gms_for_run(), focus="urn:x", now_ms=50 * DAY)
     d1_edge = next(e for e in out["edges"] if e["downstream"] == "urn:li:dataset:d1")
     assert d1_edge["state"] == "confirmed"
+
+
+def test_run_artifact_carries_the_usage_window_fields():
+    """Coordinator-Review IMPORTANT 2: das Fenster gehoert auch auf
+    Artefakt-Ebene hin, nicht nur pro Kante -- eine Zahl, die man sonst
+    aus jeder einzelnen `dead`-Kante einzeln zusammensuchen muesste."""
+    from probate.ledger import USAGE_WINDOW_DAYS
+
+    out = run(_gms_for_run(), focus="urn:x", now_ms=50 * DAY)
+    assert out["window_days"] == USAGE_WINDOW_DAYS
+    assert out["window_end_ms"] > out["window_start_ms"]
+
+
+def test_run_fetches_usage_at_real_wall_clock_time_not_the_callers_simulated_now_ms():
+    """Coordinator-Review, Neben-Erkenntnis beim Verdrahten von IMPORTANT 2:
+    `ui/serve.py`s 'fast-forward'-Knopf ruft `run(gms, focus, now_ms +
+    offset_days*DAY)` -- eine reine ANSICHTS-Verschiebung fuer die Alters-
+    Rechnung in `classify_edges`. Wuerde `run()` dieses (moeglicherweise
+    stark verschobene) `now_ms` an die Nutzungs-Abfrage durchreichen,
+    wuerde 'fast-forward' das GMS-Fenster tatsaechlich in die Zukunft
+    verschieben und reale Buckets verfehlen -- ein Fehler, der erst beim
+    naechsten Live-Test aufgefallen waere. Das berichtete Fenster muss bei
+    ECHTER Wall-Clock-Zeit liegen, unabhaengig vom winzigen `now_ms=50*DAY`
+    (nahe Epoche 1970), das hier nur fuer die Alters-Rechnung durchgereicht
+    wird."""
+    import time as _real_time
+
+    out = run(_gms_for_run(), focus="urn:x", now_ms=50 * DAY)
+    real_now_ms = int(_real_time.time() * 1000)
+    # window_end_ms = echt-jetzt + 1 Tag Puffer (siehe `_usage_window_ms`) --
+    # der Vergleich zieht den bekannten Puffer ab statt eine willkuerliche
+    # Toleranz zu erfinden.
+    assert abs((out["window_end_ms"] - DAY) - real_now_ms) < 60_000  # < 1 Minute Abstand zu echt-jetzt
+    assert out["generated_at_ms"] == 50 * DAY  # Alters-Rechnung bleibt bei der simulierten Zeit
+
+
+def test_coverage_thin_reflects_real_measured_bucket_counts_not_the_old_span_heuristic():
+    """Coordinator-Review IMPORTANT 1: `COVERAGE_THIN_BELOW_BUCKETS` wurde
+    von 7 (kalibriert gegen die interpolierte ~31-Tage-Aggregation) auf 3
+    (echte gemessene Fenster) gesenkt. Drei echte Buckets (wie im Seedlab-
+    Demo-Plan fuer confirmed/missing) sind NICHT mehr automatisch 'duenn'."""
+    out = run(_gms_for_run(), focus="urn:x", now_ms=50 * DAY)
+    assert out["coverage_buckets_seen"] == 3
+    assert out["coverage_thin"] is False
+
+    g_thin = FakeGms(
+        graphql_by_call=[
+            {"dataset": {"lineage": {"relationships": [{"entity": {"urn": "urn:li:dataset:d1"}}]}}},
+            {"searchAcrossEntities": {"total": 0, "searchResults": []}},
+        ],
+        send_by_call=[_raw_usage_send([(40 * DAY, 0, 0)])],  # nur 1 echter Bucket
+    )
+    out_thin = run(g_thin, focus="urn:x", now_ms=50 * DAY)
+    assert out_thin["coverage_buckets_seen"] == 1
+    assert out_thin["coverage_thin"] is True

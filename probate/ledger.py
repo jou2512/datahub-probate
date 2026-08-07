@@ -77,6 +77,16 @@ class Coverage:
     oldest_bucket_ms: int | None
     newest_bucket_ms: int | None
     reason: str  # leer = abgedeckt; sonst warum nicht
+    # Coordinator-Review 07.08. (IMPORTANT 2): "im geprueften Fenster nie
+    # gemessen" ist eine Aussage UEBER ein Fenster, das vorher nirgends
+    # stand -- weder im Artefakt noch in der Evidenz. `window_start_ms`/
+    # `window_end_ms` sind die tatsaechlichen Grenzen, mit denen
+    # `fetch_usage` GEFRAGT hat (siehe `usage_evidence`/`fetch_usage`
+    # unten) -- `None`, wenn dieses Coverage-Objekt nicht aus einem echten
+    # Fetch stammt (z.B. `_NOT_ASKED`: gar nicht abgefragt, kein Fenster
+    # zu nennen).
+    window_start_ms: int | None = None
+    window_end_ms: int | None = None
 
     @property
     def has_window(self) -> bool:
@@ -88,6 +98,15 @@ class Coverage:
             return None
         return (self.newest_bucket_ms - self.oldest_bucket_ms) // _DAY_MS
 
+    @property
+    def window_days(self) -> int | None:
+        """Die GROESSE des GEFRAGTEN Fensters -- nicht zu verwechseln mit
+        `days_span` (der Spanne der TATSAECHLICH gefundenen Buckets, die
+        bei duenner Datenlage viel kleiner als das Fenster sein kann)."""
+        if self.window_start_ms is None or self.window_end_ms is None:
+            return None
+        return (self.window_end_ms - self.window_start_ms) // _DAY_MS
+
     def to_json(self) -> dict:
         return {
             "buckets_seen": self.buckets_seen,
@@ -95,14 +114,28 @@ class Coverage:
             "newest_bucket_ms": self.newest_bucket_ms,
             "days_span": self.days_span,
             "reason": self.reason,
+            "window_start_ms": self.window_start_ms,
+            "window_end_ms": self.window_end_ms,
+            "window_days": self.window_days,
         }
 
 
-def coverage_from_buckets(buckets: tuple[Bucket, ...]) -> Coverage:
+def coverage_from_buckets(
+    buckets: tuple[Bucket, ...],
+    window_start_ms: int | None = None,
+    window_end_ms: int | None = None,
+) -> Coverage:
+    """`window_start_ms`/`window_end_ms` sind optional (Vorgabe `None`) --
+    bestehende Aufrufer (Tests, `classify_edges`-Fixtures), die kein
+    Fenster kennen, bleiben unveraendert lauffaehig. `usage_evidence`
+    unten ist der einzige Aufrufer, der ein echtes Fenster hat und es
+    hier durchreicht."""
     if not buckets:
-        return Coverage(0, None, None, "keine Nutzungs-Zeitfenster im Katalog")
+        return Coverage(0, None, None, "keine Nutzungs-Zeitfenster im Katalog",
+                         window_start_ms, window_end_ms)
     ordered = sorted(buckets, key=lambda b: b.bucket_ms)
-    return Coverage(len(ordered), ordered[0].bucket_ms, ordered[-1].bucket_ms, "")
+    return Coverage(len(ordered), ordered[0].bucket_ms, ordered[-1].bucket_ms, "",
+                     window_start_ms, window_end_ms)
 
 
 @dataclass(frozen=True)
@@ -267,8 +300,17 @@ def classify_edges(
         if traffic == 0:
             out.append(EdgeVerdict(
                 edge, "dead",
+                # Coordinator-Review 07.08. (IMPORTANT 2): "im geprueften
+                # Fenster nie gemessen" nannte bis dahin nirgends, WELCHES
+                # Fenster gemeint ist -- die eine Praemisse, die dead von
+                # unknown trennt, stand nicht im Beleg. `window_*` kommt
+                # direkt aus `cov` (derselben Coverage, die `fetch_usage`
+                # tatsaechlich abgefragt hat), nicht neu berechnet.
                 {"reason": "im geprueften Fenster nie gemessen",
                  "buckets_checked": cov.buckets_seen,
+                 "window_days": cov.window_days,
+                 "window_start_ms": cov.window_start_ms,
+                 "window_end_ms": cov.window_end_ms,
                  "source": "declared lineage"},
                 cov, tl))
         elif queries_seen == 0:
@@ -286,6 +328,9 @@ def classify_edges(
                  "traffic_in_window": traffic,
                  "queries_seen": queries_seen,
                  "buckets_checked": cov.buckets_seen,
+                 "window_days": cov.window_days,
+                 "window_start_ms": cov.window_start_ms,
+                 "window_end_ms": cov.window_end_ms,
                  "source": "declared lineage + query co-occurrence"},
                 cov, tl))
 
@@ -365,11 +410,20 @@ def classify_edges(
 # NICHT wieder hereinkommen darf.
 _DAY_MS_USAGE = _DAY_MS  # dieselbe Konstante, hier nur lokal referenziert
 USAGE_WINDOW_DAYS = 32
-USAGE_TIMESERIES_LIMIT = 500  # siehe Docstring von fetch_usage: taeglich
-# hoechstens ~34 moegliche Buckets im Fenster, 500 ist eine grosszuegige
-# Sicherheitsmarge OBERHALB jeder erwarteten Zahl -- kein Versuch, jede
-# denkbare Granularitaet abzudecken, sondern ein Bound, dessen Ueberschreiten
-# ein Fehler ist statt eines stillen Rundschnitts (siehe unten).
+# Coordinator-Review 07.08. (IMPORTANT 3): 500 war gegen TAEGLICHE
+# Granularitaet kalibriert (<=34 moegliche Buckets im 32-Tage-Fenster) --
+# aber `eventGranularity` in der Rohablage ist HOUR genauso gueltig wie
+# DAY (live gesehen: `{"unit":"DAY","multiple":1}`, aber die Aspekt-
+# Definition erlaubt andere Werte). Bei stuendlicher Granularitaet sind es
+# 32 * 24 = 768 moegliche Buckets -- ueber dem alten Limit, also haette
+# `fetch_usage` fuer ein einzelnes Dataset mit dieser (legitimen)
+# Ingestion-Einstellung `GmsError` geworfen und DEN GANZEN LAUF ohne
+# Artefakt beendet (`run()` propagiert, siehe Docstring dort). 2000 liegt
+# weit ueber 768 (bliebe auch bei 15-Minuten-Granularitaet unter dem
+# Limit: 32*96=3072 waere die einzige Granularitaet, die es noch reisst --
+# unwahrscheinlich fuer `datasetUsageStatistics`, aber falls doch: derselbe
+# sichtbare `GmsError` statt eines stillen Rundschnitts, siehe unten).
+USAGE_TIMESERIES_LIMIT = 2000
 
 # Wie targets._LINEAGE_Q, aber mit `count` als Variable: Falle 12 --
 # get_lineage liefert nachweislich >100'000 Zeichen ohne Pagination-Vorgabe.
@@ -384,7 +438,16 @@ query($urn: String!, $count: Int!) {
 """
 
 
-def fetch_usage(gms, urn: str) -> tuple[Bucket, ...]:
+def _usage_window_ms(now_ms: int) -> tuple[int, int]:
+    """Reine Fenster-Berechnung, getrennt von der Netzwerk-Schicht -- damit
+    `fetch_usage` (Payload) UND `usage_evidence` (Evidenz-Beleg, Coordinator-
+    Review IMPORTANT 2) exakt dieselben Grenzen aus derselben Quelle lesen,
+    statt sie an zwei Stellen unabhaengig zu berechnen und minimal
+    auseinanderlaufen zu lassen."""
+    return now_ms - USAGE_WINDOW_DAYS * _DAY_MS_USAGE, now_ms + _DAY_MS_USAGE
+
+
+def fetch_usage(gms, urn: str, now_ms: int | None = None) -> tuple[Bucket, ...]:
     """Rohe Zeitfenster aus der PRIMAERABLAGE, nicht summiert -- und NICHT
     aus der `usageStats`-GraphQL-Aggregation. Siehe der lange Kommentar
     ueber `USAGE_WINDOW_DAYS` oben fuer das WARUM (gemessene Verzugszahlen,
@@ -393,16 +456,43 @@ def fetch_usage(gms, urn: str) -> tuple[Bucket, ...]:
     Route: `POST {gms.base}/aspects?action=getTimeseriesAspectValues` mit
     `limit` (Falle 14, UEBERGABE.md: Pflichtfeld, sonst HTTP 500
     `NullPointerException: "limit" is null`). Fenster: die letzten
-    `USAGE_WINDOW_DAYS` Tage ab dem tatsaechlichen Wall-Clock-`jetzt` dieses
-    Aufrufs (kein `now_ms`-Parameter -- Vertrag/Signatur bleibt
-    unveraendert, siehe `usage_evidence`).
+    `USAGE_WINDOW_DAYS` Tage.
 
-    Limit/Pagination: kommen `>= USAGE_TIMESERIES_LIMIT` Werte zurueck, ist
-    das ein Signal fuer mehr Historie/Granularitaet als erwartet -- diese
-    Funktion wirft dann `GmsError` statt die Liste still auf das Limit
-    abzuschneiden. Ein stilles Abschneiden waere ein falsches `dead`/
-    `unknown` durch Trunkierung, exakt dieselbe Fehlerklasse wie ein zu
-    enges Fenster, nur unauffaelliger.
+    `now_ms` (optional, Vorgabe `None` -> tatsaechliches Wall-Clock-`jetzt`
+    dieses Aufrufs): Signatur/Vertrag bleiben fuer bestehende Aufrufer
+    unveraendert (zwei Positionsargumente reichen weiterhin), aber
+    `usage_evidence`/`run()` reichen jetzt EIN gemeinsames `now_ms` durch,
+    damit alle Ziele eines Laufs dasselbe Fenster sehen UND das Fenster
+    fuer die Evidenz (Coordinator-Review IMPORTANT 2) exakt dem entspricht,
+    das tatsaechlich an GMS geschickt wurde -- keine zweite, leicht
+    versetzte Wall-Clock-Messung.
+
+    Limit/Pagination: `USAGE_TIMESERIES_LIMIT` (2000, siehe Kommentar dort
+    -- deckt auch stuendliche Granularitaet ab, 500 hatte das nicht).
+    Kommen trotzdem `>= USAGE_TIMESERIES_LIMIT` Werte zurueck, ist das ein
+    Signal fuer mehr Historie/Granularitaet als erwartet -- diese Funktion
+    wirft dann `GmsError` statt die Liste still auf das Limit abzuschneiden.
+    Ein stilles Abschneiden waere ein falsches `dead`/`unknown` durch
+    Trunkierung, exakt dieselbe Fehlerklasse wie ein zu enges Fenster, nur
+    unauffaelliger.
+
+    `eventGranularity` (Coordinator-Review IMPORTANT 3, zweiter Teil): jede
+    zurueckgelieferte Zeile traegt dieses Feld (live gesehen:
+    `{"unit":"DAY","multiple":1}`), aber diese Funktion liest es NICHT und
+    dedupliziert NICHT ueber unterschiedliche Granularitaeten. Wuerde ein
+    Producer fuer denselben Zeitraum SOWOHL eine DAY- ALS AUCH mehrere
+    HOUR-Zeilen schreiben (unueblich, aber vom Schema nicht verboten), sind
+    das in der Rohablage zwei Zeilen fuer denselben zugrunde liegenden
+    Verkehr -- `classify_edges`s `traffic = sum(b.total_sql_queries for b
+    in tl.buckets)` wuerde dann doppelt zaehlen, und `coverage_buckets_seen`
+    waere ueberzaehlt. NICHT geloest hier, bewusst dokumentiert statt still
+    ignoriert (dieselbe Disziplin wie beim Fenster-Limit oben): der
+    Katalog dieses Projekts (seedlab, live gegen 28080) schreibt
+    ausschliesslich DAY-Granularitaet, gemischte Granularitaet ist unbelegt
+    und ausserhalb des Umfangs dieses Fixes. Ein Aufrufer mit bekannter
+    gemischter Granularitaet muesste `parsed.get("eventGranularity")`
+    selbst auswerten (das Feld steht im rohen Aspekt-JSON, geht hier nur
+    nicht in `Bucket` ein).
 
     Ein Bucket mit `totalSqlQueries: null` ist ein Bucket mit null Verkehr,
     kein fehlender Bucket -- er belegt, dass hingesehen wurde. Wer ihn
@@ -417,16 +507,15 @@ def fetch_usage(gms, urn: str) -> tuple[Bucket, ...]:
     ist keine Abwesenheit").
     """
     _validate_urn(urn)
-    now_ms = int(_time.time() * 1000)
+    if now_ms is None:
+        now_ms = int(_time.time() * 1000)
+    start_ms, end_ms = _usage_window_ms(now_ms)
     payload = {
         "urn": urn,
         "entity": "dataset",
         "aspect": "datasetUsageStatistics",
-        "startTimeMillis": now_ms - USAGE_WINDOW_DAYS * _DAY_MS_USAGE,
-        # +1 Tag Puffer am oberen Ende: ein "heute" geschriebener Bucket
-        # koennte, je nach Ingestion-Zeitpunkt relativ zu `now_ms`, sonst
-        # knapp ausserhalb des Fensters liegen.
-        "endTimeMillis": now_ms + _DAY_MS_USAGE,
+        "startTimeMillis": start_ms,
+        "endTimeMillis": end_ms,
         "limit": USAGE_TIMESERIES_LIMIT,
     }
     status, body = gms._send(
@@ -516,7 +605,7 @@ def fetch_cooccurrence(gms, urn: str) -> tuple[dict[str, list[str]], int]:
     return out, total
 
 
-def usage_evidence(gms, urn: str) -> tuple[Coverage, Timeline]:
+def usage_evidence(gms, urn: str, now_ms: int | None = None) -> tuple[Coverage, Timeline]:
     """Coverage UND Timeline aus genau EINEM `fetch_usage`-Aufruf.
 
     Review Fix-Runde 1, IMPORTANT 3: bislang war "aus denselben Bucket-
@@ -528,14 +617,51 @@ def usage_evidence(gms, urn: str) -> tuple[Coverage, Timeline]:
     ("Abdeckung und Zeitachse widersprechen sich" -> unknown) durch eine
     Race entstanden, nicht durch eine echte Dateninkonsistenz. Diese
     Funktion macht den Einzel-Fetch zur einzigen Schnittstelle.
-    """
-    buckets = fetch_usage(gms, urn)
-    return coverage_from_buckets(buckets), Timeline(buckets)
+
+    `now_ms` (optional, Vorgabe `None` -> Wall-Clock-`jetzt`): wird EINMAL
+    hier bestimmt, an `fetch_usage` durchgereicht (dasselbe `now_ms`, nicht
+    zwei unabhaengige Zeitmessungen) und liefert die Fenstergrenzen fuer
+    `coverage_from_buckets` -- Coordinator-Review IMPORTANT 2: die Coverage
+    (und damit jede `dead`-Evidenz, die `cov.window_*` liest) traegt jetzt
+    exakt das Fenster, mit dem tatsaechlich gefragt wurde, nicht irgendein
+    spaeter neu berechnetes."""
+    if now_ms is None:
+        now_ms = int(_time.time() * 1000)
+    start_ms, end_ms = _usage_window_ms(now_ms)
+    buckets = fetch_usage(gms, urn, now_ms=now_ms)
+    return coverage_from_buckets(buckets, window_start_ms=start_ms, window_end_ms=end_ms), Timeline(buckets)
 
 
 # --- Task 6: run() + Lauf-Artefakt --------------------------------------
 
-COVERAGE_THIN_BELOW_BUCKETS = 7
+# Coordinator-Review 07.08. (IMPORTANT 1): 7 war gegen die AGGREGATION
+# kalibriert. `usageStats(range: MONTH)` zeigt fast immer nahe an 31
+# Buckets, weil sie den Kalender-Zeitraum zwischen dem AELTESTEN und dem
+# NEUESTEN echten Datenpunkt luecken-frei mit Null-Werten auffuellt -- ein
+# Dataset mit nur EINEM echten Schreibvorgang vor einer Woche zeigte
+# trotzdem ~7 Buckets (der interpolierte Kalender-Zwischenraum), nicht 1.
+# "< 7" bedeutete darum praktisch "die beobachtete Kalender-Spanne ist
+# kuerzer als eine Woche", nicht "wenige echte Messungen".
+#
+# Die Rohablage interpoliert NICHT: `buckets_seen` ist jetzt die Anzahl
+# ECHT GESCHRIEBENER Zeilen im Fenster. Live gemessen (seedlab, nach dem
+# Ledger-Fix): `dead`-Fokus 31 -> 4 (acht geschriebene Zeilen, vier davon
+# im 32-Tage-Fenster), `confirmed`/`missing` je 3. Bei unveraendertem
+# Schwellwert 7 waeren damit ALLE VIER Demo-Kanten "duenn" -- inklusive der
+# beiden, die ihre volle geplante Nutzungshistorie zeigen. Das ist keine
+# duennere Datenlage als vorher, nur eine ehrlichere Zaehlung (die
+# Aggregation hat den Judge/Reviewer bisher ueber die tatsaechliche Dichte
+# getaeuscht, nicht umgekehrt).
+#
+# Neuer Schwellwert 3: unter drei ECHTEN Messfenstern ist ein Verdikt kaum
+# vertrauenswuerdig zu stuetzen (ein oder zwei Datenpunkte koennten eine
+# Ingestion-Luecke sein, kein beobachteter Zustand) -- drei unabhaengige
+# Fenster sind das Minimum fuer einen Trend statt eines Einzelwerts. Kein
+# Versuch, den alten Schwellwert proportional umzurechnen (die neue
+# Groessenordnung -- Schreibereignisse statt Kalendertage -- ist nicht
+# linear zur alten uebertragbar); [hier haette Joel vielleicht anders
+# gewollt] ist die ehrliche Einordnung dieser Zahl.
+COVERAGE_THIN_BELOW_BUCKETS = 3
 
 
 class _Counting:
@@ -623,10 +749,22 @@ def run(gms, focus: str, now_ms: int, lineage_count: int = 200,
     declared = fetch_declared_edges(counting, focus, count=lineage_count)
     cooccurred, queries_seen = fetch_cooccurrence(counting, focus)
 
+    # WICHTIG: eigene Wall-Clock-Messung, NICHT das `now_ms`-Argument von
+    # `run()`. `now_ms` kann eine simulierte Zeit sein (`ui/serve.py`s
+    # "fast-forward"-Knopf ruft `run(gms, focus, now_ms + offset_days*DAY)`
+    # -- eine reine ANSICHTS-Verschiebung fuer die Alters-Rechnung in
+    # `classify_edges`, kein Signal, dass die Rohablage eine andere Zeit
+    # abfragen soll). Wuerde diese Funktion `now_ms` an `usage_evidence`
+    # durchreichen, wuerde "fast-forward" das GMS-Abfragefenster tatsaechlich
+    # in die Zukunft verschieben und reale Buckets verfehlen -- ein Fehler,
+    # der bis zum naechsten Live-Test unsichtbar geblieben waere. Die
+    # Rohablage wird immer zur ECHTEN aktuellen Zeit abgefragt; nur die
+    # Alters-Interpretation der gefundenen Daten darf simuliert werden.
+    usage_fetch_now_ms = int(_time.time() * 1000)
     coverage_by_urn: dict[str, Coverage] = {}
     timeline_by_urn: dict[str, Timeline] = {}
     for target in sorted(declared | set(cooccurred)):
-        cov, tl = usage_evidence(counting, target)
+        cov, tl = usage_evidence(counting, target, now_ms=usage_fetch_now_ms)
         coverage_by_urn[target] = cov
         timeline_by_urn[target] = tl
 
@@ -637,6 +775,7 @@ def run(gms, focus: str, now_ms: int, lineage_count: int = 200,
     counts = {s: sum(1 for v in verdicts if v.state == s) for s in STATES}
     buckets_seen = sum(c.buckets_seen for c in coverage_by_urn.values())
     spans = [c.days_span for c in coverage_by_urn.values() if c.days_span is not None]
+    usage_window_start_ms, usage_window_end_ms = _usage_window_ms(usage_fetch_now_ms)
 
     out = {
         "focus": focus,
@@ -651,6 +790,14 @@ def run(gms, focus: str, now_ms: int, lineage_count: int = 200,
         "coverage_buckets_seen": buckets_seen,
         "coverage_days_span": max(spans) if spans else 0,
         "coverage_thin": buckets_seen < COVERAGE_THIN_BELOW_BUCKETS,
+        # Coordinator-Review 07.08. (IMPORTANT 2): dasselbe Fenster, das
+        # jede `dead`-Kante in ihrer Evidenz einzeln traegt (`cov.window_*`),
+        # hier zusaetzlich EINMAL auf Artefakt-Ebene -- die eine Praemisse,
+        # die `dead` von `unknown` trennt, muss nicht mehr aus jeder
+        # einzelnen Kante rekonstruiert werden.
+        "window_days": USAGE_WINDOW_DAYS,
+        "window_start_ms": usage_window_start_ms,
+        "window_end_ms": usage_window_end_ms,
         "api_calls": counting.calls,
         "queries_seen": queries_seen,
         "edges": [v.to_json(now_ms) for v in verdicts],
