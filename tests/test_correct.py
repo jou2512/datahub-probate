@@ -84,6 +84,8 @@ def test_a_proposal_cannot_be_constructed_without_state():
 
 from probate.correct import (  # noqa: E402
     DEAD_MARKER_KEY,
+    Abstention,
+    _dead_since_iso,
     _require_dead_state,
     _require_substantive_evidence,
     apply_proposal,
@@ -394,10 +396,26 @@ def test_apply_proposal_writes_the_measured_last_covered_date_not_the_write_mome
     assert by_urn["urn:up"]["properties"][DEAD_MARKER_KEY] == "1970-01-01"  # aus ms=100, nicht aus now_ms
 
 
-def test_apply_proposal_refuses_a_mark_dead_without_a_measured_last_covered_timestamp():
+# --- Fix-Runde 2 (Opus-Re-Review), Fund 1: der reine Untergrenzen-Fall
+# (dead_since_is_lower_bound=True, kein last_covered_ms) ist KEINE
+# Ablehnung mehr, sondern eine ENTHALTUNG -- eigener Typ, eigenes
+# Ergebnis, kein `raise`. Ablehnung (ValueError) bleibt fuer echte Fehler
+# reserviert (kaputte Evidenz, manipuliertes Proposal, fehlende Kante).
+
+def test_dead_since_iso_returns_none_when_no_last_covered_ms_is_measured():
+    assert _dead_since_iso({"dead_since_days": 40, "dead_since_is_lower_bound": True}) is None
+
+
+def test_dead_since_iso_returns_the_measured_date_when_last_covered_ms_is_present():
+    assert _dead_since_iso({"last_covered_ms": 100}) == "1970-01-01"
+
+
+def test_apply_proposal_abstains_on_a_mark_dead_without_a_measured_last_covered_timestamp():
     """Reiner Untergrenzen-Fall (dead_since_is_lower_bound=True): es gibt
     kein gemessenes Datum, nur eine Tage-Untergrenze. Ein now_ms-basierter
-    Ersatz waere dieselbe unbelegte Behauptung -- also wird verweigert."""
+    Ersatz waere dieselbe unbelegte Behauptung -- das Werkzeug enthaelt
+    sich, statt zu schaetzen. Das ist KEIN Fehler: `apply_proposal` gibt
+    eine `Abstention` zurueck, wirft NICHTS, und schreibt nichts."""
     wb = RecordingWb({("dataset", "urn:d", "upstreamLineage"): {"value": {"upstreams": [
         {"dataset": "urn:up", "type": "TRANSFORMED", "auditStamp": {"time": 1, "actor": "x"}}]}}})
     p = Proposal(kind="mark_dead", edge_key="urn:up->urn:d", target_urn="urn:d",
@@ -405,12 +423,39 @@ def test_apply_proposal_refuses_a_mark_dead_without_a_measured_last_covered_time
                  evidence={"last_covered_ms": None, "dead_since_days": 40,
                            "dead_since_is_lower_bound": True, "buckets_checked": 5},
                  state="dead", human_summary="nur untergrenze, kein exaktes datum")
-    try:
-        apply_proposal(wb, p, now_ms=7)
-        assert False, "haette werfen muessen"
-    except ValueError:
-        pass
+    result = apply_proposal(wb, p, now_ms=7)
+    assert isinstance(result, Abstention)
+    assert result.kind == "no_measured_dead_since_date"
+    assert result.edge_key == p.edge_key
+    assert result.to_json()["abstained"] is True
     assert wb.written == []
+
+
+def test_abstention_is_structurally_distinct_from_a_rejection():
+    """Der eigentliche Punkt des Reviews: eine Enthaltung (kein Beleg fuer
+    ein Datum) und eine Ablehnung (z.B. manipuliertes Proposal) muessen
+    sich PROGRAMMATISCH unterscheiden lassen -- nicht nur am Fehlertext.
+    Diese Enthaltung wirft nicht; eine echte Ablehnung wirft weiterhin."""
+    wb = RecordingWb({("dataset", "urn:d", "upstreamLineage"): {"value": {"upstreams": [
+        {"dataset": "urn:up", "type": "TRANSFORMED", "auditStamp": {"time": 1, "actor": "x"}}]}}})
+    abstained_proposal = Proposal(
+        kind="mark_dead", edge_key="urn:up->urn:d", target_urn="urn:d",
+        aspect="upstreamLineage",
+        evidence={"last_covered_ms": None, "dead_since_days": 40, "buckets_checked": 5},
+        state="dead", human_summary="untergrenze")
+    result = apply_proposal(wb, abstained_proposal, now_ms=7)
+    assert isinstance(result, Abstention)  # kein raise
+
+    rejected_proposal = Proposal(
+        kind="add_edge", edge_key="urn:up->urn:victim", target_urn="urn:d",
+        aspect="upstreamLineage",
+        evidence={"query_urns": ["urn:li:query:q1"], "cooccurrence_count": 1},
+        state="missing", human_summary="manipuliert")
+    try:
+        apply_proposal(wb, rejected_proposal, now_ms=7)
+        assert False, "eine echte ablehnung haette werfen muessen"
+    except ValueError:
+        pass  # Ablehnung bleibt eine Exception, keine Abstention
 
 
 # --- Fix-Runde 1, IMPORTANT 3: zwei stille Fehlschlaege bei mark_dead.

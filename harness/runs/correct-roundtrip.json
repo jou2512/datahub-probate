@@ -1,0 +1,141 @@
+{
+  "seeded": true,
+  "seeded_statement": "Laeuft gegen den geseedeten Beispielkatalog (namespace probate_seedlab, harness/seed_lineage_lab.py) -- kein neues Entity angelegt, nur ein bestehender Aspekt geschrieben und vollstaendig zurueckgerollt.",
+  "gms_url": "http://localhost:28080",
+  "manifest": "examples\\seedlab-manifest.json",
+  "generated_at": "2026-08-07T01:35:25.385028+00:00",
+  "target": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)",
+  "existing_upstream": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
+  "new_upstream": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+  "true_original": {
+    "value": {
+      "upstreams": [
+        {
+          "auditStamp": {
+            "actor": "urn:li:corpuser:datahub",
+            "time": 1754300000000
+          },
+          "type": "TRANSFORMED",
+          "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)"
+        },
+        {
+          "type": "TRANSFORMED",
+          "auditStamp": {
+            "actor": "urn:li:corpuser:__datahub_system",
+            "time": 1786066034358
+          },
+          "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)"
+        }
+      ]
+    }
+  },
+  "after_cll_seed": {
+    "value": {
+      "upstreams": [
+        {
+          "auditStamp": {
+            "actor": "urn:li:corpuser:datahub",
+            "time": 1754300000000
+          },
+          "type": "TRANSFORMED",
+          "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)"
+        },
+        {
+          "type": "TRANSFORMED",
+          "auditStamp": {
+            "actor": "urn:li:corpuser:__datahub_system",
+            "time": 1786066034358
+          },
+          "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)"
+        }
+      ],
+      "fineGrainedLineages": [
+        {
+          "downstreamType": "FIELD",
+          "downstreams": [
+            "urn:li:schemaField:(urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD),revenue)"
+          ],
+          "confidenceScore": 1.0,
+          "upstreamType": "FIELD_SET",
+          "upstreams": [
+            "urn:li:schemaField:(urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD),amount)"
+          ]
+        }
+      ]
+    }
+  },
+  "after_write": {
+    "value": {
+      "upstreams": [
+        {
+          "auditStamp": {
+            "actor": "urn:li:corpuser:datahub",
+            "time": 1754300000000
+          },
+          "type": "TRANSFORMED",
+          "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)"
+        },
+        {
+          "type": "TRANSFORMED",
+          "auditStamp": {
+            "actor": "urn:li:corpuser:__datahub_system",
+            "time": 1786066034358
+          },
+          "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)"
+        },
+        {
+          "auditStamp": {
+            "actor": "urn:li:corpuser:__datahub_system",
+            "time": 1786066525207
+          },
+          "type": "TRANSFORMED",
+          "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+          "properties": {
+            "probate.evidence": "urn:li:query:probate-correct-roundtrip-probe",
+            "probate.direction": "co-occurrence (undirected)"
+          }
+        }
+      ],
+      "fineGrainedLineages": [
+        {
+          "downstreamType": "FIELD",
+          "downstreams": [
+            "urn:li:schemaField:(urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD),revenue)"
+          ],
+          "confidenceScore": 1.0,
+          "upstreamType": "FIELD_SET",
+          "upstreams": [
+            "urn:li:schemaField:(urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD),amount)"
+          ]
+        }
+      ]
+    }
+  },
+  "revert_count": 2,
+  "after_revert": {
+    "value": {
+      "upstreams": [
+        {
+          "auditStamp": {
+            "actor": "urn:li:corpuser:datahub",
+            "time": 1754300000000
+          },
+          "type": "TRANSFORMED",
+          "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)"
+        },
+        {
+          "type": "TRANSFORMED",
+          "auditStamp": {
+            "actor": "urn:li:corpuser:__datahub_system",
+            "time": 1786066034358
+          },
+          "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)"
+        }
+      ]
+    }
+  },
+  "revert_restored_exactly": true,
+  "existing_edge_survived_the_merge": true,
+  "new_edge_present_after_write": true,
+  "cll_survived_the_merge": true
+}

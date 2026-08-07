@@ -58,6 +58,31 @@ class Proposal:
         }
 
 
+@dataclass(frozen=True)
+class Abstention:
+    """Eine bewusste Enthaltung -- KEIN Fehler.
+
+    (Task-12-Review, Fix-Runde 2, Fund 1): die Enthaltungsquote ist die
+    Kennzahl, die dieses Produkt verkauft ("das Werkzeug raet nicht, es
+    enthaelt sich" -- `CLAUDE.md` diese Projekts). Ein Fall wie "die
+    Messung traegt kein Datum" ist ein anderes Ereignis als "dieses
+    Proposal wurde manipuliert" oder "die Evidenz ist leer" -- beide waren
+    vorher gleichermassen ein `raise ValueError` und damit fuer einen
+    Aufrufer ununterscheidbar. Diese Klasse gibt der Enthaltung ein
+    eigenes, maschinenlesbares Ergebnis: `apply_proposal` gibt sie
+    zurueck (wirft NICHT), ein Aufrufer kann Enthaltungen separat von
+    Ablehnungen zaehlen, ohne Exception-Typen zu parsen.
+    """
+
+    kind: str  # z.B. "no_measured_dead_since_date" -- maschinenlesbar, stabil
+    edge_key: str
+    reason: str
+
+    def to_json(self) -> dict:
+        return {"abstained": True, "kind": self.kind, "edge": self.edge_key,
+                "reason": self.reason}
+
+
 def propose(ledger: dict) -> list[Proposal]:
     """Liest ein `ledger.py::run()`-Artefakt (bzw. dessen Testform) und
     erzeugt aus jeder nicht-`unknown`-Kante genau einen Vorschlag.
@@ -210,8 +235,9 @@ def _iso_day(ms: int | None) -> str:
     return _dt.datetime.fromtimestamp(ms / 1000, _dt.timezone.utc).date().isoformat()
 
 
-def _dead_since_iso(evidence: dict) -> str:
+def _dead_since_iso(evidence: dict) -> str | None:
     """Das GEMESSENE Sterbedatum -- niemals der Moment des Schreibens.
+    `None`, wenn keins vorliegt (kein Fehler -- siehe `Abstention`).
 
     (Task-12-Review, Fund IMPORTANT 2): `now_ms` ist der Zeitpunkt des
     Schreibvorgangs, nicht der Zeitpunkt, seit dem die Kante tot ist. Die
@@ -224,16 +250,21 @@ def _dead_since_iso(evidence: dict) -> str:
     liefert dann nur eine Untergrenze ab dem AELTESTEN Bucket,
     `dead_since_is_lower_bound=True`), gibt es kein exaktes Datum zu
     belegen. Ein `now_ms`-basierter Ersatz waere exakt die unbelegte
-    Behauptung, die dieser Fund verbietet -- also wird verweigert statt
-    geschaetzt.
+    Behauptung, die dieser Fund verbietet.
+
+    Fix-Runde 2 (Opus-Re-Review, Fund 1): das war urspruenglich ein
+    `raise ValueError`, ununterscheidbar von einer echten Ablehnung
+    (manipuliertes Proposal, kaputte Evidenz). Der Reviewer weist zu
+    recht darauf hin, dass die Enthaltungsquote die Kennzahl ist, die
+    dieses Produkt verkauft ("das Werkzeug raet nicht, es enthaelt sich")
+    -- ein Fehler in derselben Kategorie wie ein Bug wuerde diese Faelle
+    aus der Zaehlung verlieren. Also: `None` ist hier ein legitimer
+    Rueckgabewert, keine Fehlermeldung. `apply_proposal` macht daraus eine
+    `Abstention`, nicht eine Exception.
     """
     last_covered_ms = evidence.get("last_covered_ms")
     if last_covered_ms is None:
-        raise ValueError(
-            "dead_since kann nicht bestimmt werden: 'last_covered_ms' fehlt in "
-            "der evidenz (dead_since_days waere hier nur eine untergrenze ab dem "
-            "aeltesten geprueften bucket) -- wird nicht geschrieben"
-        )
+        return None
     return _iso_day(last_covered_ms)
 
 
@@ -317,6 +348,15 @@ def apply_proposal(
     edge_key/target_urn-Diskrepanz oder mit einem `mark_dead` auf einer
     nicht-toten bzw. nicht-existenten Kante scheitert hier laut, bevor
     `wb.aspect()` ueberhaupt aufgerufen wird.
+
+    Rueckgabe ist NICHT immer ein `WriteResult`: fehlt bei `mark_dead` ein
+    gemessenes Sterbedatum, gibt diese Funktion eine `Abstention` zurueck
+    (siehe deren Docstring, Fix-Runde 2, Fund 1) -- eine bewusste
+    Enthaltung, kein Fehler. Eine `ValueError` bleibt fuer echte
+    Ablehnungen reserviert (kaputte/leere Evidenz, manipuliertes
+    Proposal, Kante nicht in der bestehenden Lineage) -- ein Aufrufer
+    kann beide Ergebnisarten damit strukturell auseinanderhalten, statt
+    Fehlertexte zu parsen.
     """
     _require_substantive_evidence(p)
 
@@ -349,6 +389,19 @@ def apply_proposal(
     if p.kind == "mark_dead":
         _require_dead_state(p.state)
         dead_since = _dead_since_iso(p.evidence)
+        if dead_since is None:
+            # Fix-Runde 2, Fund 1: KEINE Exception -- eine Enthaltung ist
+            # kein Fehler, sondern das, wofuer dieses Produkt antritt.
+            # Kein `before`-Fetch noetig: ohne Datum gibt es nichts zu
+            # schreiben, also auch nichts zu lesen.
+            return Abstention(
+                kind="no_measured_dead_since_date", edge_key=p.edge_key,
+                reason=(
+                    "last_covered_ms fehlt in der evidenz -- dead_since_days waere hier "
+                    "nur eine untergrenze ab dem aeltesten geprueften bucket, kein "
+                    "gemessenes datum. das werkzeug enthaelt sich, statt zu schaetzen."
+                ),
+            )
         before = wb.gms.get_aspect("dataset", p.target_urn, "upstreamLineage") \
             if hasattr(wb, "gms") else None
 
