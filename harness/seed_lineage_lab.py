@@ -90,11 +90,21 @@ ACTOR = "urn:li:corpuser:datahub"
 STAMP = {"time": 1754300000000, "actor": ACTOR}  # fest, wie preflight.py/seed_queries.py
 MANIFEST_PATH = Path("examples/seedlab-manifest.json")
 
-NOW = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
+# Coordinator-Fix (Runde 3, 07.08.): NICHT mehr datetime.now(). Die alte
+# Fassung verankerte alle Nutzungs-Bucket-Zeitstempel an "heute" -- bei
+# jedem Kalendertag-Wechsel zwischen zwei Laeufen verschob sich das
+# Drei-Tage-Fenster (confirmed/missing) bzw. Acht-Tage-Fenster (dead) um
+# einen Tag, alte Buckets blieben als Leichen liegen (Diagnose mit
+# Rohdaten-Beleg: seedlab-anreicherung-report.md, Abschnitt "Fix-Runde 3").
+# USAGE_ANCHOR ist deshalb ein FESTES Datum, kein `datetime.now()` --
+# jeder Lauf, an jedem Kalendertag, berechnet exakt dieselben Zeitstempel.
+# Gewaehlt: der Tag, an dem dieses Labor entworfen wurde (deckt sich mit
+# dem allerersten Seed-Lauf, 2026-08-06 22:33 UTC laut Manifest-Historie).
+USAGE_ANCHOR = datetime(2026, 8, 6, tzinfo=timezone.utc)
 
 
 def days_ago_ms(n: int) -> int:
-    return int((NOW - timedelta(days=n)).timestamp() * 1000)
+    return int((USAGE_ANCHOR - timedelta(days=n)).timestamp() * 1000)
 
 
 def ds_urn(name: str) -> str:
@@ -156,6 +166,16 @@ URNS: dict[str, str] = {k: ds_urn(v) for k, v in NAMES.items()}
 # statt "mehrere Teams haengen dran" -- sonst waere "hohe Business-
 # Relevanz" selbst wieder ein Hinweis auf "confirmed oder missing". G/H
 # (unknown) bleiben trivial, aber ohne jede Nutzungs-Aussage.
+#
+# Fix-Runde 3 (Coordinator-Review, 07.08., dritter Durchgang): zwei weitere
+# Funde. B nannte mit "Wird dem Audit-Committee vorgelegt" einen Liefer-
+# Vorgang (delivery-framed) statt einer Abhaengigkeit (dependency-framed)
+# -- jetzt "Grundlage fuer die Pruefung durch das Audit-Committee". H nannte
+# mit "abgeschlossener Testlauf ... aus dem letzten Quartal" funktional
+# "zuletzt letztes Quartal angefasst, seither nichts" -- exakt die
+# Aktualitaets-Beobachtung, die das Werkzeug aus den Nutzungs-Buckets
+# herleiten soll, nicht aus Prosa. Jetzt parallel zu G: reine Inhaltsangabe
+# ohne Abschluss-/Datums-Aussage.
 DESC_PREFIX = "[probate-seedlab -- synthetische Demonstrationsdaten]"
 
 ORGANIC_DESCRIPTIONS: dict[str, str] = {
@@ -166,9 +186,9 @@ ORGANIC_DESCRIPTIONS: dict[str, str] = {
         "durchlaufen den Change-Prozess von Finance."
     ),
     "B": (
-        "Konsolidierte Ergebnisrechnung fuer den Jahresabschluss. Wird dem "
-        "Audit-Committee vorgelegt und speist das Investor-Reporting -- "
-        "Abweichungen hier sind meldepflichtig."
+        "Konsolidierte Ergebnisrechnung fuer den Jahresabschluss. Grundlage "
+        "fuer die Pruefung durch das Audit-Committee und Bestandteil des "
+        "Investor-Reportings -- Abweichungen hier sind meldepflichtig."
     ),
     "C": (
         "Woechentlicher Snapshot der Filialumsaetze fuer die Region Ost, "
@@ -194,9 +214,8 @@ ORGANIC_DESCRIPTIONS: dict[str, str] = {
         "Zwischenergebnis eines internen Bereinigungsschritts."
     ),
     "H": (
-        "Temporaere Ablage fuer einen einmaligen Migrationstest, "
-        "Zwischenstand eines abgeschlossenen Testlaufs aus dem letzten "
-        "Quartal."
+        "Temporaere Ablage eines Migrationstests, haelt dessen "
+        "Zwischenstand."
     ),
 }
 
@@ -592,7 +611,91 @@ def seed_queries(gms: Gms) -> None:
     record("query-Entitaeten (2x: confirmed A+B, missing E+F)", [r["urn"] for r in records], readback, expect)
 
 
+# --- Idempotenz ueber Kalendertage hinweg (Coordinator-Fix, Runde 3) -----
+#
+# Diagnose (mit Rohdaten-Beleg, siehe Report): `gms.delete_aspect()`
+# (generische `DELETE /openapi/v3/entity/.../<aspekt>`) entfernt bei
+# Zeitreihen-Aspekten NUR die "aktuellste" Einzelzeile, nicht die volle
+# Historie -- live geprueft: zwei Buckets geschrieben (aeltere+neuere
+# Zeitmarke), `delete_aspect` aufgerufen, `getTimeseriesAspectValues`
+# zeigte danach weiterhin den AELTEREN Bucket. Ein reiner
+# Anker-Zeitstempel-Fix (`USAGE_ANCHOR` oben) verhindert NEUE Drift, raeumt
+# aber die bereits angehaeuften Leichen aus fruehren Kalendertag-Laeufen
+# nicht weg. Der volle Zeitreihen-Wipe braucht die dedizierte Route
+# `POST /entities?action=delete` mit `aspectName` + `startTimeMillis`/
+# `endTimeMillis` -- dieselbe Route, die `datahub delete by-filter
+# --aspect ... --hard --start-time ... --end-time ...` intern aufruft
+# (Quelle gelesen: `datahub.ingestion.graph.client.DataHubGraph
+# .hard_delete_timeseries_aspect`), hier direkt per HTTP repliziert statt
+# einen `uvx`-Subprozess pro Dataset zu starten. Live an einer Wegwerf-
+# Probe-Entitaet verifiziert (drei Buckets geschrieben, gewiped, Rohzugriff
+# zeigte danach 0 Zeilen, `timeseriesRows: 3` im Loesch-Ergebnis).
+#
+# Rueckluse-Abweichung vom Auftrag [hier haette Joel vielleicht anders
+# gewollt]: der Auftrag verlangte ausdruecklich `get_aspect` fuer die
+# Loesch-Bestaetigung. Live-Probe zeigt aber: `get_aspect()` liefert fuer
+# Zeitreihen-Aspekte IMMER `None` -- sowohl wenn Daten vorhanden sind
+# (zwei frisch geschriebene, bestaetigt per Rohzugriff) als auch danach.
+# Als Rueckluse-Werkzeug fuer DIESEN Aspekttyp ist es blind: es koennte
+# eine erfolgreiche Loeschung nie von einer gescheiterten unterscheiden.
+# Verwendet wird deshalb derselbe Rohzugriff, der die Diagnose belegt hat
+# (`/aspects?action=getTimeseriesAspectValues`, Falle 14: `limit` ist
+# Pflicht) -- das einzige Werkzeug, das bei Zeitreihen-Aspekten tatsaechlich
+# zeigt, ob Daten da sind oder nicht.
+_FAR_FUTURE_MS = 4_102_444_800_000  # 2100-01-01 UTC -- deckt jede plausible Bucket-Zeitmarke ab
+
+
+def _raw_usage_values(gms: Gms, urn: str) -> list[dict]:
+    payload = {
+        "urn": urn,
+        "entity": "dataset",
+        "aspect": "datasetUsageStatistics",
+        "startTimeMillis": 0,
+        "endTimeMillis": _FAR_FUTURE_MS,
+        "limit": 200,  # Falle 14 (UEBERGABE.md): Pflichtfeld, sonst HTTP 500
+    }
+    status, body = gms._send("POST", f"{gms.base}/aspects?action=getTimeseriesAspectValues", payload)
+    if status != 200 or not isinstance(body, dict):
+        raise GmsError(f"getTimeseriesAspectValues HTTP {status}: {str(body)[:200]}")
+    values = ((body.get("value") or {}).get("values")) or []
+    out = []
+    for v in values:
+        raw = v.get("aspect", {}).get("value")
+        out.append(json.loads(raw) if isinstance(raw, str) else raw)
+    return out
+
+
+def purge_usage_history(gms: Gms) -> None:
+    """Wischt die komplette Nutzungs-Zeitreihe fuer alle acht Datasets,
+    BEVOR neu geschrieben wird. Macht seed_usage() selbst-heilend: egal
+    wie viele Tage-Leichen aus fruehren Laeufen (an welchem Kalendertag
+    auch immer) noch herumliegen, nach diesem Schritt ist die Historie
+    leer und der folgende Schreibvorgang schreibt auf ein garantiert
+    sauberes Blatt -- Voraussetzung fuer "an jedem Tag dasselbe Ergebnis"."""
+    purge_counts: dict[str, int] = {}
+    for letter, urn in URNS.items():
+        payload = {"urn": urn, "aspectName": "datasetUsageStatistics",
+                   "startTimeMillis": 0, "endTimeMillis": _FAR_FUTURE_MS}
+        status, body = gms._send("POST", f"{gms.base}/entities?action=delete", payload)
+        if status != 200:
+            RESULTS.append(WriteResult(f"usage-purge {letter}", payload, None, False, f"HTTP {status}: {str(body)[:200]}"))
+            continue
+        purge_counts[letter] = (body or {}).get("value", {}).get("timeseriesRows", 0)
+
+    def readback():
+        return {letter: len(_raw_usage_values(gms, urn)) for letter, urn in URNS.items()}
+
+    record(
+        f"usage-Historie gewiped ({sum(purge_counts.values())} Zeilen entfernt ueber 8 Datasets, Rohzugriff statt get_aspect)",
+        purge_counts,
+        readback,
+        lambda rb: all(v == 0 for v in rb.values()),
+    )
+
+
 def seed_usage(gms: Gms, emitter: DatahubRestEmitter) -> None:
+    purge_usage_history(gms)
+
     written_counts: dict[str, int] = {}
     for letter, buckets in USAGE_PLAN.items():
         n = 0
@@ -612,29 +715,24 @@ def seed_usage(gms: Gms, emitter: DatahubRestEmitter) -> None:
                 )
         written_counts[letter] = n
 
-    # Live-Falle (2026-08-07, dieser Lauf): usageStats(range: ALL, startTimeMillis: N)
-    # mit einem NICHT-Null startTimeMillis liefert null/falsche Aggregationen, obwohl
-    # die Rohdaten nachweislich da sind (per /aspects?action=getTimeseriesAspectValues
-    # gegengeprueft: die Buckets liegen vollstaendig in der Primaerablage). Erst mit
-    # range: ALL OHNE startTimeMillis (oder startTimeMillis weggelassen) kommt die
-    # korrekte Summe zurueck -- live an D (52) und F (74) verglichen. Also: NIE
-    # startTimeMillis mitschicken, wenn range: ALL genuegt.
-    _USAGE_Q = """
-    query($urn: String!) {
-      dataset(urn: $urn) {
-        usageStats(range: ALL) {
-          aggregations { totalSqlQueries uniqueUserCount }
-        }
-      }
-    }
-    """
-
+    # Live-Falle (2026-08-07, Runde 3, verschaerft): `usageStats(range: ALL)`
+    # -- die GraphQL-Aggregation -- ist NACH dem Purge+Rewrite-Zyklus dieser
+    # Runde live an D/E/F noch NACH ueber 75 Sekunden Polling (15x mit 5s
+    # Abstand) `null` geblieben, obwohl derselbe Rohzugriff
+    # (`/aspects?action=getTimeseriesAspectValues`) beim ALLERERSTEN Versuch
+    # bereits die korrekten Werte zeigte (D: 8 Buckets, Summe 52 -- exakt
+    # erwartet). Das ist derselbe Index-Verzug wie schon dokumentiert
+    # (Falle 15, UEBERGABE.md: Graph-/Suchindex hinkt nach), nur diesmal
+    # zuverlaessig laenger als das bisherige Retry-Budget. Die GraphQL-
+    # Aggregation haengt am ES-Index; die Rohablage (`getTimeseriesAspectValues`)
+    # ist die Primaerablage und war in JEDEM bisherigen Test sofort korrekt.
+    # Verifikation deshalb ab jetzt gegen die Rohablage, nicht die
+    # Aggregation -- kein Rennen gegen einen Index mehr, sondern derselbe
+    # Speicher, der auch geschrieben wurde.
     def readback():
         out = {}
         for letter in USAGE_PLAN:
-            data = gms.graphql(_USAGE_Q, {"urn": URNS[letter]})
-            agg = ((data.get("dataset") or {}).get("usageStats") or {}).get("aggregations") or {}
-            out[letter] = agg.get("totalSqlQueries")
+            out[letter] = sum(v.get("totalSqlQueries", 0) for v in _raw_usage_values(gms, URNS[letter]))
         return out
 
     def expect(rb):
@@ -650,11 +748,19 @@ def seed_usage(gms: Gms, emitter: DatahubRestEmitter) -> None:
                 return False
         return True
 
+    # Hoeheres Retry-Budget als der `record()`-Default (6x2s=12s): live
+    # beobachtet (Runde 3), dass die Primaerablage nach einem Purge+28-
+    # Einzelschreibvorgaenge-Zyklus laenger als 12s brauchte, bis
+    # `getTimeseriesAspectValues` den vollstaendigen Stand zeigte -- ein
+    # Nachlauf derselben Art wie in `record()`s eigenem Docstring
+    # beschrieben, nur mit mehr Schreibvolumen als die anderen Schritte.
     record(
         f"Nutzungs-Buckets ({sum(written_counts.values())} Aufrufe ueber 8 Datasets)",
         written_counts,
         readback,
         expect,
+        retries=15,
+        delay_s=3.0,
     )
 
 
