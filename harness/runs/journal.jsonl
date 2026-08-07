@@ -18,3 +18,9 @@
 {"entity_type": "dataset", "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customers_v7,PROD)", "aspect": "testResults", "before": null}
 {"mutation": "verifyForm", "before": null, "reversible": false}
 {"entity_type": "dataset", "urn": "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customers_v7,PROD)", "aspect": "testResults", "before": {"value": {"failing": [{"test": "urn:li:test:all-consumers-signed", "type": "FAILURE"}], "passing": [{"test": "urn:li:test:has-successor", "type": "SUCCESS"}, {"test": "urn:li:test:parity-proven", "type": "SUCCESS"}]}}}
+{"entity_type": "dataset", "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_lifetime_value_by_segment,PROD)", "aspect": "upstreamLineage", "before": null}
+{"entity_type": "query", "urn": "urn:li:query:probate-demo-fb1b3dfb8f200540", "aspect": "queryProperties", "before": null}
+{"entity_type": "query", "urn": "urn:li:query:probate-demo-fb1b3dfb8f200540", "aspect": "querySubjects", "before": null}
+{"entity_type": "dataset", "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_lifetime_value_by_segment,PROD)", "aspect": "upstreamLineage", "before": null}
+{"entity_type": "query", "urn": "urn:li:query:probate-demo-fb1b3dfb8f200540", "aspect": "queryProperties", "before": null}
+{"entity_type": "query", "urn": "urn:li:query:probate-demo-fb1b3dfb8f200540", "aspect": "querySubjects", "before": null}

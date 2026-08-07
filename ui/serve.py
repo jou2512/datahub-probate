@@ -194,16 +194,26 @@ def _validate_action_urn(urn: str) -> None:
         raise ValueError(f"aktion verweigert: urn traegt verbotene zeichen: {urn[:80]!r}")
 
 
-def do_action(name: str, gms, focus: str, note, full_run=None) -> dict:
+def do_action(name: str, gms, focus: str, note, full_run=None, partner=None) -> dict:
     """Die sechs Knoepfe. Jeder veraendert eine der beiden Wahrheitsquellen
     -- ausser 'fast-forward', der nur die Sicht verschiebt.
 
     Serialisiert (Punkt 6): der gesamte Koerper laeuft unter einer Sperre,
     nicht nur der Schreibvorgang selbst -- der Vorher-Zustand fuer den
     Rueckwaertsgang muss zur Sperrzeit noch stimmen.
+
+    `partner` (Vorgabe `None` -> `DEMO_PARTNER`): das ZIEL (Downstream), auf
+    das die schreibenden Knoepfe wirken. Die Oberflaeche reicht ihn nie
+    herein und bleibt damit unveraendert bei der einen Demo-Kante; der
+    Uebergangs-Nachweis (`harness/demo_transitions.py`) braucht dagegen
+    JEDE der vier Labor-Kanten und wuerde sonst einen zweiten Schreibweg
+    neben diesem hier bauen -- genau das, was die Projektregel verbietet
+    (eine Wahrheit ueber den Schreibweg, `probate/writeback.py`). Der
+    Parameter ist deshalb ein Durchreicher, keine neue Mechanik: dieselbe
+    Sperre, dieselbe Existenzpruefung, dasselbe Journal.
     """
     with _ACTION_LOCK:
-        return _do_action_locked(name, gms, focus, note, full_run)
+        return _do_action_locked(name, gms, focus, note, full_run, partner)
 
 
 # Keine f-String-GraphQL: der URN geht als Variable, nie in den Abfragetext.
@@ -248,16 +258,18 @@ def _require_dataset(gms, urn: str, role: str) -> None:
         )
 
 
-def _do_action_locked(name: str, gms, focus: str, note, full_run=None) -> dict:
+def _do_action_locked(name: str, gms, focus: str, note, full_run=None, partner=None) -> dict:
     global _view_offset_days
 
     _validate_action_urn(focus)  # Punkt 3 -- vor JEDEM gms-Kontakt, jede Aktion.
+    partner = partner or DEMO_PARTNER
+    _validate_action_urn(partner)  # dieselbe Sperre wie fuer den Fokus, kein Sonderweg
 
     # Nur die schreibenden Knoepfe: `fast-forward` und `run-ledger`
     # veraendern den Katalog nicht und brauchen deshalb kein Ziel.
     if name in ("seed-query", "add-edge", "remove-edge", "cut-warehouse"):
         _require_dataset(gms, focus, "fokus")
-        _require_dataset(gms, DEMO_PARTNER, "ziel")
+        _require_dataset(gms, partner, "ziel")
 
     from probate.correct import merge_upstreams
     from probate.writeback import Writeback
@@ -287,25 +299,25 @@ def _do_action_locked(name: str, gms, focus: str, note, full_run=None) -> dict:
         # Aufraeumschritt, der vorher manuell noetig war.
         import hashlib
         stamp = {"time": now_ms, "actor": "urn:li:corpuser:__datahub_system"}
-        sql = f"SELECT * FROM {focus} JOIN {DEMO_PARTNER}"  # nur ID-Bildung (Falle 8: hashlib, nie hash())
+        sql = f"SELECT * FROM {focus} JOIN {partner}"  # nur ID-Bildung (Falle 8: hashlib, nie hash())
         qid = hashlib.sha1(sql.encode()).hexdigest()[:16]
         query_urn = f"urn:li:query:probate-demo-{qid}"
         props_value = {
             "statement": {"value": sql, "language": "SQL"},
             "source": "MANUAL", "created": stamp, "lastModified": stamp,
         }
-        subjects_value = {"subjects": [{"entity": focus}, {"entity": DEMO_PARTNER}]}
+        subjects_value = {"subjects": [{"entity": focus}, {"entity": partner}]}
         wb.aspect("query", query_urn, "queryProperties", props_value)
         wb.aspect("query", query_urn, "querySubjects", subjects_value)
         note("query written, 2 subject(s)", 2)
         return {"wrote": 1, "expect": "missing"}
 
     if name == "add-edge":
-        before = gms.get_aspect("dataset", DEMO_PARTNER, "upstreamLineage")
+        before = gms.get_aspect("dataset", partner, "upstreamLineage")
         value = merge_upstreams(before, add=[{
             "dataset": focus, "type": "TRANSFORMED",
             "auditStamp": {"time": now_ms, "actor": "urn:li:corpuser:__datahub_system"}}])
-        wb.aspect("dataset", DEMO_PARTNER, "upstreamLineage", value)
+        wb.aspect("dataset", partner, "upstreamLineage", value)
         note(f"edge declared, {len(value['upstreams'])} upstream(s) now on target",
              len(value["upstreams"]))
         return {"upstreams": len(value["upstreams"]), "expect": "dead"}
@@ -327,20 +339,20 @@ def _do_action_locked(name: str, gms, focus: str, note, full_run=None) -> dict:
         # drin. Beide Male: laut verweigern statt still nichts (oder etwas
         # Erfundenes) zu schreiben -- der Mensch druecke einen Knopf und
         # erwartet eine sichtbare Wirkung oder einen sichtbaren Fehler.
-        before = gms.get_aspect("dataset", DEMO_PARTNER, "upstreamLineage")
+        before = gms.get_aspect("dataset", partner, "upstreamLineage")
         if before is None:
             raise ValueError(
-                f"kante entfernen verweigert: {DEMO_PARTNER!r} hat noch keine "
+                f"kante entfernen verweigert: {partner!r} hat noch keine "
                 "upstreamLineage -- nichts zu entfernen, kein leerer aspekt wird erfunden"
             )
         existing_urns = {u.get("dataset") for u in (before.get("value") or {}).get("upstreams") or []}
         if focus not in existing_urns:
             raise ValueError(
                 f"kante entfernen verweigert: {focus!r} steht nicht in der bestehenden "
-                f"upstreamLineage von {DEMO_PARTNER!r} -- der knopf haette sonst nichts veraendert"
+                f"upstreamLineage von {partner!r} -- der knopf haette sonst nichts veraendert"
             )
         value = merge_upstreams(before, drop=[focus])
-        result = wb.aspect("dataset", DEMO_PARTNER, "upstreamLineage", value)
+        result = wb.aspect("dataset", partner, "upstreamLineage", value)
         note(f"edge removed, {len(value['upstreams'])} upstream(s) remain on target",
              len(value["upstreams"]))
         return {"removed": 1, "applied": result.applied, "expect": "missing"}
@@ -376,9 +388,9 @@ def _do_action_locked(name: str, gms, focus: str, note, full_run=None) -> dict:
         #    angefasst werden, und probate/gms.py bietet diesen Endpunkt
         #    nicht als eigene Methode an).
         from probate.gms import _validate_urn as _gms_validate_urn
-        _gms_validate_urn(DEMO_PARTNER)  # dieselbe Disziplin wie seed_lineage_lab.py:715-721
+        _gms_validate_urn(partner)  # dieselbe Disziplin wie seed_lineage_lab.py:715-721
         far_future_ms = 4_102_444_800_000  # 2100-01-01 UTC, deckt jeden plausiblen Bucket ab
-        payload = {"urn": DEMO_PARTNER, "aspectName": "datasetUsageStatistics",
+        payload = {"urn": partner, "aspectName": "datasetUsageStatistics",
                    "startTimeMillis": 0, "endTimeMillis": far_future_ms}
         status, body = gms._send("POST", f"{gms.base}/entities?action=delete", payload)
         if status != 200:

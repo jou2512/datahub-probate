@@ -55,7 +55,21 @@ RUN_FILES = (
     "upstream-properties-probe.json",
     "full-vs-delta.json",
     "mcp-probe.json",
+    "demo-transitions.json",
 )
+# demo-transitions.json (aufgenommen 2026-08-07): der Uebergangs-Nachweis
+# aus harness/demo_transitions.py. seedlab-verdicts.json belegt, dass die
+# vier Zustaende AUFTRETEN; diese Datei belegt, dass eine Kante ihren
+# Zustand WECHSELT, wenn sich die Welt aendert -- und dass der Lauf hinter
+# sich aufraeumt. Alle Schluessel tragen ein 'transitions_'-Praefix, weil
+# generische Namen ('proven', 'attempted', 'cleanup_verified') von einem
+# spaeteren Artefakt ueber eine andere Sache wiederverwendet wuerden und
+# dann als ConflictingClaim erschienen, obwohl sich nichts widerspricht.
+# NICHT behauptbar und deshalb bewusst verschachtelt abgelegt ('steps',
+# 'final_states', 'usage_signature_*'): die gemessenen Sekunden je
+# Uebergang. Sie haengen am Index-Verzug der Instanz und schwanken von Lauf
+# zu Lauf -- eine Zahl, die bei jedem Lauf anders ist, gehoert in den
+# Beleg, nicht in eine Behauptung, die ein Gate gruen halten muss.
 # mcp-probe.json (aufgenommen 2026-08-07): die eigene Messung von DataHubs
 # MCP-Server, erzeugt von harness/mcp_probe.py. Sie traegt die Zahlen, mit
 # denen das README ueberhaupt erst etwas ueber den MCP-Weg sagen darf --

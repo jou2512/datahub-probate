@@ -1,0 +1,485 @@
+{
+  "seeded": true,
+  "seeded_statement": "Dies sind kuenstlich eingespielte Demonstrationsdaten (harness/seed_lineage_lab.py), keine echte Warehouse-Nutzung. Namespace probate_seedlab, Plattform postgres.",
+  "gms_url": "http://localhost:28080",
+  "generated_at": "2026-08-07T14:30:09.407265+00:00",
+  "transitions_manifest": "examples/seedlab-manifest.json",
+  "transitions_settle_seconds_minimum": 15.0,
+  "transitions_attempted": 7,
+  "transitions_proven": 7,
+  "transitions_all_proven": true,
+  "transitions_cleanup_verified": true,
+  "transitions_journal_lines_added": 3,
+  "transitions_journal_lines_reverted": 3,
+  "transitions_usage_rows_cut_and_restored": 3,
+  "transitions_usage_timeseries_identical_after_restore": true,
+  "transitions_states_reached": "confirmed,missing,confirmed,dead,unknown,confirmed,unknown",
+  "usage_signature_before_cut": {
+    "rows": 3,
+    "total_sql_queries": 103,
+    "buckets": [
+      [
+        1785888000000,
+        28,
+        3
+      ],
+      [
+        1785974400000,
+        35,
+        4
+      ],
+      [
+        1786060800000,
+        40,
+        5
+      ]
+    ]
+  },
+  "usage_signature_after_restore": {
+    "rows": 3,
+    "total_sql_queries": 103,
+    "buckets": [
+      [
+        1785888000000,
+        28,
+        3
+      ],
+      [
+        1785974400000,
+        35,
+        4
+      ],
+      [
+        1786060800000,
+        40,
+        5
+      ]
+    ]
+  },
+  "steps": [
+    {
+      "title": "1 · Kante eintragen",
+      "from_expected": "missing",
+      "to_expected": "confirmed",
+      "mechanism": "ui.serve.do_action('add-edge') schreibt upstreamLineage auf das Ziel",
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.checkout_events_raw,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_lifetime_value_by_segment,PROD)",
+      "action_result": {
+        "upstreams": 1,
+        "expect": "dead"
+      },
+      "action_seconds": 0.09,
+      "journal_lines_added": 1,
+      "view_offset_days_after": 0,
+      "state_before": "missing",
+      "state_after": "confirmed",
+      "seconds_to_expected_state": 15.1,
+      "proven": true,
+      "measurement_before": {
+        "state": "missing",
+        "evidence": {
+          "query_urns": [
+            "urn:li:query:probate-seedlab-clv-build"
+          ],
+          "cooccurrence_count": 1,
+          "direction_evidence": "co-occurrence (undirected)",
+          "source": "query co-occurrence"
+        },
+        "declared": false,
+        "cooccurrence_queries": 1,
+        "queries_seen": 1,
+        "buckets_checked": 3,
+        "has_window": true,
+        "measured_at": "2026-08-07T14:28:22.537194+00:00",
+        "now_ms_used": 1786112902456
+      },
+      "measurement_series_after": [
+        {
+          "seconds_after_action": 15.1,
+          "state": "confirmed",
+          "evidence": {
+            "query_urns": [
+              "urn:li:query:probate-seedlab-clv-build"
+            ],
+            "source": "declared lineage + query co-occurrence"
+          },
+          "declared": true,
+          "cooccurrence_queries": 1,
+          "queries_seen": 1,
+          "buckets_checked": 3,
+          "has_window": true,
+          "measured_at": "2026-08-07T14:28:37.733048+00:00",
+          "now_ms_used": 1786112917647
+        }
+      ]
+    },
+    {
+      "title": "2 · Eintrag zuruecknehmen",
+      "from_expected": "confirmed",
+      "to_expected": "missing",
+      "mechanism": "Writeback.revert_all() auf die Journal-Zeilen aus Schritt 1",
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.checkout_events_raw,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_lifetime_value_by_segment,PROD)",
+      "action_result": {
+        "reverted_entries": 1
+      },
+      "action_seconds": 0.03,
+      "journal_lines_added": 0,
+      "view_offset_days_after": 0,
+      "state_before": "confirmed",
+      "state_after": "missing",
+      "seconds_to_expected_state": 15.1,
+      "proven": true,
+      "measurement_before": {
+        "state": "confirmed",
+        "evidence": {
+          "query_urns": [
+            "urn:li:query:probate-seedlab-clv-build"
+          ],
+          "source": "declared lineage + query co-occurrence"
+        },
+        "declared": true,
+        "cooccurrence_queries": 1,
+        "queries_seen": 1,
+        "buckets_checked": 3,
+        "has_window": true,
+        "measured_at": "2026-08-07T14:28:37.818558+00:00",
+        "now_ms_used": 1786112917733
+      },
+      "measurement_series_after": [
+        {
+          "seconds_after_action": 15.1,
+          "state": "missing",
+          "evidence": {
+            "query_urns": [
+              "urn:li:query:probate-seedlab-clv-build"
+            ],
+            "cooccurrence_count": 1,
+            "direction_evidence": "co-occurrence (undirected)",
+            "source": "query co-occurrence"
+          },
+          "declared": false,
+          "cooccurrence_queries": 1,
+          "queries_seen": 1,
+          "buckets_checked": 3,
+          "has_window": true,
+          "measured_at": "2026-08-07T14:28:52.940708+00:00",
+          "now_ms_used": 1786112932855
+        }
+      ]
+    },
+    {
+      "title": "3 · Abfrage anlegen, die beide Tabellen beruehrt",
+      "from_expected": "dead",
+      "to_expected": "confirmed",
+      "mechanism": "ui.serve.do_action('seed-query') schreibt eine Query mit zwei Subjects",
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_revenue_weekly_east,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_sales_ranking_east,PROD)",
+      "action_result": {
+        "wrote": 1,
+        "expect": "missing"
+      },
+      "action_seconds": 0.11,
+      "journal_lines_added": 2,
+      "view_offset_days_after": 0,
+      "state_before": "dead",
+      "state_after": "confirmed",
+      "seconds_to_expected_state": 15.1,
+      "proven": true,
+      "measurement_before": {
+        "state": "dead",
+        "evidence": {
+          "reason": "im geprueften Fenster nie gemessen",
+          "buckets_checked": 4,
+          "window_days": 33,
+          "window_start_ms": 1783348132942,
+          "window_end_ms": 1786199332942,
+          "source": "declared lineage"
+        },
+        "declared": true,
+        "cooccurrence_queries": 0,
+        "queries_seen": 0,
+        "buckets_checked": 4,
+        "has_window": true,
+        "measured_at": "2026-08-07T14:28:53.020753+00:00",
+        "now_ms_used": 1786112932942
+      },
+      "measurement_series_after": [
+        {
+          "seconds_after_action": 15.1,
+          "state": "confirmed",
+          "evidence": {
+            "query_urns": [
+              "urn:li:query:probate-demo-fb1b3dfb8f200540"
+            ],
+            "source": "declared lineage + query co-occurrence"
+          },
+          "declared": true,
+          "cooccurrence_queries": 1,
+          "queries_seen": 1,
+          "buckets_checked": 4,
+          "has_window": true,
+          "measured_at": "2026-08-07T14:29:08.219299+00:00",
+          "now_ms_used": 1786112948150
+        }
+      ]
+    },
+    {
+      "title": "4 · Abfrage wieder entfernen",
+      "from_expected": "confirmed",
+      "to_expected": "dead",
+      "mechanism": "Writeback.revert_all() auf die Journal-Zeilen aus Schritt 3",
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_revenue_weekly_east,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_sales_ranking_east,PROD)",
+      "action_result": {
+        "reverted_entries": 2
+      },
+      "action_seconds": 0.06,
+      "journal_lines_added": 0,
+      "view_offset_days_after": 0,
+      "state_before": "confirmed",
+      "state_after": "dead",
+      "seconds_to_expected_state": 15.1,
+      "proven": true,
+      "measurement_before": {
+        "state": "confirmed",
+        "evidence": {
+          "query_urns": [
+            "urn:li:query:probate-demo-fb1b3dfb8f200540"
+          ],
+          "source": "declared lineage + query co-occurrence"
+        },
+        "declared": true,
+        "cooccurrence_queries": 1,
+        "queries_seen": 1,
+        "buckets_checked": 4,
+        "has_window": true,
+        "measured_at": "2026-08-07T14:29:08.296053+00:00",
+        "now_ms_used": 1786112948220
+      },
+      "measurement_series_after": [
+        {
+          "seconds_after_action": 15.1,
+          "state": "dead",
+          "evidence": {
+            "reason": "im geprueften Fenster nie gemessen",
+            "buckets_checked": 4,
+            "window_days": 33,
+            "window_start_ms": 1783348163368,
+            "window_end_ms": 1786199363368,
+            "source": "declared lineage"
+          },
+          "declared": true,
+          "cooccurrence_queries": 0,
+          "queries_seen": 0,
+          "buckets_checked": 4,
+          "has_window": true,
+          "measured_at": "2026-08-07T14:29:23.430921+00:00",
+          "now_ms_used": 1786112963368
+        }
+      ]
+    },
+    {
+      "title": "5 · Warehouse trennen (Nutzungsdaten verschwinden)",
+      "from_expected": "confirmed",
+      "to_expected": "unknown",
+      "mechanism": "ui.serve.do_action('cut-warehouse') loescht die Nutzungs-Zeitreihe des Ziels",
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.gl_journal_entries_daily,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.finance_income_statement_consolidated,PROD)",
+      "action_result": {
+        "deleted": 3,
+        "expect": "unknown"
+      },
+      "action_seconds": 0.05,
+      "journal_lines_added": 0,
+      "view_offset_days_after": 0,
+      "state_before": "confirmed",
+      "state_after": "unknown",
+      "seconds_to_expected_state": 15.1,
+      "proven": true,
+      "measurement_before": {
+        "state": "confirmed",
+        "evidence": {
+          "query_urns": [
+            "urn:li:query:probate-seedlab-gl-consolidation"
+          ],
+          "source": "declared lineage + query co-occurrence"
+        },
+        "declared": true,
+        "cooccurrence_queries": 1,
+        "queries_seen": 1,
+        "buckets_checked": 3,
+        "has_window": true,
+        "measured_at": "2026-08-07T14:29:23.521809+00:00",
+        "now_ms_used": 1786112963443
+      },
+      "measurement_series_after": [
+        {
+          "seconds_after_action": 15.1,
+          "state": "unknown",
+          "evidence": {
+            "reason": "keine Nutzungs-Zeitfenster im Katalog",
+            "source": "declared lineage"
+          },
+          "declared": true,
+          "cooccurrence_queries": 1,
+          "queries_seen": 1,
+          "buckets_checked": 0,
+          "has_window": false,
+          "measured_at": "2026-08-07T14:29:38.642599+00:00",
+          "now_ms_used": 1786112978570
+        }
+      ]
+    },
+    {
+      "title": "6 · Warehouse wieder anschliessen",
+      "from_expected": "unknown",
+      "to_expected": "confirmed",
+      "mechanism": "dieselben Rohzeilen per SDK-Emitter zurueckgespielt (Zeitstempel unveraendert)",
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.gl_journal_entries_daily,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.finance_income_statement_consolidated,PROD)",
+      "action_result": {
+        "rows_restored": 3
+      },
+      "action_seconds": 0.19,
+      "journal_lines_added": 0,
+      "view_offset_days_after": 0,
+      "state_before": "unknown",
+      "state_after": "confirmed",
+      "seconds_to_expected_state": 15.1,
+      "proven": true,
+      "measurement_before": {
+        "state": "unknown",
+        "evidence": {
+          "reason": "keine Nutzungs-Zeitfenster im Katalog",
+          "source": "declared lineage"
+        },
+        "declared": true,
+        "cooccurrence_queries": 1,
+        "queries_seen": 1,
+        "buckets_checked": 0,
+        "has_window": false,
+        "measured_at": "2026-08-07T14:29:38.740825+00:00",
+        "now_ms_used": 1786112978643
+      },
+      "measurement_series_after": [
+        {
+          "seconds_after_action": 15.1,
+          "state": "confirmed",
+          "evidence": {
+            "query_urns": [
+              "urn:li:query:probate-seedlab-gl-consolidation"
+            ],
+            "source": "declared lineage + query co-occurrence"
+          },
+          "declared": true,
+          "cooccurrence_queries": 1,
+          "queries_seen": 1,
+          "buckets_checked": 3,
+          "has_window": true,
+          "measured_at": "2026-08-07T14:29:54.002118+00:00",
+          "now_ms_used": 1786112993926
+        }
+      ]
+    },
+    {
+      "title": "7 · Zeit 30 Tage vorspulen",
+      "from_expected": "unknown",
+      "to_expected": "unknown",
+      "mechanism": "ui.serve.do_action('fast-forward') verschiebt nur die Sicht, schreibt nichts",
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_dedup_stage,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.crm_migration_staging,PROD)",
+      "action_result": {
+        "now_ms_offset_days": 30,
+        "expect": "aged"
+      },
+      "action_seconds": 0.0,
+      "journal_lines_added": 0,
+      "view_offset_days_after": 30,
+      "state_before": "unknown",
+      "state_after": "unknown",
+      "seconds_to_expected_state": 15.1,
+      "proven": true,
+      "measurement_before": {
+        "state": "unknown",
+        "evidence": {
+          "reason": "keine Nutzungs-Zeitfenster im Katalog",
+          "source": "declared lineage"
+        },
+        "declared": true,
+        "cooccurrence_queries": 0,
+        "queries_seen": 0,
+        "buckets_checked": 0,
+        "has_window": false,
+        "measured_at": "2026-08-07T14:29:54.071086+00:00",
+        "now_ms_used": 1786112994015
+      },
+      "measurement_series_after": [
+        {
+          "seconds_after_action": 15.1,
+          "state": "unknown",
+          "evidence": {
+            "reason": "keine Nutzungs-Zeitfenster im Katalog",
+            "source": "declared lineage"
+          },
+          "declared": true,
+          "cooccurrence_queries": 0,
+          "queries_seen": 0,
+          "buckets_checked": 0,
+          "has_window": false,
+          "measured_at": "2026-08-07T14:30:09.134908+00:00",
+          "now_ms_used": 1788705009073
+        }
+      ]
+    }
+  ],
+  "final_states": {
+    "confirmed": {
+      "expected": "confirmed",
+      "state": "confirmed",
+      "matches": true,
+      "evidence": {
+        "query_urns": [
+          "urn:li:query:probate-seedlab-gl-consolidation"
+        ],
+        "source": "declared lineage + query co-occurrence"
+      }
+    },
+    "dead": {
+      "expected": "dead",
+      "state": "dead",
+      "matches": true,
+      "evidence": {
+        "reason": "im geprueften Fenster nie gemessen",
+        "buckets_checked": 4,
+        "window_days": 33,
+        "window_start_ms": 1783348209209,
+        "window_end_ms": 1786199409209,
+        "source": "declared lineage"
+      }
+    },
+    "missing": {
+      "expected": "missing",
+      "state": "missing",
+      "matches": true,
+      "evidence": {
+        "query_urns": [
+          "urn:li:query:probate-seedlab-clv-build"
+        ],
+        "cooccurrence_count": 1,
+        "direction_evidence": "co-occurrence (undirected)",
+        "source": "query co-occurrence"
+      }
+    },
+    "unknown": {
+      "expected": "unknown",
+      "state": "unknown",
+      "matches": true,
+      "evidence": {
+        "reason": "keine Nutzungs-Zeitfenster im Katalog",
+        "source": "declared lineage"
+      }
+    }
+  },
+  "notes": []
+}

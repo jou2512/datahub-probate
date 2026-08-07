@@ -194,6 +194,42 @@ A single-focus ledger run against the confirmed pair
 0 `unknown`, over 3 usage buckets spanning 2 days. The run flags its own coverage as thin — that
 flag is the point.
 
+### The states change when the world changes
+
+Four states existing is not the same as an edge *moving* between them. That movement is the
+product's actual claim — we re-measure instead of asserting once — so it is measured, not
+described: **7 of 7 transitions proven**
+([`demo-transitions.json`](harness/runs/demo-transitions.json),
+[`harness/demo_transitions.py`](harness/demo_transitions.py)).
+
+Each one runs the same way: read the state from the ledger → press the button → wait **at least
+15 seconds** → read the state again. The state is never taken from the button's own response.
+That confusion — HTTP 200, aspect echoed back, nothing written — cost this project a full day
+(`UEBERGABE.md`, trap 21), and it is exactly the failure mode the tool exists to expose.
+
+| # | Transition | What changed in the world |
+|---|---|---|
+| 1 | `missing` → `confirmed` | the edge was declared (`upstreamLineage`) |
+| 2 | `confirmed` → `missing` | the declaration was taken back |
+| 3 | `dead` → `confirmed` | a query touching both tables was created |
+| 4 | `confirmed` → `dead` | that query was removed — the declaration stays, the evidence goes |
+| 5 | `confirmed` → `unknown` | the usage timeseries was deleted |
+| 6 | `unknown` → `confirmed` | the same usage rows were replayed, unchanged |
+| 7 | `unknown` → `unknown` | the observation window moved 30 days forward |
+
+**Row 5 is the one to read twice.** Cutting the usage data does *not* produce `dead`; it produces
+`unknown`. Reporting `dead` there would be claiming "never used" without a single measurement —
+so the transition is shown with the state it actually reaches, not the one that would have made a
+neater demo. Row 7 is the same invariant from the other end: fast-forwarding time changes nothing
+for an edge that never had usage data. `dead` is only ever reached the honest way, in row 4:
+usage windows present, traffic measured, and no query joining the two tables.
+
+Every mutation goes through the same write path as the buttons in the console — one lock, one
+existence check, one journal — and is taken back inside the same run: **3 journal lines appended,
+3 reverted**, the deleted usage timeseries replayed row for row (3 rows, identical timestamps and
+counters), and all four lab edges measured back to their starting states. `harness/seedlab_verdicts.py`
+exits 0 afterwards; if it did not, the transition run would be the thing that failed, not the gate.
+
 ### Write, verify, undo
 
 Nothing is written without a proposal, a human, and a journal entry with a real reverse gear

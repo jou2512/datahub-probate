@@ -110,5 +110,16 @@
   "end_to_end_mcp_api_calls": 3,
   "telemetry_median_seconds_off": 0.086,
   "telemetry_median_seconds_on": 0.401,
-  "telemetry_overhead_seconds": 0.315
+  "telemetry_overhead_seconds": 0.315,
+
+  "transitions_attempted": 7,
+  "transitions_proven": 7,
+  "transitions_all_proven": true,
+  "transitions_cleanup_verified": true,
+  "transitions_journal_lines_added": 3,
+  "transitions_journal_lines_reverted": 3,
+  "transitions_usage_rows_cut_and_restored": 3,
+  "transitions_usage_timeseries_identical_after_restore": true,
+  "transitions_settle_seconds_minimum": 15.0,
+  "transitions_states_reached": "confirmed,missing,confirmed,dead,unknown,confirmed,unknown"
 }

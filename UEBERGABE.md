@@ -111,6 +111,21 @@ Dann pro Treffer `get_aspect("query", urn, "querysubjects")` → alle berührten
 **Aspekt löschen** (für den Rückwärtsgang bei Erst-Schreibvorgängen):
 `DELETE /openapi/v3/entity/<typ>/<urn>/<aspekt>` → HTTP 200, danach ist er weg.
 
+**Wie schnell ein Zustandswechsel sichtbar wird** (gemessen 07.08. abends, zweimal,
+`harness/runs/demo-transitions.json`): **alle sieben** Übergänge standen beim **ersten**
+Messpunkt nach **15,1 s** fest — Deklaration schreiben, Deklaration löschen, Query anlegen,
+Query löschen, Nutzungs-Zeitreihe purgen, Zeitreihe zurückspielen. Der befürchtete ~30-s-Verzug
+aus Falle 15 trat auf **keinem** dieser Pfade auf. Das ist kein Freibrief, sofort zu messen: die
+15 s Wartezeit sind fest verdrahtet und per Test gegen Unterschreitung gesperrt, weil ein
+einzelner schneller Lauf keine Garantie ist (`.claude/rules/verification.md`).
+
+**„Nutzung kappen" ergibt `unknown`, nicht `dead`** — und zwar mit Absicht. Das Abdeckungs-Gate
+in `classify_edges` steht **vor** jedem anderen Zweig: keine Nutzungsfenster → keine Grundlage
+für „tot". Wer `confirmed → dead` zeigen will, nimmt die **Paar-Abfrage** weg und lässt die
+Nutzungsfenster stehen (gemessen: Schritt 4 des Übergangs-Laufs). Ein Auftrag, der „confirmed →
+dead durch Kappen der Nutzung" verlangt, beschreibt einen Weg, den dieses Produkt bewusst nicht
+hat — der Lauf misst beides und schreibt hin, was tatsächlich herauskommt.
+
 ---
 
 ## 5 · Fallen, die schon Blut gekostet haben
