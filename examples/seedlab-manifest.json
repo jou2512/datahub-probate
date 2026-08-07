@@ -1,7 +1,7 @@
 {
   "seeded": true,
   "seeded_statement": "Dies sind kuenstlich eingespielte Demonstrationsdaten (harness/seed_lineage_lab.py), keine echte Warehouse-Nutzung. Namespace probate_seedlab, Plattform postgres.",
-  "generated_at": "2026-08-07T01:20:39.053070+00:00",
+  "generated_at": "2026-08-07T01:39:55.114888+00:00",
   "gms_url": "http://localhost:28080",
   "namespace": "probate_seedlab",
   "edges": [
@@ -48,6 +48,6 @@
   ],
   "cooccurrence_search_results": {
     "A(+B)": 1,
-    "E(+F)": 1
+    "E(+F)": 2
   }
 }

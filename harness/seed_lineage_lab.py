@@ -47,17 +47,64 @@ ueber `harness/seedlab_verdicts.py` ist nach jeder Aenderung Pflicht.
 Idempotent: alle Nicht-Zeitreihen-Aspekte (Dataset, upstreamLineage, Query)
 haben feste URNs/IDs und werden bei jedem Lauf einfach ueberschrieben, nicht
 dupliziert (v3-REST-Semantik: gleiche URN + gleicher Aspekt = Ersetzen).
-Nutzungs-Buckets sind Zeitreihen, aber ihr Zeitstempel wird auf Mitternacht
-UTC relativ zu "heute minus N Tage" gerundet -- ein zweiter Lauf am selben
-Tag schreibt denselben Zeitstempel erneut und ueberschreibt (live geprueft:
-zweimal derselbe Bucket ergab totalSqlQueries=10, nicht 20). Ein Lauf an
-einem anderen Kalendertag erzeugt neue Tages-Buckets fuer die "aktuellen"
-Zustaende (confirmed/missing) -- das ist fuer Zeitreihendaten das erwartete
-Verhalten, kein Duplikat im Sinne der Aufgabe.
+
+Nutzungs-Buckets sind Zeitreihen, ihr Zeitstempel haengt an `USAGE_ANCHOR`
+(dem aktuellen Tag um Mitternacht UTC, neu berechnet bei jedem Lauf --
+NICHT an einem fest verdrahteten Kalenderdatum, siehe Kommentar dort:
+`probate/ledger.py` klassifiziert ueber ein rollendes 30-Tage-Fenster,
+ein starres Datum waere irgendwann aus diesem Fenster herausgelaufen).
+Innerhalb eines Laufs ist das deterministisch (derselbe Prozess, derselbe
+Zeitstempel). Zwischen zwei Laeufen an verschiedenen Kalendertagen waere
+das allein NICHT idempotent -- deshalb wischt `purge_usage_history()` vor
+jedem Schreibvorgang die komplette Zeitreihen-Historie aller acht Datasets
+(volle Historie, nicht nur den "aktuellsten" Wert -- live geprueft, siehe
+Report Fix-Runde 3: die generische `DELETE`-Route entfernt bei Zeitreihen-
+Aspekten nur die letzte Zeile). Jeder Lauf beginnt so auf einem leeren
+Blatt; zwei Laeufe an zwei verschiedenen Tagen konvergieren auf denselben
+verifizierten Zustand (live geprueft: zweimal hintereinander, exit 0,
+identische Rohsummen).
 
 Jede Schreiboperation wird zurueckgelesen. Ein Rueckleseversagen ist ein
 FEHLER (Exit 1), kein stilles Weiterlaufen -- Regel `verification.md`:
 "Eine gescheiterte Abfrage ist keine Abwesenheit".
+
+--------------------------------------------------------------------------
+RUNBOOK -- ES-Graph-Index-Drift (Fund Fix-Runde 3, Coordinator-Review)
+--------------------------------------------------------------------------
+SYMPTOM: `harness/seedlab_verdicts.py` zeigt einen Zustand, der nicht zum
+Manifest passt -- typischerweise `missing` liest sich als `confirmed`
+(oder generell: eine Kante erscheint deklariert, obwohl sie es laut Design
+nicht sein sollte). Der PRIMAERSPEICHER widerspricht: `gms.get_aspect(
+"dataset", <urn>, "upstreamLineage")` zeigt `None`/leer, aber die GraphQL-
+Abfrage `dataset(urn){ lineage(direction: ...) { relationships { entity {
+urn } } } }` (der ES-Graph-Index, den `probate/ledger.py::
+fetch_declared_edges()` tatsaechlich abfragt) zeigt eine Kante, die im
+Aspekt nicht existiert.
+
+URSACHE: der ES-Graph-Index wird ueber Kafka-MCL-Consumer nachgezogen
+(Falle 15: "Graph-/Suchindex hinkt Writes UND Deletes nach"). Bei
+Kafka-Consumer-Instabilitaet (live gemessen, 07.08.: 5362 Treffer fuer
+`COORDINATOR_NOT_AVAILABLE` in 3h auf einer seit Tagen als `unhealthy`
+markierten GMS-Instanz) kann ein verzoegert/dupliziert nachgeholter MCL
+den Graph-Index auf einen Zwischenzustand bringen, den die Primaerablage
+(MySQL) nie dauerhaft hatte -- ein Index-Fehler, kein Datenfehler.
+
+CHECK (automatisiert, siehe `check_es_drift()` unten): fuer jedes der acht
+Datasets wird die deklarierte `upstreamLineage` aus dem Primaerspeicher
+gegen dieselbe Richtung im Graph-Index verglichen. Eine Abweichung wird
+laut gemeldet (NIE stillschweigend), inklusive der exakten Remedy-URN.
+
+REMEDY (manuell, falls das Auto-Heal unten nicht greift oder deaktiviert
+ist):
+    curl -X POST "<GMS_URL>/operations?action=restoreIndices" \\
+         -H "Content-Type: application/json" \\
+         -d '{"urn": "<betroffene Dataset-URN>"}'
+Das resynct den Such-/Graph-Index DIREKT aus der Primaerablage, unter
+Umgehung von Kafka -- Sekunden, kein Container-Neustart, kein Datenverlust
+(reiner Lese-Resync, kein `--hard delete`). Live verifiziert, 07.08.:
+`{"rowsMigrated": 8, "lastAspect": "upstreamLineage"}`, Graph-Index sofort
+danach korrekt.
+--------------------------------------------------------------------------
 """
 
 from __future__ import annotations
@@ -81,7 +128,7 @@ from datahub.metadata.schema_classes import (
 
 sys.path.insert(0, str(Path(__file__).resolve().parents[1]))  # fuer `probate.*` bei Direktlauf
 
-from probate.gms import Gms, GmsError  # noqa: E402
+from probate.gms import Gms, GmsError, _validate_urn  # noqa: E402
 
 GMS_DEFAULT = "http://localhost:28080"
 PLATFORM = "urn:li:dataPlatform:postgres"
@@ -90,17 +137,30 @@ ACTOR = "urn:li:corpuser:datahub"
 STAMP = {"time": 1754300000000, "actor": ACTOR}  # fest, wie preflight.py/seed_queries.py
 MANIFEST_PATH = Path("examples/seedlab-manifest.json")
 
-# Coordinator-Fix (Runde 3, 07.08.): NICHT mehr datetime.now(). Die alte
-# Fassung verankerte alle Nutzungs-Bucket-Zeitstempel an "heute" -- bei
-# jedem Kalendertag-Wechsel zwischen zwei Laeufen verschob sich das
-# Drei-Tage-Fenster (confirmed/missing) bzw. Acht-Tage-Fenster (dead) um
-# einen Tag, alte Buckets blieben als Leichen liegen (Diagnose mit
-# Rohdaten-Beleg: seedlab-anreicherung-report.md, Abschnitt "Fix-Runde 3").
-# USAGE_ANCHOR ist deshalb ein FESTES Datum, kein `datetime.now()` --
-# jeder Lauf, an jedem Kalendertag, berechnet exakt dieselben Zeitstempel.
-# Gewaehlt: der Tag, an dem dieses Labor entworfen wurde (deckt sich mit
-# dem allerersten Seed-Lauf, 2026-08-06 22:33 UTC laut Manifest-Historie).
-USAGE_ANCHOR = datetime(2026, 8, 6, tzinfo=timezone.utc)
+# Coordinator-Fix (Runde 3, 07.08., korrigiert Runde 4): urspruenglich
+# hier ein FEST verdrahtetes Kalenderdatum (2026-08-06). Fund der zweiten
+# Review-Runde: `probate/ledger.py:313-323` klassifiziert ueber
+# `usageStats(range: MONTH)` -- ein rollendes 30-Tage-Fenster ab dem
+# TATSAECHLICHEN "jetzt". Ein fest verdrahteter Anker waere irgendwann
+# (hier: ab ca. 2026-09-05) aus diesem Fenster herausgelaufen -- alle acht
+# Datasets haetten ihre Abdeckung verloren, jede Kante waere zu `unknown`
+# kollabiert, WAEHREND dieser Seeder weiterhin Exit 0 und identische
+# Rohsummen gemeldet haette (die eigene Rueckluse-Pruefung liest die
+# ungefensterte Rohablage, nicht das 30-Tage-Fenster des echten Klassi-
+# fikators) -- ein gruener Seeder ueber einem toten Labor.
+#
+# Richtig verankert ist deshalb NICHT "ein festes Datum", sondern "der
+# aktuelle Tag um Mitternacht UTC, neu berechnet bei jedem Lauf" -- exakt
+# das, was der urspruengliche Kalendertag-Fehler (Runde 3) tatsaechlich
+# brauchte: INNERHALB eines Laufs deterministisch (derselbe Prozess
+# berechnet denselben Zeitstempel fuer jeden der acht Datasets), und die
+# Buckets bleiben damit PERMANENT innerhalb des rollenden 30-Tage-Fensters.
+# Was den Kalendertag-Wechsel ZWISCHEN zwei separaten Laeufen entschaerft,
+# ist nicht mehr der Anker, sondern `purge_usage_history()` weiter unten:
+# jeder Lauf wischt seine komplette Zeitreihen-Historie und schreibt frisch
+# -- der eigentliche Fix fuer das Idempotenz-Problem war immer der volle
+# Wipe-vor-Schreib-Zyklus, nicht ein unveraenderliches Datum.
+USAGE_ANCHOR = datetime.now(timezone.utc).replace(hour=0, minute=0, second=0, microsecond=0)
 
 
 def days_ago_ms(n: int) -> int:
@@ -645,7 +705,22 @@ def seed_queries(gms: Gms) -> None:
 _FAR_FUTURE_MS = 4_102_444_800_000  # 2100-01-01 UTC -- deckt jede plausible Bucket-Zeitmarke ab
 
 
+# Minor-Fund (Coordinator-Review, Runde 4): `_raw_usage_values()` und
+# `purge_usage_history()` rufen `gms._send()` direkt statt eine oeffentliche
+# Gms-Methode -- weil `probate/gms.py` weder "vollstaendige Zeitreihe
+# loeschen" (`/entities?action=delete`) noch "rohe Zeitreihen-Werte lesen"
+# (`/aspects?action=getTimeseriesAspectValues`) als Methode anbietet und
+# `probate/gms.py` selbst ausserhalb des erlaubten Datei-Umfangs dieser
+# Aufgabe liegt (kein neuer Endpunkt dort ergaenzbar, ohne die Grenze zu
+# verletzen). Damit die Umgehung der `_validate_urn()`-Haertung aus
+# `gms.py` (Finding C4, Allowlist gegen Pfad-Traversal) nicht lautlos
+# passiert, wird sie hier EXPLIZIT wiederholt, bevor die URN in die
+# JSON-Payload wandert -- Risiko war ohnehin niedrig (feste,
+# entwicklerdefinierte URNs aus `URNS`, kein Nutzereingang, kein Pfad-
+# Segment), aber "niedriges Risiko" ist kein Grund, eine Disziplin zu
+# unterlaufen, die das Modul selbst predigt.
 def _raw_usage_values(gms: Gms, urn: str) -> list[dict]:
+    _validate_urn(urn)
     payload = {
         "urn": urn,
         "entity": "dataset",
@@ -674,6 +749,7 @@ def purge_usage_history(gms: Gms) -> None:
     sauberes Blatt -- Voraussetzung fuer "an jedem Tag dasselbe Ergebnis"."""
     purge_counts: dict[str, int] = {}
     for letter, urn in URNS.items():
+        _validate_urn(urn)  # siehe Kommentar bei _raw_usage_values() oben
         payload = {"urn": urn, "aspectName": "datasetUsageStatistics",
                    "startTimeMillis": 0, "endTimeMillis": _FAR_FUTURE_MS}
         status, body = gms._send("POST", f"{gms.base}/entities?action=delete", payload)
@@ -783,6 +859,68 @@ def check_cooccurrence(gms: Gms) -> dict[str, int]:
     return out
 
 
+# --- ES-Graph-Index-Drift-Check (Runbook siehe Modul-Docstring oben) ------
+
+_UPSTREAM_GRAPH_Q = """
+query($urn: String!) {
+  dataset(urn: $urn) {
+    lineage(input: {direction: UPSTREAM, start: 0, count: 200}) {
+      relationships { entity { urn } }
+    }
+  }
+}
+"""
+
+
+def check_es_drift(gms: Gms, auto_heal: bool = True) -> list[str]:
+    """Vergleicht fuer alle acht Datasets die deklarierte upstreamLineage
+    (Primaerspeicher, `get_aspect`) gegen dieselbe Richtung im Graph-Index
+    (`lineage(direction: UPSTREAM)`) -- exakt das Feld, das `probate/
+    ledger.py::fetch_declared_edges()` tatsaechlich abfragt. Eine
+    Abweichung heisst: der Graph-Index ist desynchronisiert (Kafka-MCL-
+    Drift, Falle 15), nicht dass die Primaerdaten falsch sind -- die
+    Primaerablage gilt als Wahrheit.
+
+    `auto_heal=True` (Default) loest bei einer Abweichung sofort
+    `restoreIndices` fuer die betroffene URN aus (Sekunden, kein
+    Datenverlust, reiner Lese-Resync aus MySQL) -- aber NIE
+    stillschweigend: jede Abweichung UND jeder Heilversuch wird gedruckt,
+    unabhaengig davon ob geheilt wird oder nicht (Auftrag, woertlich:
+    "Detecting and printing the remedy is enough; do not silently repair
+    without saying so")."""
+    drifted: list[str] = []
+    for letter, urn in URNS.items():
+        _validate_urn(urn)
+        aspect = gms.get_aspect("dataset", urn, "upstreamLineage")
+        primary = {
+            u.get("dataset")
+            for u in ((aspect or {}).get("value") or {}).get("upstreams", [])
+            if u.get("dataset")
+        }
+        data = gms.graphql(_UPSTREAM_GRAPH_Q, {"urn": urn})
+        rels = ((data.get("dataset") or {}).get("lineage") or {}).get("relationships") or []
+        graph = {r["entity"]["urn"] for r in rels if r.get("entity")}
+        if primary != graph:
+            drifted.append(letter)
+            print(f"\n  [ES-DRIFT] {letter} ({urn})")
+            print(f"    Primaerspeicher (upstreamLineage): {primary or '{}'}")
+            print(f"    Graph-Index (lineage UPSTREAM):    {graph or '{}'}")
+            remedy = (
+                f'curl -X POST "{gms.base}/operations?action=restoreIndices" '
+                f'-H "Content-Type: application/json" -d \'{{"urn": "{urn}"}}\''
+            )
+            print(f"    Remedy: {remedy}")
+            if auto_heal:
+                status, body = gms._send("POST", f"{gms.base}/operations?action=restoreIndices", {"urn": urn})
+                print(f"    Auto-Heal ausgeloest: HTTP {status}, {body}")
+    if not drifted:
+        print(
+            "\n  ES-Graph-Index-Check: keine Drift gefunden "
+            "(Primaerspeicher == Graph-Index fuer alle 8 Datasets)."
+        )
+    return drifted
+
+
 # --- Manifest -----------------------------------------------------------
 
 
@@ -860,6 +998,11 @@ def main() -> int:
         print(f"    {k}: {v} Treffer")
 
     print(f"\n  Manifest: {MANIFEST_PATH}")
+
+    print("\n  ES-Graph-Index-Drift-Check (Runbook: Modul-Docstring, Symptom/Check/Remedy):")
+    drifted = check_es_drift(gms)
+    if drifted:
+        print(f"\n  {len(drifted)} Dataset(s) mit Drift, Auto-Heal ausgeloest -- siehe Details oben: {drifted}")
 
     if failed:
         print(f"\n  {len(failed)} Schreibvorgang/-vorgaenge ohne erfolgreiches Ruecklesen: {failed}")
