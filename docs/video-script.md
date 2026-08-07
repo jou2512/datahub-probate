@@ -187,12 +187,17 @@ Show the journal line appearing, then the revert output naming the number of wri
 README's load-test table on screen. Highlight the two rows.
 
 **Spoken**
-> Ten times the catalog: the cheap pass grows with it, one and a quarter seconds to twelve. Ten
-> times the queries: the expensive pass barely moves, because it is bound by how many edges look
-> wrong — forty-one in both runs — not by how much was queried. Stage L did not finish seeding.
-> That row is in the README as an abort, with an extrapolation labelled as an extrapolation.
+> Ten times the catalog: the cheap pass grows with it, one and a quarter seconds to twelve —
+> linear, one call per table, independent of how much was queried. What this test does *not* show
+> is the saving from the second stage: the detail pass was capped at a fixed sample, so its flat
+> number is a constant, not a finding. That correction is in the README. And stage L never finished
+> seeding — that row is published as an abort, with its extrapolation labelled as one.
 
-*(Numbers spoken here: 1.235 s, 12.238 s, 41. All three are audited `claims.json` keys.)*
+*(Numbers spoken here: 1.235 s and 12.238 s, both audited `claims.json` keys. **Do not say
+"forty-one suspicious edges" and do not claim the two-stage saving** — 41 is a hardcoded
+`detail_sample` cap in `harness/loadtest.py:161`, and the synthetic fixtures flag 100 % of tables
+because they never populate `statsSummary`. An earlier draft of this script said it; it was wrong,
+and it is exactly the kind of claim this project loses credibility by making.)*
 
 ---
 

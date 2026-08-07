@@ -155,13 +155,20 @@ Python 3.11 throughout, pinned via `uv` (a bare `python` on the build machine re
 - `harness/audit_claims.py` — re-derives every number in the prose from the run artifacts; exit 1
   on drift.
 
-**Two transports, and we say which one we actually use.** Dead edges need an N-day window, which
-means raw GraphQL — the DataHub MCP server has no time windows, its timestamp fields are commented
-out in `gql/queries.gql`. Missing edges (co-occurrence) *could* go through the MCP server's
-`get_dataset_queries`, and the design spec planned for that. **In the submitted code they do not.**
-Co-occurrence is fetched with the same raw `searchAcrossEntities` path as everything else
-(`probate/ledger.py`, `probate/targets.py`), because that is the path we have confirmed live.
-Probate does not use the Agent Context Kit. We would rather say that than imply otherwise.
+**One transport, and we say why it is not the MCP server.** The design called for two: raw GraphQL
+for dead edges, the DataHub MCP server's `get_dataset_queries` for co-occurrence. The shipped code
+has one. `grep -rn -i mcp probate/*.py` returns nothing; co-occurrence is fetched with the same raw
+`searchAcrossEntities` path as everything else (`probate/ledger.py`, `probate/targets.py`).
+
+The MCP server was evaluated and dropped on three measured grounds: it has **no time windows** (the
+timestamp fields in `gql/queries.gql` are commented out, so a dead-edge window cannot be
+expressed), it registers **zero mutation tools** at the pinned version 0.4.0, so nothing could be
+written back through it, and it costs **~54 s of telemetry per tool call**, which over a load run
+is the difference between a night and a week.
+
+So: **this submission does not use the Agent Context Kit.** We are saying it plainly, in the README
+and here, because it is a real gap against what a reviewer may expect, and because "we could
+integrate it" would be a promise rather than a result.
 
 **Load behaviour was designed two-stage before it was measured**, and then measured: a coarse pass
 over the aggregates (one API call per table, independent of query volume), then a detail pass only
@@ -236,14 +243,27 @@ the write, column-level lineage survived the merge, custom properties survived t
 `revert_count: 2` writes were reverted, and the revert restored the aspect exactly — all six as
 audited booleans and counts from `correct-roundtrip.json` and `upstream-properties-probe.json`.
 
-**The two-stage load design did what it was designed to do, and we can show it rather than assert
-it.** From S to M the catalog grows ten-fold, 50 → 500 tables, and the coarse pass grows with it:
-1.235 s → 12.238 s, essentially linear in catalog size. The detail pass barely moves — 35.614 s →
-47.217 s — because it is bound by the number of *suspicious edges*, 41 in both runs, not by query
-volume, which itself grew ten-fold in the same step (1,000 → 10,000). Peak memory in the coarse
-pass: 0.38 MB at S, 3.58 MB at M.
+**The coarse pass scales linearly with catalog size, measured.** From S to M the catalog grows
+ten-fold, 50 → 500 tables, and the coarse pass grows with it: 1.235 s → 12.238 s. Peak memory in
+the coarse pass: 0.38 MB at S, 3.58 MB at M. One API call per table, independent of query volume,
+which itself grew ten-fold in the same step (1,000 → 10,000).
 
-| Stage | Tables | Queries | Seed | Coarse | Coarse API calls | Coarse peak mem | Detail edges | Detail total | Per edge | Detail peak mem |
+**The two-stage cost saving, however, is *not* demonstrated by this test, and we are correcting
+that claim rather than shipping it.** The detail pass looks flat between the two runs — 35.614 s →
+47.217 s over 41 edges in both — but the 41 is not a finding. It is a hardcoded sample cap
+(`detail_sample: int = 41`, `harness/loadtest.py:161`, applied as
+`suspicious[:detail_sample]` at `:204`), carried over from the design document's assumption of 41
+suspicious edges out of 384. The underlying flag rate on our synthetic fixtures is 100 % — at stage
+S, 50 of 50 tables were flagged — because the generated datasets never populate `statsSummary`, so
+the coarse pass has nothing to clear them with. The architecture may well do what it was designed
+to do; **this test does not show it**, and a flat number produced by a constant is not evidence.
+Demonstrating the saving needs a fixture with realistic usage coverage, which is on the "what's
+next" list rather than in this table.
+
+"Detail edges" below is the sampled count, and it is capped at 41 by construction — see the
+paragraph above before reading anything into it.
+
+| Stage | Tables | Queries | Seed | Coarse | Coarse API calls | Coarse peak mem | Detail edges (capped) | Detail total | Per edge | Detail peak mem |
 |---|---|---|---|---|---|---|---|---|---|---|
 | S | 50 | 1,000 | 11.84 s | 1.235 s | 50 | 0.38 MB | 41 | 35.614 s | 0.8686 s | 1.7 MB |
 | M | 500 | 10,000 | 198.52 s | 12.238 s | 500 | 3.58 MB | 41 | 47.217 s | 1.1516 s | 1.71 MB |
@@ -309,10 +329,11 @@ can actually defend.
 
 ## What's next
 
-- **The MCP server for co-occurrence.** The design calls for `get_dataset_queries` via the DataHub
-  MCP server; the shipped code uses raw GraphQL because that is the path confirmed live. Wiring
-  MCP is additive work with four documented traps ahead of it (pinned version, tool count, mutation
-  flag, ~54 s telemetry per call).
+- **The MCP server, if and only if the three blockers move.** Wiring `get_dataset_queries` is not
+  waiting on our effort — it is waiting on time-window support, mutation tools at a pinned version,
+  and a telemetry cost per call that a load run can absorb. Until then, integrating it would make
+  the tool slower and less capable, which is why it is a *next* item with conditions attached
+  rather than a to-do.
 - **A real warehouse connection.** The entire measurement chain has only ever run against a local
   instance and data we seeded ourselves.
 - **Full run vs. daily delta.** The spec asks how much cheaper an incremental run is than a full

@@ -236,8 +236,13 @@ edges were completely written (`loadtest_l_seed_measured_datasets_total`,
 `loadtest_l_seed_measured_edges_total`) by the time the run was stopped at 735 s
 (`loadtest_l_wall_clock_seconds_to_abort`) — but only 5,600 of the planned 100,000 queries had
 landed (`loadtest_l_seed_measured_queries_written` of `loadtest_l_seed_measured_queries_total`),
-5.6 %, exactly 28 of 550 planned batches (`loadtest_l_seed_measured_batches_completed` of
-`loadtest_l_seed_measured_batches_total_planned`). Coarse and detail passes never ran because
+5.6 %. In batches: **78 of 550 planned** (`loadtest_l_seed_measured_batches_completed` of
+`loadtest_l_seed_measured_batches_total_planned`). The 78 is worth breaking down, because the two
+numbers in it are easy to confuse and an earlier draft of this README did confuse them: 25 dataset
+batches + 25 edge batches + **28 query batches**. The dataset and edge phases finished completely;
+only the query phase was cut off, 28 of its **500** batches at a batch size of 200 — which is where
+the 5,600 comes from. "28 of 550" would have been wrong in both halves. Coarse and detail passes
+never ran because
 there was nothing finished to hand them. The artifact also carries a projected full-seed duration
 (≈86.4 min, nested under `loadtest_l_extrapolation`) — a **linear extrapolation** of this run's
 own observed rate (`loadtest_l_seed_measured_seconds_per_batch`, 9.42 s/batch), not a second
@@ -300,6 +305,18 @@ by `audit_claims.py`, and they are the softest figures in this document:
 
 **About the measurements:**
 
+- **This submission does not use the Agent Context Kit.** The DataHub MCP server is not called
+  anywhere in the shipped code. We planned to use it for co-occurrence and dropped it for the three
+  measured reasons in the Architecture section — no time windows, no mutation tools at the pinned
+  version, ~54 s of telemetry per call. We are stating this rather than leaving it to be found:
+  it is a real gap against what a reviewer may expect, and "we could integrate it" would be a
+  promise, not a result.
+- **The workbench does not show the model's judgement.** The design calls for the edge ledger to
+  expand to timeline *and* model assessment. Only the timeline is rendered (`ui/werkbank.js`); the
+  quote, the reason and the fallback marker exist in the ledger output and in
+  `harness/runs/judge-seedlab-matrix.json`, but you have to read them from the CLI or the artifact,
+  not from the UI. The citation duty is implemented and measurable; it is just not visible where
+  the design says it should be.
 - **Usage data is seeded.** The sample catalog ships none. Every number above was measured against
   data we wrote ourselves, and every artifact says so.
 - **No real warehouse connection has ever been tested.** The entire measurement chain ran against
@@ -356,9 +373,27 @@ Not a build item; a clean side finding for an upstream contribution.
 | `ui/` | the workbench: live mode through the proxy, recorded mode without an instance |
 | `harness/audit_claims.py` | re-derives every number in this README from the run artifacts; exit 1 on drift |
 
-Two transports, on purpose: missing edges (co-occurrence) go through the MCP server, dead edges
-(N-day window) need raw GraphQL — the MCP server has no time windows, its timestamp fields are
-commented out in `gql/queries.gql`. That is a measured limit of the tool, not a preference.
+### One transport, and why it is not the MCP server
+
+**Both paths — dead edges and missing edges — go through raw GraphQL against GMS.** The design
+originally called for two transports, with co-occurrence coming from the DataHub MCP server's
+`get_dataset_queries`. It does not. `grep -rn -i mcp probate/*.py` returns nothing; co-occurrence
+is fetched with `searchAcrossEntities` in `probate/ledger.py` and `probate/targets.py`, the same
+way as everything else. An earlier version of this paragraph described the plan instead of the
+code, which in a document whose thesis is "claims carry evidence" is the worst possible place to
+get it wrong.
+
+The MCP server was evaluated and then not used, for three measured reasons:
+
+| Reason | Measurement |
+|---|---|
+| **No time windows.** Dead-edge classification needs an N-day window; `get_dataset_queries` cannot express one — its timestamp fields are commented out in `gql/queries.gql`. | read in the server source |
+| **No mutation tools at the pinned version.** `mcp-server-datahub@latest` resolves to 0.4.0 and registers zero mutation tools, so nothing could be written back through it. | tool list counted after pinning |
+| **~54 s of telemetry per tool call.** Over a load run that is the difference between a night and a week. | measured per call |
+
+So the honest architectural statement is: this is a single-transport tool, and the second
+transport was dropped on evidence, not on preference. The consequence is stated in the
+limitations below — **this submission does not use the Agent Context Kit.**
 
 ## License
 
