@@ -7,17 +7,27 @@ Actor ignorieren - traegt NICHT. Ingest, Propagation und eigene Schreibvorgaenge
 sind ueber den Actor nicht unterscheidbar. Deshalb wird ueber den ASPEKT
 gefiltert, nicht ueber den Actor.
 
-Der Live-Start der Kafka-Action-Pipeline (Plantext Step 5,
-`datahub-actions actions -c probate_action/recipe.yml` -- Subcommand
-`actions`, nicht `run`, live geprueft) wurde in dieser Session
-BEWUSST NICHT ausgefuehrt: dieser Task ist im Bauplan (STAND.md, Cutline)
-der erste Streichkandidat bei Zeitmangel, und ein echter Pipeline-Lauf
-haette eine zusaetzliche Kafka-Konsumentengruppe gegen eine der beiden
-Instanzen offen gehalten, ohne dass in dieser Session Ereignisse erzeugt
-wuerden, die ihn pruefbar machen. `is_relapse()` und `ProbateWatcher` sind
-vollstaendig getestet (Unit-Ebene, gefaelschte Events); der reine
-Pipeline-Start ist ungeprueft und wird als solcher gefuehrt, nicht als
-funktionierend behauptet.
+Live gemessen (2026-08-07, Task 15, harness/runs/watcher-live.json):
+der Pipeline-Start funktioniert -- `datahub-actions --debug actions -c
+probate_action/recipe.yml` (Debug-Flag VOR `actions`, sonst bleibt die
+gesamte datahub_actions-Logger-Hierarchie stumm, siehe watcher-live.json
+"findings") registriert sich gegen den Kafka-Bootstrap `localhost:29192`
+und abonniert `MetadataChangeLog_Versioned_v1`,
+`MetadataChangeLog_Timeseries_v1`, `PlatformEvent_v1`. Ein echtes,
+per REST-Emitter erzeugtes `datasetUsageStatistics`-Ereignis auf einer
+in `closed_urns` gefuehrten URN wurde von der laufenden Pipeline
+innerhalb derselben Sekunde empfangen (Protokollzeile:
+"Kafka msg received: MetadataChangeLog_Timeseries_v1, 2, 52",
+03:28:29,277 Uhr) und ohne folgenden Traceback verarbeitet. Insgesamt
+wurden 10 Kafka-Nachrichten in diesem Lauf empfangen, davon erfuellt
+exakt 1 beide `is_relapse()`-Bedingungen. Die Ledger-Neubewertung
+(Schritt 6) blieb dagegen ohne sichtbare Aenderung -- `usageStats`
+liest eine vorab aggregierte Sicht, keine rohen Zeitreihen-Aspekte, und
+in dieser Umgebung laeuft nachweislich keine separate
+Analytics-Indexierung. `is_relapse()` und `ProbateWatcher` sind auf
+Unit-Ebene vollstaendig getestet (gefaelschte Events); der Pipeline-Start
+selbst ist jetzt live geprueft, nicht nur unit-getestet -- Details und
+Protokollzitate in `harness/runs/watcher-live.json`.
 """
 
 from __future__ import annotations

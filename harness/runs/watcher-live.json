@@ -1,0 +1,42 @@
+{
+  "seeded": true,
+  "seeded_statement": "closed.json wurde fuer diesen Lauf mit einer URN befuellt, die nicht Teil der probate_seedlab-Demodaten ist (analytics.customers_v7); der zweite Testlauf (Step 6, ledger) nutzt zusaetzlich eine echte probate_seedlab-URN mit vorbestehender Lineage. Beide emittierten datasetUsageStatistics-Aspekte sind Testschreibvorgaenge dieser Session, nicht Teil des Demo-Datensatzes.",
+  "watcher_started": true,
+  "watcher_start_command": "PYTHONUNBUFFERED=1 uv run --python 3.11 --with acryl-datahub-actions datahub-actions --debug actions -c probate_action/recipe.yml",
+  "watcher_kafka_bootstrap": "localhost:29192",
+  "watcher_topics_subscribed": ["MetadataChangeLog_Versioned_v1", "MetadataChangeLog_Timeseries_v1", "PlatformEvent_v1"],
+  "watcher_events_seen": 10,
+  "watcher_events_seen_definition": "Anzahl 'Kafka msg received'-Zeilen im Protokoll ueber die gesamte Laufzeit (2026-08-07 03:28:13 bis 03:35:25 Uhr) -- alle Topics, nicht nur relapse-relevante.",
+  "watcher_relapses_detected": 1,
+  "watcher_relapses_detected_note": "Genau 1 der 10 empfangenen Nachrichten erfuellt beide is_relapse()-Bedingungen (entityUrn in closed_urns UND aspectName in {operation, datasetUsageStatistics, queryUsageStatistics}): die datasetUsageStatistics-Nachricht auf 'urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customers_v7,PROD)' um 03:28:29,277 (Topic MetadataChangeLog_Timeseries_v1, Partition 2, Offset 52) -- exakt dieselbe Sekunde wie der Emit-Aufruf. Die zweite datasetUsageStatistics-Nachricht um 03:33:37,184 betrifft eine andere URN (probate_seedlab.confirmed_upstream), die NICHT in closed_urns steht, ist also korrekt kein Relapse. WICHTIG: 'relapse detected' ist hier eine Korrelation aus Kafka-Empfangszeitpunkt/Topic + den 8 bestehenden Unit-Tests (is_relapse() und act() sind fuer exakt diese entityUrn/aspectName-Kombination test-verifiziert), NICHT eine woertlich im Protokoll sichtbare Zeile -- siehe watcher_note.",
+  "watcher_dry_run": true,
+  "watcher_note": "[2026-08-07 03:28:29,277] DEBUG    {datahub_actions.plugin.source.kafka.kafka_event_source:147} - Kafka msg received: MetadataChangeLog_Timeseries_v1, 2, 52",
+  "watcher_note_caveat": "Es gibt KEINEN woertlichen 'Trockenlauf'-Vermerk im Protokoll fuer den ausgeloesten raiseIncident-Aufruf: Writeback.mutation() (probate/writeback.py, nicht in dieser Aufgabe veraenderbar) journalisiert und loggt im dry_run-Zweig nichts, sie gibt nur ein WriteResult(False, None, 'dry-run: raiseIncident') zurueck, das vom Aufrufer (watcher.act()) verworfen wird. Das oben zitierte 'Kafka msg received' ist die staerkste live beobachtete Evidenz, dass die Nachricht die Pipeline erreicht und -- ohne folgenden Traceback im Protokoll -- ohne Exception verarbeitet wurde.",
+  "watcher_reclassified_edges": 0,
+  "watcher_reclassified_edges_note": "probate ledger --focus 'urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)' vor und nach einem frisch emittierten datasetUsageStatistics-Aspekt liefert BYTE-IDENTISCHE timeline/coverage-Bloecke (siehe harness/runs/ledger-vor-ereignis.json vs. harness/runs/ledger-nach-ereignis.json), auch nach 60s Wartezeit und erneutem Lauf. probate.cli's fetch_usage() fragt GraphQL usageStats(range: MONTH) ab -- das ist eine vorab aggregierte Sicht, keine Live-Abfrage der rohen Zeitreihen-Aspekte. In dieser Umgebung laeuft nachweislich nur GMS (28080) + Kafka (29192) + Schema-Registry (siehe CLAUDE.md dieses Projekts) -- kein separater MAE-Consumer/Analytics-Indexierungsdienst wurde beobachtet oder ist dokumentiert. Die Neubewertung ist deshalb NICHT ueber das ledger-Artefakt sichtbar geworden, sondern nur ueber die direkte Kafka-Konsumtion des Waechters (watcher_note oben). Ehrlich als 0 gefuehrt, nicht als Erfolg behauptet.",
+  "commands_run": [
+    "uv run --python 3.11 python -c \"...\" (Step 1: Port-Check recipe.yml)",
+    "uv run --python 3.11 python -c \"...\" (Step 2: closed.json seeding)",
+    "PYTHONUNBUFFERED=1 uv run --python 3.11 --with acryl-datahub-actions datahub-actions --debug actions -c probate_action/recipe.yml (Step 3, im Hintergrund)",
+    "uv run --python 3.11 --with acryl-datahub python -c \"...\" (Step 4: datasetUsageStatistics emittiert auf customers_v7, timestampMillis=1786066109069)",
+    "uv run --python 3.11 probate ledger --focus probate_seedlab.confirmed_upstream --out harness/runs/ledger-vor-ereignis.json",
+    "uv run --python 3.11 --with acryl-datahub python -c \"...\" (zweiter Emit: datasetUsageStatistics auf probate_seedlab.confirmed_upstream, timestampMillis=1786066417111, fuer Step 6)",
+    "uv run --python 3.11 probate ledger --focus probate_seedlab.confirmed_upstream --out harness/runs/ledger-nach-ereignis.json",
+    "uv run --python 3.11 python -c \"...\" (Step 7: beide Probe-Aspekte geloescht, per get_aspect zurueckgelesen)"
+  ],
+  "cleanup": {
+    "customers_v7_datasetUsageStatistics": "geloescht und als None zurueckgelesen (kein vorbestehender Aspekt fuer diese URN -- get_aspect()==None ist hier das korrekte Erfolgskriterium; benoetigte 2 Delete-Zyklen, da zwei Test-Emits waehrend dieser Session denselben Aspekt-Typ erzeugt hatten).",
+    "confirmed_upstream_datasetUsageStatistics": "eigener Probe-Eintrag (timestampMillis=1786066417111) geloescht und verifiziert per get_aspect() -- get_aspect()==None ist HIER NICHT das richtige Kriterium, weil probate_seedlab.confirmed_upstream vorbestehende, echte Seed-Buckets traegt (harness/seed_lineage_lab.py, 'seeded': true). Verifiziert wurde stattdessen: der zurueckgelesene 'latest'-Wert ist NICHT mehr timestampMillis=1786066417111, sondern einer der drei vorbestehenden Seed-Zeitstempel (1785801600000 / 1785888000000 / 1785974400000) -- Seed-Daten unangetastet, Probe-Eintrag weg."
+  },
+  "findings": [
+    "Step-1-Portcheck des Briefs matcht per Substring auch Kommentarzeilen: 'FALSCHE PORTS: [18080]' kam aus der erklaerenden Kopfzeile in recipe.yml ('# server: 28080, NICHT 18080 -- ...'), nicht aus einem echten Konfigurationswert. Der tatsaechliche Config-Block (Zeilen 6-22) verwendet ausschliesslich 29192/28080 -- kein echter Fehlbefund.",
+    "'datahub-actions actions run -c ... --debug' setzt NUR den Python-root-Logger auf DEBUG. Die datahub_actions.*-Logger-Hierarchie (inkl. kafka_event_source) hat propagate=False und wird ausschliesslich vom TOP-LEVEL '--debug' der datahub_actions-Gruppe gesteuert (entrypoints.py:108-116). Ohne diesen Flag an der richtigen Stelle bleiben 'Subscribing to the following topics', 'Kafka msg received' und 'Successfully committed offsets' unsichtbar, obwohl die Pipeline korrekt laeuft. Richtig: 'datahub-actions --debug actions -c <recipe>' (Debug-Flag VOR 'actions').",
+    "'uv run --python 3.11 python -m probate.cli ledger ...' (so im Brief Step 6 vorgeschlagen) laeuft fehlerfrei durch, tut aber NICHTS: probate/cli.py definiert main(), hat aber kein 'if __name__ == \"__main__\": main()' -- vorbestehendes Verhalten, bereits unabhaengig von Task 6 dokumentiert (.superpowers/sdd/2026-08-07-lineage-truth/task-6-report.md). Richtig ist der in pyproject.toml deklarierte Entry-Point: 'uv run --python 3.11 probate ledger ...'.",
+    "'urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customers_v7,PROD)' (die Beispiel-URN aus dem Brief) existiert nicht als katalogisierte Entitaet mit deklarierter Lineage in diesem GMS (bereits von Task 6 belegt: 78 Datasets total, keines mit diesem Namen). Fuer den WAECHTER (reine entityUrn/aspectName-Stringpruefung aus dem Kafka-Event, kein Lineage-Bezug) ist das irrelevant und funktioniert wie gezeigt. Fuer 'probate ledger' (braucht deklarierte Lineage-Kanten) ist sie ungeeignet -- deshalb Step 6 mit einer echten probate_seedlab-URN wiederholt.",
+    "Timeseries-Aspekt-Delete (openapi/v3 DELETE) auf einer URN mit mehreren Zeitfenster-Dokumenten braucht mehrere Delete+Read-Zyklen, bis 'latest' den eigenen Probe-Eintrag nicht mehr zeigt -- vermutlich kurzzeitige Stale-Reads direkt nach dem Schreiben/Loeschen. Bei wiederholten Test-Emits auf dieselbe URN in einer Session bleiben mehrere Dokumente uebrig, die einzeln geloescht werden muessen."
+  ],
+  "gates": {
+    "tests_before": "264 passed (Baseline, ungeaendert -- Task 15 aendert keine watcher.py-Logik, nur Docstring)",
+    "tests_after": "siehe Report -- erneut gelaufen nach Docstring-Aenderung"
+  }
+}
