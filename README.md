@@ -207,27 +207,59 @@ Nothing is written without a proposal, a human, and a journal entry with a real 
 ### Load test
 
 Two-stage design: a coarse pass over the aggregates (one API call per table, independent of
-query volume), then a detail pass only into the edges that look suspicious. The point is that
-the expensive half scales with the number of *suspicious edges*, not with the number of queries.
+query volume), then a detail pass only into the edges that look suspicious. The numbers below are
+the result the design predicted, not just an intent stated up front. From S to M the catalog
+grows ten-fold — 50 → 500 tables (`loadtest_s_datasets` / `loadtest_m_datasets`) — and the coarse
+pass grows with it: 1.235 s → 12.238 s (`loadtest_s_coarse_seconds` / `loadtest_m_coarse_seconds`),
+essentially linear in catalog size. The detail pass barely moves — 35.614 s → 47.217 s
+(`loadtest_s_detail_seconds_total` / `loadtest_m_detail_seconds_total`) — because it is bound by
+the number of *suspicious edges*, 41 in both runs (`loadtest_s_detail_edges` /
+`loadtest_m_detail_edges`), not by query volume, which itself grew ten-fold in the same step
+(1,000 → 10,000, `loadtest_s_queries` / `loadtest_m_queries`). That is the two-stage architecture
+doing exactly what it was built to do: the cheap pass scales with the catalog, the expensive pass
+scales with how much of it looks wrong, not with how much of it was queried.
 
 | Stage | Tables | Queries | Seed | Coarse pass | Coarse API calls | Coarse peak mem | Edges in detail pass | Detail pass | Per edge | Detail peak mem |
 |---|---|---|---|---|---|---|---|---|---|---|
-| S | 50 | 1000 | 11.84 s | 1.235 s | 50 | 0.38 MB | 41 | 35.614 s | 0.8686 s | 1.7 MB |
-| M | 500 | 10000 | 198.52 s | 12.238 s | 500 | 3.58 MB | 41 | 47.217 s | 1.1516 s | 1.71 MB |
-| L | not measured — the run was aborted during seeding | | | | | | | | | |
+| S | 50 | 1,000 | 11.84 s | 1.235 s | 50 | 0.38 MB | 41 | 35.614 s | 0.8686 s | 1.7 MB |
+| M | 500 | 10,000 | 198.52 s | 12.238 s | 500 | 3.58 MB | 41 | 47.217 s | 1.1516 s | 1.71 MB |
+| L | 5,000 (fully seeded) | 100,000 planned, 5,600 written (5.6 %) | aborted at 735 s | not run | — | — | — | not run | — | — |
 
 Artifacts: [`loadtest_s.json`](harness/runs/loadtest_s.json),
-[`loadtest_m.json`](harness/runs/loadtest_m.json). Stage L exists as
-`harness/runs/loadtest_l.json` and records its own status as aborted during the seed phase, with
-an extrapolation inside it; it is **deliberately excluded** from the claims audit, because a
-number from an artifact that declares itself unfinished is a bet on the next write, not a
-measurement. Treat the L row as **not measured**, not as "it works at that size".
+[`loadtest_m.json`](harness/runs/loadtest_m.json),
+[`loadtest_l.json`](harness/runs/loadtest_l.json).
 
-Cleanup, stated as it happened: stage S cleaned up and verified in one pass. **Stage M did
-not** — a single delete call hit a transient HTTP 500. A retry cleaned up and verified,
-and an independent full read-back over all datasets and queries confirmed the final state. The
-first attempt is recorded as failed (`loadtest_m_cleanup_verified: false`) rather than
-overwritten by the successful retry.
+**Stage L did not finish seeding, and coarse/detail never started.** What actually happened, per
+the artifact's own binary search against `get_aspect` (not the seed loop's own counters, and
+deliberately not `search`, whose index lags ~30 s): the 5,000 datasets and their 5,000 lineage
+edges were completely written (`loadtest_l_seed_measured_datasets_total`,
+`loadtest_l_seed_measured_edges_total`) by the time the run was stopped at 735 s
+(`loadtest_l_wall_clock_seconds_to_abort`) — but only 5,600 of the planned 100,000 queries had
+landed (`loadtest_l_seed_measured_queries_written` of `loadtest_l_seed_measured_queries_total`),
+5.6 %, exactly 28 of 550 planned batches (`loadtest_l_seed_measured_batches_completed` of
+`loadtest_l_seed_measured_batches_total_planned`). Coarse and detail passes never ran because
+there was nothing finished to hand them. The artifact also carries a projected full-seed duration
+(≈86.4 min, nested under `loadtest_l_extrapolation`) — a **linear extrapolation** of this run's
+own observed rate (`loadtest_l_seed_measured_seconds_per_batch`, 9.42 s/batch), not a second
+measurement, and it is stored as a nested field precisely so `audit_claims.py` can never mistake
+it for one — nested values are outside the audited scalar set by construction (see
+`harness/audit_claims.py`'s `load_runs()`). Cleanup for stage L is verified with 0 leftover
+(`loadtest_l_cleanup_verified`, `loadtest_l_cleanup_leftover`).
+
+Cleanup, stated as it happened: stage S cleaned up and verified in one pass, 0 leftover
+(`loadtest_s_cleanup_verified`, `loadtest_s_cleanup_leftover`). **Stage M did not** — one
+`delete_aspect` call (of roughly 2,500) hit a transient HTTP 500 on `datasetUsageStatistics`, an
+aspect `generate()` never writes for stage M in the first place. The read-back loop inside that
+same `cleanup()` call still counted 0 leftover afterwards (`loadtest_m_cleanup_leftover`) —
+correctly, since that aspect was never created — but `cleanup_verified` is still recorded as
+`false` (`loadtest_m_cleanup_verified`), because `cleanup()` treats *any* delete error as
+unverified regardless of the leftover count. That is the honest classification: an HTTP 500 is a
+failure of the call, not evidence about the data, and folding "0 leftover" into "nothing went
+wrong" would hide the failed call behind a read-back that happened to come back clean. A retry
+cleaned up without error and verified (`loadtest_m_cleanup_retry_verified`), and an independent
+full read-back over all 500 datasets and 10,000 queries — outside `cleanup()` entirely — confirmed
+0 remaining before and after that retry (`loadtest_m_final_state_verified`). The first attempt is
+recorded as failed rather than silently overwritten by the successful retry.
 
 ### The continuous watcher
 
@@ -277,7 +309,19 @@ by `audit_claims.py`, and they are the softest figures in this document:
   measured.
 - **Co-occurrence is undirected.** `QuerySubject` has no direction field. A `missing` edge
   therefore records its direction as **inferred**, not measured.
-- **Load test stage L was not measured.** See above.
+- **Load test stage L never reached the coarse/detail passes.** Seeding was aborted at 735 s with
+  datasets and edges fully written but only 5.6 % of planned queries in place; the full-seed
+  duration in the artifact is an extrapolation from this run's own batch rate, not a measurement.
+  See above.
+- **`loadgen.cleanup()` does not know how far a seed run actually got.** It always walks the full
+  *planned* set for the requested scale, not what `generate()` actually wrote
+  (`harness/loadgen.py:131-162`). At scale L that is 5,000 datasets × 3 aspects
+  (`DATASET_ASPECTS`, `harness/loadgen.py:53`) plus all 100,000 planned query URNs — 115,000
+  delete calls — and the same function's own read-back loop repeats that full walk a second time,
+  roughly 230,000 HTTP calls in total, to clean up a run that had actually written 5,600 queries.
+  It happened to finish inside this measurement (`loadtest_l_cleanup_verified: true`, 0 leftover),
+  but the cost does not scale with what was written, only with what was planned — a real scaling
+  defect in our own harness, not in Probate.
 - **The watcher's re-evaluation could not be shown changing a verdict.** The pipeline demonstrably
   receives real Kafka events and detects a relapse. But running `probate ledger` before and after
   a freshly emitted `datasetUsageStatistics` aspect returned **byte-identical** timeline and

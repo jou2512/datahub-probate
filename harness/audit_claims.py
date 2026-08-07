@@ -25,12 +25,20 @@ RUNS = Path("harness/runs")
 # correct-roundtrip (Revert-Rundlauf: schreiben, pruefen, exakt zurueck),
 # watcher-live (der Live-Waechter gegen echten Kafka-Traffic),
 # upstream-properties-probe (ueberleben Custom-Properties den Writeback).
-# loadtest_l.json ABSICHTLICH NICHT hier gelistet: die Datei existiert
-# bereits, aber ihr eigenes 'cleanup_pending_note' sagt woertlich, der
-# Lauf wird 'nach Abschluss des separaten Aufraeum-Laufs ... nachgetragen'
-# -- eine andere Lane schreibt noch daran. Eine Zahl aus einem Artefakt zu
-# behaupten, das laut eigener Aussage noch nicht fertig ist, waere keine
-# Messung, sondern eine Wette auf den naechsten Schreibvorgang.
+# loadtest_l.json war hier bis 2026-08-07 ABSICHTLICH ausgeschlossen: die
+# Datei trug ihr eigenes 'cleanup_pending_note', das woertlich sagte, der
+# Lauf werde 'nach Abschluss des separaten Aufraeum-Laufs ... nachgetragen'
+# -- eine andere Lane schrieb noch daran, und eine Zahl aus einem Artefakt
+# zu behaupten, das laut eigener Aussage noch nicht fertig ist, waere keine
+# Messung, sondern eine Wette auf den naechsten Schreibvorgang. Der Lauf ist
+# seit derselben Nacht abgeschlossen (Stufe L: Seed-Abbruch bei 735s, danach
+# vollstaendig verifiziertes Cleanup, 'cleanup_pending_note' ist aus der Datei
+# verschwunden) -- die Datei ist jetzt eine fertige Behauptung wie jede
+# andere hier und gehoert in dieselbe Liste. Beachte: 'loadtest_l_extrapolation'
+# bleibt trotzdem unbehauptbar, weil es ein VERSCHACHTELTES Objekt ist (der
+# Loader flacht nur Top-Level-Skalare ab, s. load_runs()-Docstring) -- die
+# Hochrechnung kann so nie versehentlich als auditierte Messung erscheinen,
+# nur die tatsaechlich gemessenen Top-Level-Zahlen der abgebrochenen Seed-Phase.
 RUN_FILES = (
     "campaign.json",
     "ledger.json",
@@ -39,6 +47,7 @@ RUN_FILES = (
     "loadtest_smoke.json",
     "loadtest_s.json",
     "loadtest_m.json",
+    "loadtest_l.json",
     "query-timestamp-probe.json",
     "judge-seedlab-matrix.json",
     "correct-roundtrip.json",
