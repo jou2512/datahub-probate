@@ -115,14 +115,33 @@ NAMES: dict[str, str] = {
 }
 URNS: dict[str, str] = {k: ds_urn(v) for k, v in NAMES.items()}
 
-# --- organische Beschreibungen (Entscheid 2026-08-07) ---------------------
+# --- organische Beschreibungen (Entscheid 2026-08-07, Fix-Runde 1) --------
 #
-# Kein Zustandswort (confirmed/dead/missing/unknown, "Rolle=", "Ziel-Kanten-
-# Zustand") ausserhalb des Praefixes. Bewusst unterschiedliche Business-
-# Relevanz je Paar, NICHT deckungsgleich mit dem Zustand: A/B (confirmed)
-# und E/F (missing) sind beide geschaeftskritisch, C/D (dead) mittel, G/H
-# (unknown) trivial -- eine Korrelation "kritisch = confirmed" waere selbst
-# wieder eine Abkuerzung, die das Modell nicht braeuchte herzuleiten.
+# Fix-Runde 1 (Coordinator-Review, 07.08.): die erste Fassung mied nur die
+# TOKEN (confirmed/dead/missing/unknown, "Rolle=", "Ziel-Kanten-Zustand"),
+# beschrieb aber in D/F/G die operationale ENTSCHEIDUNGSLOGIK des Klassi-
+# fikators in Klartext nach ("kein bekannter Konsument" = unknown-Definition,
+# "SQL-Query ausserhalb der Pipeline-Dokumentation" = missing-Definition,
+# "unklar ob die Tabelle noch jemand braucht" = dead-Definition) -- derselbe
+# Fehler in subtilerer Form. Regel jetzt bindend fuer jeden Satz: eine
+# Beschreibung darf sagen WAS eine Tabelle enthaelt und WARUM sie dem
+# Geschaeft wichtig ist (wer von der Zahl abhaengt, welche Entscheidung sie
+# speist) -- sie darf NICHT sagen oder andeuten, WIE die Daten ihre
+# Konsumenten erreichen (Pipeline vs. Ad-hoc-Query vs. Dashboard-Anbindung),
+# ob Dokumentation/Lineage existiert, ob ein Konsument bekannt/unbekannt
+# ist, ob sie noch genutzt/gepflegt/aufgegeben/zum Loeschen vorgesehen ist,
+# oder wie aktuell der letzte Zugriff war -- das sind exakt die Observablen,
+# die das Werkzeug aus Lineage, Nutzungs-Buckets und Query-Subjects selbst
+# herleiten soll. Test pro Satz: "koennte ein Leser allein daraus auf den
+# Kanten-Zustand schliessen, ohne Lineage/Nutzung anzusehen?" Wenn ja: raus.
+#
+# Business-Relevanz zusaetzlich ENTKOPPELT von der 2-vs-2-Vierergruppe:
+# A/B (confirmed) weiterhin hoch, C/D (dead) hoch/mittel unveraendert
+# (Coordinator: "clean, nicht anfassen"), F (missing_downstream) hoch,
+# aber E (missing_upstream) jetzt bewusst MITTEL/trivial (rohes,
+# unverarbeitetes Log) statt "mehrere Teams haengen dran" -- sonst waere
+# "hohe Business-Relevanz" selbst wieder ein Hinweis auf "confirmed oder
+# missing". G/H (unknown) bleiben trivial, aber ohne jede Nutzungs-Aussage.
 DESC_PREFIX = "[probate-seedlab -- synthetische Demonstrationsdaten]"
 
 ORGANIC_DESCRIPTIONS: dict[str, str] = {
@@ -143,30 +162,27 @@ ORGANIC_DESCRIPTIONS: dict[str, str] = {
         "Reporting-Tool wurde die Ablage-Logik nicht mehr angepasst."
     ),
     "D": (
-        "Aggregiertes Vertriebs-Ranking aus den Regional-Snapshots, frueher "
-        "taeglich im Sales-Standup gezeigt. Nach der Abloesung durch das neue "
-        "BI-Tool ist unklar, ob die Tabelle noch jemand braucht."
+        "Aggregiertes Vertriebs-Ranking je Filiale, zusammengefasst aus den "
+        "Regional-Snapshots als Entscheidungsgrundlage fuer die "
+        "Vertriebssteuerung Region Ost."
     ),
     "E": (
-        "Rohe Bestell- und Sitzungs-Events aus dem Checkout-Service, "
-        "ungefiltert und event-basiert. Mehrere Analytics-Teams greifen per "
-        "Ad-hoc-Query direkt darauf zu."
+        "Rohes, ungefiltertes Log der Bestell- und Sitzungs-Events aus dem "
+        "Checkout-Service auf Einzelereignis-Ebene."
     ),
     "F": (
-        "Customer-Lifetime-Value je Kundensegment, sichtbar im Wachstums-"
-        "Dashboard und Grundlage fuer Marketing-Budgetentscheidungen. Die "
-        "Berechnung laeuft ueber eine von Analysten gepflegte SQL-Query "
-        "ausserhalb der offiziellen Pipeline-Dokumentation."
+        "Customer-Lifetime-Value je Kundensegment. Zentrale Kennzahl im "
+        "Wachstums-Dashboard, Grundlage fuer Marketing-Budgetentscheidungen "
+        "und Teil des monatlichen Reportings an die Geschaeftsleitung."
     ),
     "G": (
-        "Zwischentabelle eines Deduplizierungs-Skripts, wird bei Bedarf "
-        "manuell neu befuellt. Kein bekannter Konsument ausserhalb des "
-        "Skripts selbst."
+        "Zwischentabelle eines Deduplizierungs-Skripts, haelt das "
+        "Zwischenergebnis eines internen Bereinigungsschritts."
     ),
     "H": (
-        "Temporaere Ablage fuer einen einmaligen Migrationstest aus dem "
-        "letzten Quartal. Sollte nach Testabschluss eigentlich geloescht "
-        "werden."
+        "Temporaere Ablage fuer einen einmaligen Migrationstest, "
+        "Zwischenstand eines abgeschlossenen Testlaufs aus dem letzten "
+        "Quartal."
     ),
 }
 
