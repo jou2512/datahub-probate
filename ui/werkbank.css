@@ -415,7 +415,20 @@ button {
   font-size: 0.85rem;
 }
 
-.bar-row__label { font-family: var(--font-mono); color: var(--ink); }
+.bar-row__label {
+  font-family: var(--font-mono);
+  color: var(--ink);
+  /* Ohne diese drei Zeilen laesst ein langer Bezeichner ohne Leerzeichen
+     (lange Postgres-Tabellennamen) seinen Text ueber die Spuren-Spalte
+     hinweg auslaufen -- gemessen (scrollWidth > offsetWidth bei
+     white-space: normal, overflow-x: visible), sichtbar als Text, der in
+     den "no usage data"-Hinweis oder den Balken hineinlief. Sauber
+     abgeschnitten mit Ellipse statt optischer Kollision; der volle Name
+     bleibt im title-Attribut (Tooltip). */
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
 
 .bar-track {
   height: 8px;
@@ -492,3 +505,85 @@ button {
 }
 
 .log-entry__text { color: var(--ink); }
+
+/* ---------------------------------------------------------------------
+   Task 17 -- werkbank.js fuellt die Bereiche; diese Regeln geben den
+   Klassen, die dort entstehen, eine Form. Keine neuen Farb-Literale --
+   alles ueber die bestehenden Token aus dem :root-Block oben.
+   --------------------------------------------------------------------- */
+
+/* Mehrere Fokus-Baeume im Aufzeichnungsmodus (ein Baum pro geseedetem
+   Zustand) -- getrennt durch eine gestrichelte Linie, keine zweite Farbe. */
+.tree__group + .tree__group {
+  margin-top: var(--space-3);
+  padding-top: var(--space-3);
+  border-top: 1px dashed var(--line);
+}
+
+.tree__root {
+  font-weight: 600;
+  color: var(--ink);
+  padding: var(--space-1) 0;
+  overflow-wrap: anywhere;
+}
+
+.tree__node {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  overflow-wrap: anywhere;
+}
+
+/* Gemessene Balken ohne Datenlage -- sichtbar LEER, nicht auf null gesetzt.
+   Gestrichelte, leere Spur statt eines 0%-Balkens: "nicht hingesehen" und
+   "nichts passiert" sehen sonst optisch identisch aus, obwohl es zwei
+   verschiedene Aussagen sind (Timeline-Docstring, probate/ledger.py). */
+.bar-row--no-data .bar-track {
+  height: auto;
+  min-height: 8px;
+  background: transparent;
+  border: 1px dashed var(--line);
+  overflow: visible;
+  display: flex;
+  align-items: center;
+}
+
+.bar--empty {
+  display: inline-block;
+  padding: 1px var(--space-2);
+  font-size: 0.72rem;
+  font-style: italic;
+  color: var(--ink-muted);
+}
+
+/* Kanten-Register -- eine Karte pro Kante: Kopfzeile (Chip + Schluessel +
+   Quell-Marken), darunter der erklaerende Satz und die Zeitachsen-Aussage.
+   Die Kopfzeile bleibt .ledger-row (Task 16); der Rahmen/Abstand wandert
+   auf die Karte, damit Erklaerung und Zeitachse nicht abgeschnitten werden. */
+.ledger-entry {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line);
+}
+
+.ledger-entry:last-child { border-bottom: none; }
+
+.ledger-entry .ledger-row {
+  padding: 0;
+  border-bottom: none;
+}
+
+.ledger-entry__help {
+  margin: var(--space-1) 0 0;
+  color: var(--ink-muted);
+  font-size: 0.82rem;
+  font-family: var(--font-ui);
+  max-width: 60ch;
+}
+
+.ledger-entry__timeline {
+  margin: 2px 0 0;
+  color: var(--ink-muted);
+  font-size: 0.78rem;
+  font-family: var(--font-mono);
+  font-variant-numeric: tabular-nums;
+}

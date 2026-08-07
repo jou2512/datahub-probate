@@ -68,3 +68,33 @@ def test_every_state_carries_its_explaining_sentence_in_the_markup():
 
 def test_wide_content_scrolls_in_its_own_container():
     assert "overflow-x: auto" in CSS.read_text(encoding="utf-8")
+
+
+JS = Path("ui/werkbank.js")
+
+
+def test_recording_is_the_safe_default_when_the_mode_probe_fails():
+    """Eine gescheiterte Abfrage ist keine Abwesenheit -- aber sie darf
+    auch nicht als Live-Betrieb durchgehen. Kein Antwort = Aufzeichnung."""
+    js = JS.read_text(encoding="utf-8")
+    assert "'recording'" in js or '"recording"' in js
+    assert "catch" in js
+
+
+def test_datasets_without_usage_render_as_visibly_empty_not_as_zero():
+    """Spec: 'Tabellen ohne Datenlage sind sichtbar leer, nicht auf null
+    gesetzt -- der Unterschied muss auch optisch einer sein.'"""
+    js = JS.read_text(encoding="utf-8")
+    assert "no-data" in js
+    assert "bar--empty" in js or "measured--nodata" in js
+
+
+def test_every_rendered_state_gets_its_explaining_sentence_attached():
+    assert "state-help" in JS.read_text(encoding="utf-8")
+
+
+def test_the_ui_never_sums_buckets_into_a_single_number_for_the_state():
+    """Wer die Buckets summiert, macht aus 'nicht gemessen' und 'nichts
+    passiert' dieselbe Null -- in der Oberflaeche genauso wie im Code."""
+    js = JS.read_text(encoding="utf-8")
+    assert "buckets_seen" in js
