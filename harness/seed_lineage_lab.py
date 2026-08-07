@@ -23,9 +23,26 @@ gegen Wegwerf-Entitaeten unter `probate_seedlab_probe.*` und wieder geloescht
 
 Namespace: PLATFORM = postgres, alle URNs unter `probate_seedlab.*` -- klar
 als Labor erkennbar, kollidiert nicht mit echten Warehouse-Namen. Jede
-Dataset-Beschreibung traegt das Praefix `[probate-seedlab]` und den Satz,
-dass es sich um kuenstlich eingespielte Demonstrationsdaten handelt
-(Regel UEBERGABE.md SS7.3: geseedete Daten werden als geseedet ausgewiesen).
+Dataset-Beschreibung traegt das Praefix `[probate-seedlab -- synthetische
+Demonstrationsdaten]` und den Satz, dass es sich um kuenstlich eingespielte
+Demonstrationsdaten handelt (Regel UEBERGABE.md SS7.3: geseedete Daten
+werden als geseedet ausgewiesen).
+
+WICHTIG (Entscheid 2026-08-07, docs/entscheidungen/2026-08-07-seed-
+beschreibungen-ohne-etikett.md, bindend): der organische Teil der
+Beschreibung darf den Ziel-Kanten-Zustand NICHT nennen. Fruehere Fassung
+schrieb woertlich "Rolle=upstream, Ziel-Kanten-Zustand=confirmed" in
+`datasetProperties.description` -- die einzige Textquelle, die
+`probate/judge.py` liest, enthielt damit die Antwort, die das Modell
+erst herleiten soll (Echo statt Urteil). Die Beschreibungen sind jetzt
+organische Geschaeftssprache, differenziert nach Business-Relevanz, und
+tragen ausserhalb des Praefixes kein Zustandswort. Zusaetzlich seedet
+dieses Skript jetzt echte `ownership`/`domains`/`glossaryTerms`-Aspekte
+(vorher: null Treffer per Grep), damit `probate.judge.gather_context`
+ausserhalb der einen Beschreibungszeile etwas zu zitieren hat. Die vier
+Kanten-Zustaende selbst entstehen unveraendert aus Lineage + Nutzung +
+Query-Subjects (siehe EDGE_STATE_OF_PAIR/USAGE_PLAN unten) -- Gegenprobe
+ueber `harness/seedlab_verdicts.py` ist nach jeder Aenderung Pflicht.
 
 Idempotent: alle Nicht-Zeitreihen-Aspekte (Dataset, upstreamLineage, Query)
 haben feste URNs/IDs und werden bei jedem Lauf einfach ueberschrieben, nicht
@@ -97,6 +114,112 @@ NAMES: dict[str, str] = {
     "H": "unknown_downstream",
 }
 URNS: dict[str, str] = {k: ds_urn(v) for k, v in NAMES.items()}
+
+# --- organische Beschreibungen (Entscheid 2026-08-07) ---------------------
+#
+# Kein Zustandswort (confirmed/dead/missing/unknown, "Rolle=", "Ziel-Kanten-
+# Zustand") ausserhalb des Praefixes. Bewusst unterschiedliche Business-
+# Relevanz je Paar, NICHT deckungsgleich mit dem Zustand: A/B (confirmed)
+# und E/F (missing) sind beide geschaeftskritisch, C/D (dead) mittel, G/H
+# (unknown) trivial -- eine Korrelation "kritisch = confirmed" waere selbst
+# wieder eine Abkuerzung, die das Modell nicht braeuchte herzuleiten.
+DESC_PREFIX = "[probate-seedlab -- synthetische Demonstrationsdaten]"
+
+ORGANIC_DESCRIPTIONS: dict[str, str] = {
+    "A": (
+        "Taeglicher Export der bereinigten Hauptbuch-Buchungszeilen aus dem "
+        "ERP-System (Stornos herausgefiltert). Bildet die Datengrundlage fuer "
+        "die konsolidierte Konzernbilanz; Aenderungen an der Extraktionslogik "
+        "durchlaufen den Change-Prozess von Finance."
+    ),
+    "B": (
+        "Konsolidierte Ergebnisrechnung fuer den Jahresabschluss. Wird dem "
+        "Audit-Committee vorgelegt und speist das Investor-Reporting -- "
+        "Abweichungen hier sind meldepflichtig."
+    ),
+    "C": (
+        "Woechentlicher Snapshot der Filialumsaetze Region Ost, urspruenglich "
+        "fuer das alte BI-Dashboard gebaut. Seit der Migration auf das neue "
+        "Reporting-Tool wurde die Ablage-Logik nicht mehr angepasst."
+    ),
+    "D": (
+        "Aggregiertes Vertriebs-Ranking aus den Regional-Snapshots, frueher "
+        "taeglich im Sales-Standup gezeigt. Nach der Abloesung durch das neue "
+        "BI-Tool ist unklar, ob die Tabelle noch jemand braucht."
+    ),
+    "E": (
+        "Rohe Bestell- und Sitzungs-Events aus dem Checkout-Service, "
+        "ungefiltert und event-basiert. Mehrere Analytics-Teams greifen per "
+        "Ad-hoc-Query direkt darauf zu."
+    ),
+    "F": (
+        "Customer-Lifetime-Value je Kundensegment, sichtbar im Wachstums-"
+        "Dashboard und Grundlage fuer Marketing-Budgetentscheidungen. Die "
+        "Berechnung laeuft ueber eine von Analysten gepflegte SQL-Query "
+        "ausserhalb der offiziellen Pipeline-Dokumentation."
+    ),
+    "G": (
+        "Zwischentabelle eines Deduplizierungs-Skripts, wird bei Bedarf "
+        "manuell neu befuellt. Kein bekannter Konsument ausserhalb des "
+        "Skripts selbst."
+    ),
+    "H": (
+        "Temporaere Ablage fuer einen einmaligen Migrationstest aus dem "
+        "letzten Quartal. Sollte nach Testabschluss eigentlich geloescht "
+        "werden."
+    ),
+}
+
+# --- echte Governance-Aspekte (Entscheid 2026-08-07, Teil 2) --------------
+#
+# ownership: nur wo eine Verantwortung realistisch ist -- die beiden
+# trivialen Scratch-Tabellen (G/H) haben bewusst KEINEN Owner, genau wie
+# im echten Warehouse niemand eine Wegwerf-Zwischentabelle vertritt.
+OWNERS: dict[str, list[dict[str, str]]] = {
+    "A": [{"owner": "urn:li:corpuser:m.keller", "type": "DATAOWNER"}],
+    "B": [{"owner": "urn:li:corpuser:finance.reporting", "type": "BUSINESS_OWNER"}],
+    "C": [{"owner": "urn:li:corpuser:r.huber", "type": "TECHNICAL_OWNER"}],
+    "D": [{"owner": "urn:li:corpuser:r.huber", "type": "TECHNICAL_OWNER"}],
+    "E": [{"owner": "urn:li:corpuser:growth.analytics", "type": "BUSINESS_OWNER"}],
+    "F": [{"owner": "urn:li:corpuser:growth.analytics", "type": "BUSINESS_OWNER"}],
+}
+
+DOMAIN_DEFS: dict[str, dict[str, str]] = {
+    "urn:li:domain:probate_seedlab.finance": {
+        "name": "Finance",
+        "description": "Buchhaltung, Konzernabschluss, externe Berichterstattung.",
+    },
+    "urn:li:domain:probate_seedlab.customer_analytics": {
+        "name": "Customer Analytics",
+        "description": "Kundenverhalten, Wachstumskennzahlen, Marketing-Reporting.",
+    },
+}
+DATASET_DOMAIN: dict[str, str] = {
+    "A": "urn:li:domain:probate_seedlab.finance",
+    "B": "urn:li:domain:probate_seedlab.finance",
+    "E": "urn:li:domain:probate_seedlab.customer_analytics",
+    "F": "urn:li:domain:probate_seedlab.customer_analytics",
+}
+
+TERM_DEFS: dict[str, dict[str, str]] = {
+    "urn:li:glossaryTerm:probate_seedlab.hauptbuch": {
+        "name": "Hauptbuch",
+        "definition": "Zentrales Buchungsjournal aller Geschaeftsvorfaelle.",
+    },
+    "urn:li:glossaryTerm:probate_seedlab.jahresabschluss": {
+        "name": "Jahresabschluss",
+        "definition": "Konsolidierter Abschluss des Geschaeftsjahres, Grundlage der externen Berichterstattung.",
+    },
+    "urn:li:glossaryTerm:probate_seedlab.customer_lifetime_value": {
+        "name": "Customer Lifetime Value",
+        "definition": "Prognostizierter Gesamtumsatz eines Kunden ueber die gesamte Kundenbeziehung.",
+    },
+}
+DATASET_TERMS: dict[str, list[str]] = {
+    "A": ["urn:li:glossaryTerm:probate_seedlab.hauptbuch"],
+    "B": ["urn:li:glossaryTerm:probate_seedlab.jahresabschluss"],
+    "F": ["urn:li:glossaryTerm:probate_seedlab.customer_lifetime_value"],
+}
 
 EDGE_STATE_OF_PAIR = {
     ("A", "B"): "confirmed",
@@ -190,12 +313,7 @@ def record(what: str, written: Any, readback_fn, expect_fn, retries: int = 6, de
 def seed_datasets(gms: Gms) -> None:
     records = []
     for letter, name in NAMES.items():
-        state = next((s for (a, b), s in EDGE_STATE_OF_PAIR.items() if letter in (a, b)), "?")
-        role = "upstream" if letter in "ACEG" else "downstream"
-        desc = (
-            f"[probate-seedlab] Kuenstlich eingespielte Demonstrationsdaten. "
-            f"Rolle={role}, Ziel-Kanten-Zustand={state}. Kein echtes Warehouse-Dataset."
-        )
+        desc = f"{DESC_PREFIX} {ORGANIC_DESCRIPTIONS[letter]}"
         records.append(
             {"urn": URNS[letter], "datasetProperties": {"value": {"name": name, "description": desc}}}
         )
@@ -205,17 +323,153 @@ def seed_datasets(gms: Gms) -> None:
         out = {}
         for letter in NAMES:
             data = gms.graphql(
-                "query($urn: String!) { dataset(urn: $urn) { urn properties { name } } }",
+                "query($urn: String!) { dataset(urn: $urn) { urn properties { name description } } }",
                 {"urn": URNS[letter]},
             )
             out[letter] = (data.get("dataset") or {}).get("properties")
         return out
 
+    def expect(rb):
+        for k, v in rb.items():
+            expected_desc = f"{DESC_PREFIX} {ORGANIC_DESCRIPTIONS[k]}"
+            if not v or v.get("name") != NAMES[k] or v.get("description") != expected_desc:
+                return False
+        return True
+
     record(
-        "datasets (8x datasetProperties)",
+        "datasets (8x datasetProperties, organische Beschreibung ohne Zustandswort)",
         [r["urn"] for r in records],
         readback,
-        lambda rb: all(v and v.get("name") == NAMES[k] for k, v in rb.items()),
+        expect,
+    )
+
+
+def seed_domains(gms: Gms) -> None:
+    """Domain-Entitaeten selbst -- muessen existieren, BEVOR ein Dataset
+    per `domains`-Aspekt darauf zeigt, sonst liefert `domain { properties
+    { name } }` (probate/judge.py CONTEXT_Q) nichts, weil GraphQL den Namen
+    von der Domain-Entitaet aufloest, nicht vom Dataset-Aspekt."""
+    records = [
+        {"urn": urn, "domainProperties": {"value": {"name": d["name"], "description": d["description"]}}}
+        for urn, d in DOMAIN_DEFS.items()
+    ]
+    gms.upsert("domain", records)
+
+    def readback():
+        out = {}
+        for urn in DOMAIN_DEFS:
+            aspect = gms.get_aspect("domain", urn, "domainProperties")
+            out[urn] = (aspect or {}).get("value", {}).get("name")
+        return out
+
+    record(
+        f"domain-Entitaeten ({len(DOMAIN_DEFS)}x domainProperties)",
+        list(DOMAIN_DEFS),
+        readback,
+        lambda rb: all(rb.get(urn) == d["name"] for urn, d in DOMAIN_DEFS.items()),
+    )
+
+
+def seed_glossary_terms(gms: Gms) -> None:
+    """GlossaryTerm-Entitaeten -- judge.py liest bislang nur `term.urn`
+    aus dem Dataset-Aspekt, aber ein haengender Term ohne eigene
+    `glossaryTermInfo` waere kein echtes Glossar, sondern nur eine URN-
+    Attrappe. Also volle Entitaet, echtes Material."""
+    records = [
+        {
+            "urn": urn,
+            "glossaryTermInfo": {
+                "value": {"name": t["name"], "definition": t["definition"], "termSource": "INTERNAL"}
+            },
+        }
+        for urn, t in TERM_DEFS.items()
+    ]
+    gms.upsert("glossaryTerm", records)
+
+    def readback():
+        out = {}
+        for urn in TERM_DEFS:
+            aspect = gms.get_aspect("glossaryTerm", urn, "glossaryTermInfo")
+            out[urn] = (aspect or {}).get("value", {}).get("name")
+        return out
+
+    record(
+        f"glossaryTerm-Entitaeten ({len(TERM_DEFS)}x glossaryTermInfo)",
+        list(TERM_DEFS),
+        readback,
+        lambda rb: all(rb.get(urn) == t["name"] for urn, t in TERM_DEFS.items()),
+    )
+
+
+def seed_governance(gms: Gms) -> None:
+    """ownership/domains/glossaryTerms auf den Datasets, die eins davon
+    tragen sollen (nicht alle acht -- G/H bleiben bewusst unbesetzt, siehe
+    OWNERS/DATASET_DOMAIN/DATASET_TERMS oben). Muss NACH seed_domains()
+    und seed_glossary_terms() laufen, sonst zeigen die Referenzen auf noch
+    nicht existierende Entitaeten."""
+    letters = sorted(set(OWNERS) | set(DATASET_DOMAIN) | set(DATASET_TERMS))
+    records = []
+    for letter in letters:
+        rec: dict[str, Any] = {"urn": URNS[letter]}
+        if letter in OWNERS:
+            rec["ownership"] = {"value": {"owners": OWNERS[letter]}}
+        if letter in DATASET_DOMAIN:
+            rec["domains"] = {"value": {"domains": [DATASET_DOMAIN[letter]]}}
+        if letter in DATASET_TERMS:
+            rec["glossaryTerms"] = {
+                "value": {
+                    "terms": [{"urn": t} for t in DATASET_TERMS[letter]],
+                    "auditStamp": STAMP,
+                }
+            }
+        records.append(rec)
+    gms.upsert("dataset", records)
+
+    _GOV_Q = """
+    query($urn: String!) {
+      dataset(urn: $urn) {
+        ownership { owners { owner { ... on CorpUser { urn } ... on CorpGroup { urn } } } }
+        domain { domain { properties { name } } }
+        glossaryTerms { terms { term { urn } } }
+      }
+    }
+    """
+
+    def readback():
+        out = {}
+        for letter in letters:
+            data = gms.graphql(_GOV_Q, {"urn": URNS[letter]})
+            d = data.get("dataset") or {}
+            owners = [(o.get("owner") or {}).get("urn", "") for o in ((d.get("ownership") or {}).get("owners") or [])]
+            domain_name = (((d.get("domain") or {}).get("domain") or {}).get("properties") or {}).get("name", "")
+            terms = [(t.get("term") or {}).get("urn", "") for t in ((d.get("glossaryTerms") or {}).get("terms") or [])]
+            out[letter] = {"owners": owners, "domain_name": domain_name, "terms": terms}
+        return out
+
+    def expect(rb):
+        for letter in letters:
+            got = rb.get(letter) or {}
+            if letter in OWNERS:
+                expected_owners = {o["owner"] for o in OWNERS[letter]}
+                if set(got.get("owners") or []) != expected_owners:
+                    return False
+            if letter in DATASET_DOMAIN:
+                expected_name = DOMAIN_DEFS[DATASET_DOMAIN[letter]]["name"]
+                if got.get("domain_name") != expected_name:
+                    return False
+            if letter in DATASET_TERMS:
+                if set(got.get("terms") or []) != set(DATASET_TERMS[letter]):
+                    return False
+        return True
+
+    n_owner = sum(1 for letter in letters if letter in OWNERS)
+    n_domain = sum(1 for letter in letters if letter in DATASET_DOMAIN)
+    n_terms = sum(1 for letter in letters if letter in DATASET_TERMS)
+    record(
+        f"Governance-Aspekte auf Datasets (ownership x{n_owner}, domains x{n_domain}, glossaryTerms x{n_terms})",
+        [r["urn"] for r in records],
+        readback,
+        expect,
     )
 
 
@@ -446,6 +700,9 @@ def main() -> int:
     emitter = DatahubRestEmitter(gms_server=args.gms_url, token=token)
 
     seed_datasets(gms)
+    seed_domains(gms)
+    seed_glossary_terms(gms)
+    seed_governance(gms)
     seed_lineage(gms)
     seed_queries(gms)
     seed_usage(gms, emitter)

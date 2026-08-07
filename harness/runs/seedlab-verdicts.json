@@ -3,8 +3,8 @@
   "seeded_statement": "Laeuft gegen den geseedeten Beispielkatalog (namespace probate_seedlab, harness/seed_lineage_lab.py) -- keine echte Warehouse-Nutzung.",
   "gms_url": "http://localhost:28080",
   "manifest": "examples\\seedlab-manifest.json",
-  "generated_at": "2026-08-06T23:47:24.983180+00:00",
-  "now_ms": 1786060044983,
+  "generated_at": "2026-08-07T00:13:55.568507+00:00",
+  "now_ms": 1786061635568,
   "all_four_states_matched_expected": true,
   "pairs": {
     "confirmed": {
@@ -30,7 +30,7 @@
       },
       "timeline": {
         "last_covered_ms": 1785974400000,
-        "dead_since_days": 0,
+        "dead_since_days": 1,
         "dead_since_is_lower_bound": false,
         "series": [
           [
@@ -70,7 +70,7 @@
       },
       "timeline": {
         "last_covered_ms": null,
-        "dead_since_days": 30,
+        "dead_since_days": 31,
         "dead_since_is_lower_bound": true,
         "series": [
           [
@@ -225,7 +225,7 @@
       },
       "timeline": {
         "last_covered_ms": 1785974400000,
-        "dead_since_days": 0,
+        "dead_since_days": 1,
         "dead_since_is_lower_bound": false,
         "series": [
           [
