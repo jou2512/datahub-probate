@@ -48,6 +48,22 @@ vorbei.
 Die Seitenleiste ist **immer da** und zeigt immer, wo man ist. Kein Bereich wird
 über einen Knopf im Fliesstext erreicht.
 
+### Fensterbreiten (Nachtrag 07.08.2026, gemessen)
+
+Der Rahmen oben gilt **ab 1280 px unverändert**: Seitenleiste 210 px links,
+genau **ein** senkrechter Bildlauf, nämlich im Inhaltsbereich.
+
+Darunter darf er nicht zerfallen. Die Seitenleiste wird **schmaler** (150 px
+unter 1280, 144 px unter 1024, Hinweissätze fallen weg), die Detailspalte legt
+sich **über** den Inhalt statt ihn zu zerquetschen. Sie wird **nie** zu einem
+waagerechten, selbst scrollenden Kasten über dem Inhalt, und es gibt **nie zwei
+senkrechte Bildlaufleisten nebeneinander**.
+
+Anlass: bei 838 × 674 lag die Navigation als 838 × 273-Kasten über dem Inhalt,
+mit eigener Bildlaufleiste (`scrollHeight` 399 > `clientHeight` 273) — „Belege"
+war ohne Scrollen in diesem Kasten gar nicht erreichbar. Gegenprobe nach dem Fix
+bei 1440 / 1100 / 860 / 838 px in `docs/screenshots/konsole-breite-*.png`.
+
 ### Die fünf Bereiche
 
 | Bereich | Frage, die er beantwortet | Hauptsache auf dem Schirm |
@@ -86,6 +102,24 @@ Behauptung ohne Beleg, gegen die dieses Produkt antritt.
 - Gemessene Null → die Ziffer `0`, normale Darstellung.
 - Nicht gemessen → das Wort **„nicht gemessen"** plus, warum: „kein
   Nutzungsfenster im gewählten Zeitraum".
+
+**Die Regel gilt für jede der fünf Ansichten, nicht nur für die Balken**
+(Nachtrag 07.08.2026, nach einem gemessenen Fehlgriff: `GET /api/connections`
+antwortete direkt nach dem Serverstart mit `rows: []`, und die Konsole zeigte
+eine wortlos leere Tabelle — von „kaputt" nicht zu unterscheiden). Konkret:
+
+- Eine leere Ansicht sagt immer drei Dinge: **was fehlt, warum, und welcher
+  Knopf es behebt.** Der Grund kommt vom Server (`empty_reason`, `fix_action`),
+  damit keine Ansicht ihn vergessen und keine ihn erfinden kann.
+- Der Server startet **nicht leer**: er lädt beim Start das passendste
+  Lauf-Artefakt von der Platte (`harness/runs/`, `ui/recorded/`).
+- Dieser Stand wird **als Aufzeichnung ausgewiesen** — Zeitpunkt und
+  Artefaktpfad stehen in einem Streifen unter der Kopfzeile, in jedem Bereich
+  und auf jeder Fensterbreite. Deckt die Aufzeichnung andere Tabellen ab als die
+  beobachteten, steht auch das dort. Ein alter Stand, der wie eine frische
+  Messung aussieht, ist dieselbe Behauptung ohne Beleg wie eine erfundene Null.
+- Das blosse Öffnen der Seite misst nicht (`/api/current` statt `/api/ledger`).
+  Gemessen wird auf Knopfdruck — ein Neuladen darf nicht kosten.
 
 ## Bereich 2 — Verbindungen (das Herzstück)
 

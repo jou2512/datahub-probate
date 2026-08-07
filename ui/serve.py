@@ -37,6 +37,7 @@ import re
 import sys
 import threading
 import time
+from datetime import datetime, timezone
 from socket import timeout as _SocketTimeout
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
@@ -118,12 +119,160 @@ MANIFEST_FOCUSES = _MANIFEST["focuses"]
 SEEDED_STATEMENT = _MANIFEST["seeded_statement"]
 
 
+# --- Der letzte aufgezeichnete Lauf, damit der Server nie leer startet ---
+#
+# Gemessener Defekt (07.08., Joel): `GET /api/connections` antwortete
+# direkt nach dem Serverstart mit `{"rows": [], "total": 0, "has_run":
+# false}`, und die Oberflaeche zeigte daraufhin eine wortlos leere
+# Tabelle. Von "kaputt" ist das nicht zu unterscheiden -- genau so ist er
+# darauf gestossen. Der Grund: `_cached_ledger` fuellt sich erst beim
+# ersten `/api/ledger`, und `/api/connections` blaettert genau diesen
+# Zwischenstand.
+#
+# Die Behebung ist bewusst KEINE stille: der Server laedt beim Start das
+# juengste Lauf-Artefakt von der Platte, markiert es aber als
+# `recording: True` samt Herkunftspfad und Aufzeichnungszeit. Ein alter
+# Stand, der wie eine frische Messung aussieht, waere genau die
+# Behauptung ohne Beleg, gegen die dieses Projekt antritt -- die
+# Oberflaeche schreibt den Satz deshalb sichtbar ueber jeden Bereich.
+RECORDED_RUN_DIRS = (Path("harness/runs"), UI_DIR / "recorded")
+
+
+def _recorded_candidates(dirs) -> list[Path]:
+    out: list[Path] = []
+    for d in dirs:
+        try:
+            out.extend(sorted(Path(d).glob("*.json")))
+        except OSError:
+            continue
+    return out
+
+
+def load_recorded_ledger(dirs=RECORDED_RUN_DIRS, focuses=None) -> dict | None:
+    """Das passendste Artefakt, das wirklich ein Register IST.
+
+    Die Pruefung ist inhaltlich, nicht namentlich: eine Datei zaehlt nur,
+    wenn sie eine `edges`-Liste und einen `generated_at_ms` traegt. In
+    `harness/runs/` liegen 25 JSON-Dateien, davon sind die meisten
+    Sonden-Protokolle (Lasttest, MCP-Probe, Journal-Vergleiche) -- nach
+    Dateinamen zu raten waere hier genau der Fehlgriff, gegen den die
+    Hausregel geschrieben ist.
+
+    Warum NICHT einfach "das juengste": gemessen am 07.08. gewinnt sonst
+    `harness/runs/ledger-nach-ereignis.json` -- ein Ein-Kanten-Protokoll
+    aus einem Uebergangs-Nachweis, dessen Fokus noch
+    `probate_seedlab.confirmed_upstream` heisst, also eine Tabelle, die es
+    unter diesem Namen nicht mehr gibt. Eine Konsole, die als "letzten
+    Lauf" einen Lauf ueber FREMDE Tabellen zeigt, ist schlechter als eine
+    leere: sie behauptet etwas ueber einen Katalog, den sie nicht
+    beobachtet. Rangfolge deshalb: erst wie viele der beobachteten
+    Fokus-Tabellen wirklich vorkommen, dann der Zeitstempel.
+
+    Findet sich nichts, kommt `None` zurueck und die Oberflaeche zeigt
+    ihren erklaerten Leerzustand; ein erfundenes Register gibt es nicht.
+    """
+    # `None` heisst "die beobachteten Fokusse aus dem Manifest", eine LEERE
+    # Liste heisst ausdruecklich "nicht filtern". Ein `or` wuerde beides
+    # verwechseln -- und damit den Aufrufer, der bewusst nicht filtern will.
+    wanted = set(MANIFEST_FOCUSES if focuses is None else focuses)
+    best: dict | None = None
+    best_path: Path | None = None
+    best_rank: tuple | None = None
+    for path in _recorded_candidates(dirs):
+        try:
+            data = json.loads(path.read_text(encoding="utf-8"))
+        except (OSError, ValueError):
+            continue
+        if not isinstance(data, dict):
+            continue
+        if not isinstance(data.get("edges"), list) or not data["edges"]:
+            continue
+        if not isinstance(data.get("generated_at_ms"), int):
+            continue
+        seen = {e.get("upstream") for e in data["edges"] if isinstance(e, dict)}
+        matched = len(wanted & seen)
+        # Rangfolge: passende Fokus-Tabellen zuerst, dann Umfang, dann
+        # Zeitstempel. Ein Ein-Kanten-Protokoll ist kein Lauf dieser
+        # Werkbank, auch wenn es das juengste Artefakt ist.
+        rank = (matched, len(data["edges"]), data["generated_at_ms"])
+        if best_rank is None or rank > best_rank:
+            best, best_path, best_rank = data, path, rank
+    if best is None:
+        return None
+    # GEMESSEN am 07.08.: KEIN Artefakt auf der Platte nennt die aktuellen
+    # Fokus-Tabellen -- alle stammen aus der Zeit vor der Umbenennung
+    # (`confirmed_upstream` -> `gl_journal_entries_daily` u.a.). Das ist
+    # kein Grund, nichts zu zeigen, aber ein Grund, es zu SAGEN: die
+    # Oberflaeche schreibt den Satz in den Hinweisstreifen. Eine
+    # Aufzeichnung ueber andere Tabellen stillschweigend als "letzter
+    # Lauf" auszugeben waere genau die Sorte Behauptung, gegen die dieses
+    # Produkt antritt.
+    best["focus_mismatch"] = bool(wanted) and best_rank[0] == 0
+    best["recording"] = True
+    best["live"] = False
+    try:  # kurz und lesbar, wenn der Server im Projekt laeuft
+        shown = best_path.relative_to(Path.cwd())
+    except ValueError:
+        shown = best_path
+    best["recorded_from"] = str(shown).replace("\\", "/")
+    if not best.get("recorded_at_iso"):
+        best["recorded_at_iso"] = datetime.fromtimestamp(
+            best["generated_at_ms"] / 1000, tz=timezone.utc).isoformat()
+    best.setdefault("seeded_statement", SEEDED_STATEMENT)
+    best.setdefault("demo_focus", DEMO_FOCUS)
+    best.setdefault("demo_partner", DEMO_PARTNER)
+    return best
+
+
+# Was eine leere Ansicht sagen MUSS: was fehlt, warum, und der Knopf, der
+# es behebt. Der Server liefert die ersten beiden Teile mit, damit keine
+# Ansicht die Erklaerung vergessen kann -- eine wortlos leere Tabelle ist
+# damit strukturell ausgeschlossen, nicht nur per Disziplin.
+NOTHING_MEASURED = (
+    "No run has left an artifact yet, and none is stored on disk "
+    "(harness/runs, ui/recorded). Nothing is shown rather than something invented."
+)
+
+
+def _provenance(ledger: dict | None) -> dict:
+    """Woher die Zahlen der Antwort stammen -- an JEDER Konsolen-Antwort.
+
+    `has_run` allein reichte nicht: es sagt, DASS etwas da ist, aber nicht
+    ob es gerade gemessen oder von der Platte gelesen wurde. Genau diese
+    Unterscheidung ist der Gegenstand dieses Produkts, sie darf nicht in
+    der Oberflaeche erraten werden muessen.
+    """
+    if ledger is None:
+        return {"has_run": False, "replayed": False, "generated_at_ms": None,
+                "recorded_from": "", "recorded_at_iso": "",
+                "empty_reason": NOTHING_MEASURED, "fix_action": "run-ledger"}
+    return {
+        "has_run": True,
+        "replayed": bool(ledger.get("recording")),
+        "generated_at_ms": ledger.get("generated_at_ms"),
+        "recorded_from": ledger.get("recorded_from", ""),
+        "recorded_at_iso": ledger.get("recorded_at_iso", ""),
+        "focus_mismatch": bool(ledger.get("focus_mismatch")),
+        "seeded": bool(ledger.get("seeded")),
+        "seeded_statement": ledger.get("seeded_statement", SEEDED_STATEMENT),
+    }
+
+
 def route(method: str, path: str, query: dict) -> tuple[str, dict]:
     """Wegewahl ohne Socket -- damit sie ohne Netz pruefbar ist."""
     if path == "/api/mode" and method == "GET":
         return "mode", {}
     if path == "/api/ledger" and method == "GET":
         return "ledger", {}
+    if path == "/api/current" and method == "GET":
+        # Der ZWISCHENSTAND, ohne zu messen. `/api/ledger` ist ein echter
+        # Lauf gegen GMS (Sekunden, API-Aufrufe, Kosten) -- den beim
+        # blossen Oeffnen der Seite auszuloesen heisst, dass ein Neuladen
+        # Geld kostet und die Seite ohne Instanz gar nichts zeigt. Dieser
+        # Weg antwortet mit dem, was der Server bereits hat: der letzte
+        # Lauf dieses Prozesses, sonst das juengste Artefakt von der
+        # Platte, sonst ein erklaerter Leerzustand.
+        return "current", {}
     if path == "/api/judgements" and method == "GET":
         # Getrennt vom Register, weil die Modell-Urteile MINUTEN spaeter
         # fertig sind als der deterministische Befund (live gemessen:
@@ -639,7 +788,11 @@ def build_handler(gms_url: str, focus: str, log: list):
     focus_list = [focus] if isinstance(focus, str) else list(focus)
     focus_list = [f for f in focus_list if f]
 
-    _cached_ledger: dict | None = None
+    # Nicht `None`: der Server startet mit dem juengsten Lauf-Artefakt von
+    # der Platte, damit die Konsole sofort etwas zeigt -- ausdruecklich
+    # als Aufzeichnung markiert (`recording: True`, `recorded_from`,
+    # `recorded_at_iso`), nie als frische Messung.
+    _cached_ledger: dict | None = load_recorded_ledger(focuses=focus_list)
 
     def note(text: str, number=None) -> None:
         """Jede Protokollzeile traegt eine Zahl, kein Gefuehl."""
@@ -809,8 +962,7 @@ def build_handler(gms_url: str, focus: str, log: list):
             if kind == "connections":
                 out = api.filter_sort_page(edges, judged, params)
                 out["facets"] = api.facets(edges)
-                out["has_run"] = ledger is not None
-                out["generated_at_ms"] = (ledger or {}).get("generated_at_ms")
+                out.update(_provenance(ledger))
                 return self._json(out)
 
             if kind == "catalog":
@@ -822,12 +974,33 @@ def build_handler(gms_url: str, focus: str, log: list):
                     gms, params.get("q", "*"),
                     int(params.get("start") or 0), int(params.get("count") or 50),
                     known)
+                out.update(_provenance(ledger))
+                if not out["rows"]:
+                    out["empty_reason"] = (
+                        "The catalog answered, but no dataset matches this search. "
+                        "That is a measured zero, not a missing measurement.")
+                    out["fix_action"] = ""
                 return self._json(out)
 
             if kind == "runs":
-                return self._json({"runs": api.runs()})
+                rows = api.runs()
+                out = {"runs": rows}
+                if not rows:
+                    out["empty_reason"] = (
+                        "No run artifact on disk under harness/runs. A run only counts "
+                        "here once it has left a file — nothing is listed from memory.")
+                    out["fix_action"] = "run-ledger"
+                return self._json(out)
 
-            return self._json({"items": api.evidence(edges, judged, params.get("q", ""))})
+            items = api.evidence(edges, judged, params.get("q", ""))
+            out = {"items": items}
+            out.update(_provenance(ledger))
+            if not items:
+                out["empty_reason"] = (
+                    NOTHING_MEASURED if ledger is None else
+                    "This run collected no evidence matching that search.")
+                out["fix_action"] = "run-ledger" if ledger is None else ""
+            return self._json(out)
 
         def _handle(self, method):
             u = urlparse(self.path)
@@ -838,6 +1011,17 @@ def build_handler(gms_url: str, focus: str, log: list):
                     kind, args = route(method, u.path, parse_qs(u.query))
                 except (KeyError, ValueError):
                     return None
+                if kind == "current":
+                    # Wie reset-time: VOR `Gms(gms_url)`. Dieser Weg misst
+                    # nicht und braucht deshalb keine erreichbare Instanz --
+                    # eine Konsole, die ohne GMS nicht einmal ihren letzten
+                    # Stand zeigen kann, sieht kaputt aus, obwohl sie es
+                    # nicht ist.
+                    if _cached_ledger is None:
+                        return self._json(_provenance(None))
+                    out = dict(_cached_ledger)
+                    out.update(_provenance(_cached_ledger))
+                    return self._json(out)
                 if kind == "reset-time":
                     # Vor `Gms(gms_url)`: reset schreibt nichts, braucht
                     # gar keine GMS-Verbindung (dieselbe Garantie wie

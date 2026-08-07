@@ -65,6 +65,17 @@
       </div>
     </header>
 
+    <!-- Zwei Wahrheits-Markierungen, volle Breite, in JEDEM Bereich und
+         auf JEDER Fensterbreite sichtbar: (1) dass gerade ein
+         aufgezeichneter Lauf gezeigt wird und von wann, (2) dass die
+         Daten eingespielt sind. Der zweite Satz stand bis 07.08. im Fuss
+         der Seitenleiste -- und war damit genau dann weg, wenn das
+         Fenster schmal wurde. -->
+    <div class="notice" id="notice" hidden>
+      <p class="notice__replay" id="replay-note" hidden></p>
+      <p class="notice__seeded" id="seeded-note" hidden></p>
+    </div>
+
     <div class="app__body">
 
       <nav class="sidenav" aria-label="Sections">
@@ -90,10 +101,6 @@
           <span class="sidenav__name">Evidence</span>
           <span class="sidenav__hint">How does it know that?</span>
         </button>
-
-        <div class="sidenav__foot">
-          <p class="sidenav__note" id="seeded-note"></p>
-        </div>
       </nav>
 
       <main class="view" id="view-root">

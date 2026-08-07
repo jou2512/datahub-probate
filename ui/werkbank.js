@@ -82,12 +82,62 @@ async function getJson(url) {
   return r.json();
 }
 
+// --- Der erklaerte Leerzustand ------------------------------------------
+//
+// Gemessener Defekt (07.08.): `/api/connections` antwortete nach dem
+// Serverstart mit `rows: []`, und die Seite zeigte eine wortlos leere
+// Tabelle -- von "kaputt" nicht zu unterscheiden. Die Null-Regel der Spec
+// ("keine Daten" und "gemessene Null" sehen NIE gleich aus) war auf die
+// Balken angewendet und auf dem Hauptbildschirm vergessen.
+//
+// Ab jetzt geht JEDER leere Bereich durch diese eine Funktion: was fehlt,
+// warum, und der Knopf, der es behebt. Fuenf Bereiche, ein Bauteil --
+// damit kann keiner die Erklaerung vergessen.
+function blankNode({ what, why, action, label }) {
+  const box = el('div', 'blank');
+  box.append(el('p', 'blank__what', what));
+  if (why) box.append(el('p', 'blank__why', why));
+  if (action) {
+    const btn = el('button', 'btn btn--primary', label || 'Run a check');
+    btn.type = 'button';
+    btn.dataset.action = action;
+    // Ein Knopf, der im Aufzeichnungsmodus schreiben wuerde, waere eine
+    // Luege ueber das, was gerade passiert.
+    if (document.body.dataset.mode !== 'live') {
+      btn.disabled = true;
+      box.append(btn, el('p', 'blank__why',
+        'Disabled: this page is replaying a stored run and writes nothing.'));
+      return box;
+    }
+    box.append(btn);
+  }
+  return box;
+}
+
+function blankInto(host, spec) {
+  host.innerHTML = '';
+  host.append(blankNode(spec));
+}
+
+function blankRow(colspan, spec) {
+  const tr = el('tr');
+  const td = el('td');
+  td.colSpan = colspan;
+  td.append(blankNode(spec));
+  tr.append(td);
+  return tr;
+}
+
 // --- Zustand der Oberflaeche -------------------------------------------
 
 const state = {
   mode: 'recording',
   info: {},
   ledger: null,
+  // Warum nichts da ist -- WOERTLICH vom Server (`/api/current`), nie im
+  // Browser erfunden. Ein Leerzustand ohne Grund ist von "kaputt" nicht
+  // zu unterscheiden.
+  emptyReason: '',
   judge: null,
   view: 'overview',
   selected: null,
@@ -116,10 +166,17 @@ async function fetchModeInfo() {
   }
 }
 
-async function loadLedger(mode) {
-  return mode === 'live'
-    ? getJson('/api/ledger')
-    : (await fetch('./recorded/ledger.json', { cache: 'no-store' })).json();
+// `measure`: `/api/ledger` ist ein ECHTER Lauf gegen GMS (Sekunden,
+// API-Aufrufe, Kosten). Beim blossen Oeffnen oder Neuladen der Seite wird
+// deshalb `/api/current` geholt -- der Stand, den der Server schon hat:
+// der letzte Lauf dieses Prozesses, sonst das juengste Artefakt von der
+// Platte, ausdruecklich als Aufzeichnung markiert. Gemessen wird erst,
+// wenn jemand einen Knopf drueckt.
+async function loadLedger(mode, { measure = false } = {}) {
+  if (mode !== 'live') {
+    return (await fetch('./recorded/ledger.json', { cache: 'no-store' })).json();
+  }
+  return getJson(measure ? '/api/ledger' : '/api/current');
 }
 
 async function loadJudgements(mode) {
@@ -147,7 +204,19 @@ function renderOverview() {
   host.innerHTML = '';
 
   if (!l || !(l.edges || []).length) {
-    host.textContent = l ? 'The check ran and found no connection to judge.' : 'No check has run yet.';
+    // Auch die Uebersicht bekommt den erklaerten Leerzustand, nicht nur
+    // einen Halbsatz: was fehlt, warum, und der Knopf dazu.
+    host.append(blankNode(l ? {
+      what: 'The check ran and found no connection to judge.',
+      why: 'That is a measured zero: the observed source tables declare no'
+         + ' upstream and no query joined them. It is not a missing measurement.',
+    } : {
+      what: 'Nothing has been measured yet.',
+      why: state.emptyReason
+         || 'No run has left an artifact yet, and none is stored on disk.'
+         + ' Nothing is shown rather than something invented.',
+      action: 'run-ledger',
+    }));
   } else {
     const total = l.edges.length;
     const deadDays = l.edges.filter((e) => e.state === 'dead')
@@ -233,13 +302,50 @@ function renderOverview() {
     ? `abstention ${(j.judgements || []).filter((x) => !x.used_model).length}/${j.calls}`
     : 'abstention: not measured';
 
-  const note = document.getElementById('seeded-note');
-  if (note) {
-    note.textContent = (l && l.seeded)
-      ? (l.seeded_statement || state.info.seeded_statement
-         || 'Seeded demonstration data — not real warehouse usage.')
-      : '';
+  renderNotice();
+}
+
+// Zwei Saetze, die nie verschwinden duerfen -- auch nicht bei schmalem
+// Fenster, auch nicht in einem anderen Bereich.
+//
+// (1) Zeigt die Seite gerade einen AUFGEZEICHNETEN Lauf? Der Server
+//     startet seit 07.08. mit dem juengsten Artefakt von der Platte,
+//     damit die Konsole nicht leer aussieht. Ein alter Stand, der wie
+//     eine frische Messung aussieht, waere aber genau die Behauptung
+//     ohne Beleg, gegen die dieses Projekt antritt -- also steht Herkunft
+//     und Zeitpunkt hier, ueber allem, in jedem Bereich.
+// (2) Sind die Daten eingespielt? (`seeded_statement` aus dem Manifest.)
+function renderNotice() {
+  const l = state.ledger;
+  const bar = document.getElementById('notice');
+  const replay = document.getElementById('replay-note');
+  const seeded = document.getElementById('seeded-note');
+  if (!bar) return;
+
+  const isReplay = !!(l && l.recording);
+  replay.hidden = !isReplay;
+  if (isReplay) {
+    replay.innerHTML = '';
+    const when = l.recorded_at_iso ? new Date(l.recorded_at_iso) : new Date(l.generated_at_ms);
+    replay.append(
+      el('strong', null, 'Recorded run, not a live measurement.'),
+      el('span', null, ` Measured ${when.toLocaleString()}`
+        + (l.recorded_from ? ` · ${l.recorded_from}` : '')
+        + (l.focus_mismatch
+           ? '. It covers tables this server does not currently observe —'
+             + ' they were renamed after the recording was made.'
+           : '')
+        + ' Press “Run a check” to measure this catalog now.'));
   }
+
+  const statement = (l && l.seeded)
+    ? (l.seeded_statement || state.info.seeded_statement
+       || 'Seeded demonstration data — not real warehouse usage.')
+    : '';
+  seeded.hidden = !statement;
+  seeded.textContent = statement;
+
+  bar.hidden = replay.hidden && seeded.hidden;
 }
 
 // --- Bereich 2: Verbindungen -------------------------------------------
@@ -297,12 +403,11 @@ async function renderConnections() {
     data = await getJson(`/api/connections?${filterQuery()}`);
   } catch (err) {
     body.innerHTML = '';
-    const tr = el('tr');
-    const td = el('td', 'empty-state',
-      `The server did not answer (${err.message}). Nothing is shown rather than something invented.`);
-    td.colSpan = 6;
-    tr.append(td);
-    body.append(tr);
+    body.append(blankRow(6, {
+      what: 'The server did not answer.',
+      why: `${err.message}. Nothing is shown rather than something invented —`
+         + ' a failed request is not an absence of connections.',
+    }));
     return;
   }
 
@@ -324,13 +429,20 @@ async function renderConnections() {
 
   body.innerHTML = '';
   if (!data.rows.length) {
-    const tr = el('tr');
-    const td = el('td', 'empty-state', data.has_run
-      ? 'No connection matches these filters.'
-      : 'No connection has been checked yet. Press “Run a check”.');
-    td.colSpan = 6;
-    tr.append(td);
-    body.append(tr);
+    // `has_run: false` darf NIE zu einer wortlosen leeren Tabelle fuehren
+    // -- genau daran ist die Konsole am 07.08. gescheitert. Der Grund
+    // kommt vom Server mit (`empty_reason`), damit hier keine zweite,
+    // moeglicherweise falsche Erklaerung erfunden wird.
+    body.append(blankRow(6, data.has_run ? {
+      what: 'No connection matches these filters.',
+      why: `${data.total_unfiltered} connection(s) were checked in this run.`
+         + ' Clear a filter above to see them.',
+    } : {
+      what: 'No connection has been checked yet.',
+      why: data.empty_reason
+         || 'Nothing is shown rather than something invented.',
+      action: data.fix_action || 'run-ledger',
+    }));
     return;
   }
 
@@ -421,9 +533,11 @@ function renderConnectionsLocal() {
     body.append(tr);
   }
   if (!rows.length) {
-    const tr = el('tr');
-    const td = el('td', 'empty-state', 'No connection matches these filters.');
-    td.colSpan = 6; tr.append(td); body.append(tr);
+    body.append(blankRow(6, {
+      what: 'No connection matches these filters.',
+      why: `This recording holds ${((state.ledger || {}).edges || []).length} connection(s).`
+         + ' Clear a filter above to see them.',
+    }));
   }
 }
 
@@ -718,9 +832,12 @@ async function renderCatalog() {
   const host = document.getElementById('catalog-tree');
   const countEl = document.getElementById('catalog-count');
   if (state.mode !== 'live') {
-    host.innerHTML = '';
-    host.append(el('p', 'empty-state',
-      'The catalog tree needs a live instance — a recording carries only the connections it measured.'));
+    blankInto(host, {
+      what: 'The catalog tree needs a live instance.',
+      why: 'A recording carries only the connections it measured, not the'
+         + ' catalog it measured them in. Start the bench against a running'
+         + ' DataHub (python -m ui.serve) to browse the tree.',
+    });
     countEl.textContent = 'recording';
     return;
   }
@@ -731,8 +848,11 @@ async function renderCatalog() {
     data = await getJson(`/api/catalog?q=${encodeURIComponent(state.catalog.q || '*')}`
                           + `&start=${state.catalog.start}&count=${PAGE}`);
   } catch (err) {
-    host.innerHTML = '';
-    host.append(el('p', 'empty-state', `The catalog did not answer (${err.message}).`));
+    blankInto(host, {
+      what: 'The catalog did not answer.',
+      why: `${err.message}. A failed request is not an empty catalog —`
+         + ' nothing is listed rather than something invented.',
+    });
     return;
   }
   state.catalog.total = data.total;
@@ -746,6 +866,15 @@ async function renderCatalog() {
   });
 
   host.innerHTML = '';
+  if (!data.rows.length) {
+    blankInto(host, {
+      what: 'No dataset matches this search.',
+      why: data.empty_reason
+         || `The catalog answered and holds ${num(data.total)} dataset(s) in total.`
+         + ' This is a measured zero for this search, not a missing measurement.',
+    });
+    return;
+  }
   const groups = new Map();
   for (const row of data.rows) {
     const key = `${row.platform || 'unknown platform'} / ${row.database || '(no database)'}`;
@@ -790,11 +919,17 @@ async function renderRuns() {
   } catch { /* leere Liste ist unten ein eigener, benannter Zustand */ }
 
   if (!data.runs.length) {
-    const tr = el('tr');
-    const td = el('td', 'empty-state', state.mode === 'live'
-      ? 'No run artifact on disk yet.'
-      : 'Run history needs a live instance — it reads the artifacts on disk.');
-    td.colSpan = 6; tr.append(td); body.append(tr);
+    body.append(blankRow(6, state.mode === 'live' ? {
+      what: 'No run artifact on disk yet.',
+      why: data.empty_reason
+         || 'A run only counts here once it has left a file under harness/runs —'
+         + ' nothing is listed from memory.',
+      action: data.fix_action || 'run-ledger',
+    } : {
+      what: 'Run history needs a live instance.',
+      why: 'This list reads the artifacts on disk through the server;'
+         + ' a recording opened as a file cannot see them.',
+    }));
     return;
   }
   for (const r of data.runs) {
@@ -819,10 +954,20 @@ async function renderEvidence() {
   host.innerHTML = '';
   const q = document.getElementById('evidence-q').value || '';
   let items = [];
+  let meta = {};
   if (state.mode === 'live') {
     try {
-      items = (await getJson(`/api/evidence?q=${encodeURIComponent(q)}`)).items;
-    } catch { items = []; }
+      meta = await getJson(`/api/evidence?q=${encodeURIComponent(q)}`);
+      items = meta.items;
+    } catch (err) {
+      // Eine gescheiterte Abfrage ist keine Abwesenheit von Belegen.
+      blankInto(host, {
+        what: 'The server did not answer.',
+        why: `${err.message}. Nothing is listed rather than something invented.`,
+      });
+      countEl.textContent = 'not loaded';
+      return;
+    }
   } else {
     for (const j of (state.judge && state.judge.judgements) || []) {
       items.push({
@@ -838,7 +983,17 @@ async function renderEvidence() {
   }
   countEl.textContent = `${items.length} pieces of evidence`;
   if (!items.length) {
-    host.append(el('p', 'empty-state', 'No evidence collected yet.'));
+    const searching = !!q;
+    blankInto(host, searching ? {
+      what: 'No evidence matches that search.',
+      why: 'Clear the search field above to see everything this run collected.',
+    } : {
+      what: 'No evidence collected yet.',
+      why: meta.empty_reason
+         || 'Evidence appears once a check has run: query URNs, usage windows,'
+         + ' verbatim quotes — and the gaps where there is nothing.',
+      action: meta.fix_action || (meta.has_run === false ? 'run-ledger' : ''),
+    });
     return;
   }
   for (const i of items) {
@@ -857,6 +1012,8 @@ async function renderEvidence() {
 }
 
 // --- Protokoll ----------------------------------------------------------
+
+const LOG_MAX_LINES = 200;
 
 let lastLogText = null, lastLogNode = null, lastLogRepeat = 1;
 
@@ -883,6 +1040,13 @@ function appendLogLine(t, text) {
   line.append(el('span', 'log-entry__text', text));
   host.prepend(line);
   lastLogText = text; lastLogNode = line; lastLogRepeat = 1;
+
+  // Gedeckelt: das Protokoll wuchs unbegrenzt im DOM. Bei einer Demo von
+  // zwanzig Minuten faellt das nicht auf, bei einem Server, der einen Tag
+  // laeuft, ist es ein Leck -- und ein DOM, das nur waechst, macht jedes
+  // Neuzeichnen teurer. Die aeltesten Zeilen fallen unten weg; wer sie
+  // braucht, liest sie im Artefakt, nicht im Bildschirmprotokoll.
+  while (host.childElementCount > LOG_MAX_LINES) host.lastElementChild.remove();
 }
 
 let logCursor = 0;
@@ -931,8 +1095,17 @@ function applyTheme(theme) {
   try { localStorage.setItem('werkbank-theme', theme); } catch { /* privater Modus */ }
 }
 
+const VIEWS = ['overview', 'connections', 'catalog', 'runs', 'evidence'];
+
 function showView(name) {
   state.view = name;
+  // Der Bereich steht in der Adresse. Eine Enterprise-Konsole, deren
+  // Bereiche man niemandem schicken kann, ist ein Schaufenster -- und der
+  // Nachweis "so sieht Bereich X bei 860px aus" laesst sich sonst nur von
+  // Hand fuehren, nicht wiederholbar.
+  if (location.hash.slice(1) !== name) {
+    history.replaceState(null, '', `#${name}`);
+  }
   for (const pane of document.querySelectorAll('.pane')) {
     pane.hidden = pane.dataset.view !== name;
   }
@@ -955,9 +1128,19 @@ export function render() {
   renderDetail();
 }
 
-async function refresh() {
+async function refresh({ measure = false } = {}) {
   try {
-    state.ledger = await loadLedger(state.mode);
+    const body = await loadLedger(state.mode, { measure });
+    // `/api/current` antwortet mit `has_run: false` und sagt AUSDRUECKLICH,
+    // warum nichts da ist. Die Uebersicht reicht diesen Satz weiter, statt
+    // einen eigenen zu erfinden.
+    if (body && body.has_run === false) {
+      state.ledger = null;
+      state.emptyReason = body.empty_reason || '';
+    } else {
+      state.ledger = body;
+      state.emptyReason = '';
+    }
   } catch (err) {
     // Ein gescheiterter Abruf ist keine Abwesenheit von Kanten: die Seite
     // sagt das, statt eine leere Liste zu zeigen, die wie "alles in
@@ -971,14 +1154,34 @@ async function refresh() {
 }
 
 let judgePoll = null;
+let judgeFingerprint = null;
+
+// Jeder Takt zeichnete bisher Uebersicht UND Verbindungstabelle neu --
+// auch dann, wenn das Modell noch am selben Urteil rechnete und sich
+// nichts geaendert hatte. Ein Neuzeichnen der Tabelle ist zusaetzlich ein
+// `/api/connections`-Aufruf; zwei Minuten Modelllauf waren so ~48
+// ueberfluessige Anfragen und ~48 vollstaendige Neuaufbauten des DOM.
+// Jetzt: nur bei echter Aenderung, und nur, solange jemand hinsieht.
+function judgeStamp(j) {
+  if (!j) return 'none';
+  return JSON.stringify([j.running, j.calls, j.seconds, j.cost_usd,
+                          (j.judgements || []).length]);
+}
+
 function watchJudgements() {
   if (judgePoll) return;
+  judgeFingerprint = judgeStamp(state.judge);
   judgePoll = setInterval(async () => {
+    if (document.visibilityState !== 'visible') return;
     state.judge = await loadJudgements('live');
-    renderOverview();
-    if (state.view === 'connections') renderConnections();
-    if (state.view === 'evidence') renderEvidence();
-    renderDetail();
+    const stamp = judgeStamp(state.judge);
+    if (stamp !== judgeFingerprint) {
+      judgeFingerprint = stamp;
+      renderOverview();
+      if (state.view === 'connections') renderConnections();
+      if (state.view === 'evidence') renderEvidence();
+      renderDetail();
+    }
     if (!state.judge || !state.judge.running) { clearInterval(judgePoll); judgePoll = null; }
   }, 2500);
 }
@@ -997,7 +1200,10 @@ async function runAction(name, btn) {
       appendLogLine(Date.now(), `action refused — ${body.error || r.status}`);
       return;
     }
-    await refresh();
+    // NACH einem Knopfdruck wird wirklich neu gemessen -- die Seite
+    // behauptet "every verdict is re-measured afterwards", also muss
+    // genau hier der echte Lauf stehen und nicht der Zwischenstand.
+    await refresh({ measure: true });
     await pumpLog();
     renderModeBadge(await fetchModeInfo());
     if (state.judge && state.judge.running) watchJudgements();
@@ -1011,6 +1217,15 @@ async function runAction(name, btn) {
 for (const item of document.querySelectorAll('.sidenav__item')) {
   item.addEventListener('click', () => showView(item.dataset.view));
 }
+
+// Die Knoepfe in den Leerzustaenden liegen ueberall im Baum (Tabelle,
+// Baum, Liste) und werden bei jedem Zeichnen neu gebaut -- ein Delegat am
+// Dokument statt eines Zuhoerers pro Knopf.
+document.addEventListener('click', (ev) => {
+  const btn = ev.target.closest('.blank button[data-action]');
+  if (!btn || btn.disabled || document.body.dataset.mode !== 'live') return;
+  runAction(btn.dataset.action, btn);
+});
 
 document.getElementById('controls').addEventListener('click', (ev) => {
   const btn = ev.target.closest('button[data-action]');
@@ -1043,7 +1258,10 @@ document.getElementById('time-offset-reset').addEventListener('click', async () 
     body: '{}',
   });
   renderModeBadge(await fetchModeInfo());
-  await refresh();
+  // Die Sicht-Verschiebung aendert die INTERPRETATION, also muss neu
+  // gerechnet werden -- ein Zwischenstand waere gegen das alte Fenster
+  // gemessen.
+  await refresh({ measure: true });
   await pumpLog();
 });
 
@@ -1103,7 +1321,20 @@ document.getElementById('evidence-q').addEventListener('input', () => {
   eTimer = setTimeout(renderEvidence, 250);
 });
 
-setInterval(() => { if (document.body.dataset.mode === 'live') pumpLog(); }, 1500);
+// Takte laufen nur, solange jemand hinsieht. Ein verborgener Tab (Fenster
+// minimiert, anderer Tab im Vordergrund) hat nichts davon, dass alle 1,5s
+// eine Anfrage gegen den Server geht -- Chrome drosselt den Takt ohnehin,
+// aber der Server sieht die Last trotzdem. Beim Zurueckkommen wird EINMAL
+// nachgeholt; `logCursor` sorgt dafuer, dass keine Zeile doppelt kommt.
+function ticksAllowed() {
+  return document.body.dataset.mode === 'live' && document.visibilityState === 'visible';
+}
+
+setInterval(() => { if (ticksAllowed()) pumpLog(); }, 1500);
+
+document.addEventListener('visibilitychange', () => {
+  if (ticksAllowed()) pumpLog();
+});
 
 async function boot() {
   try {
@@ -1137,7 +1368,13 @@ async function boot() {
   } else {
     replayRecordedLog();
   }
-  showView('overview');
+  const wanted = location.hash.slice(1);
+  showView(VIEWS.includes(wanted) ? wanted : 'overview');
 }
+
+window.addEventListener('hashchange', () => {
+  const wanted = location.hash.slice(1);
+  if (VIEWS.includes(wanted) && wanted !== state.view) showView(wanted);
+});
 
 boot();

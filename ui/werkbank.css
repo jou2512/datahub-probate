@@ -89,6 +89,15 @@
   --space-1: 4px;  --space-2: 8px;  --space-3: 12px;
   --space-4: 20px; --space-5: 32px; --space-6: 48px;
 
+  /* Breite der Seitenleiste und der Detailspalte als TOKEN, nicht als
+     Zahl im Raster. Die schmalen Fassungen weiter unten setzen nur diese
+     beiden Werte um -- die Rasterform (links Navigation, rechts Inhalt)
+     bleibt dieselbe, auf jeder Breite. Genau das war der Defekt: eine
+     Umschaltung auf EINE Spalte hat aus der Seitenleiste einen
+     waagerechten, selbst scrollenden Kasten UEBER dem Inhalt gemacht. */
+  --nav-w: 210px;
+  --detail-w: 400px;
+
   --font-ui:   ui-sans-serif, system-ui, "Segoe UI", Roboto, Helvetica, Arial, sans-serif;
   --font-mono: ui-monospace, "Cascadia Mono", "SFMono-Regular", Consolas, monospace;
 
@@ -204,7 +213,9 @@ html, body { height: 100%; }
 .app {
   height: 100vh;
   display: grid;
-  grid-template-rows: auto minmax(0, 1fr) auto;
+  /* Kopfzeile · Hinweisstreifen · Inhalt · Statusleiste. Nur die dritte
+     Zeile darf wachsen und scrollen -- das ist "ein einziger Bildlauf". */
+  grid-template-rows: auto auto minmax(0, 1fr) auto;
   background: var(--bg);
 }
 
@@ -275,17 +286,75 @@ html, body { height: 100%; }
 .btn--primary { border-color: var(--measured); color: var(--measured); font-weight: 600; }
 
 .app__body {
+  position: relative;   /* Anker fuer die ueberlagerte Detailspalte, s.u. */
   display: grid;
-  grid-template-columns: 210px minmax(0, 1fr);
+  grid-template-columns: var(--nav-w) minmax(0, 1fr);
   min-height: 0;
 }
 
-.app__body.has-detail { grid-template-columns: 210px minmax(0, 1fr) minmax(320px, 400px); }
+.app__body.has-detail {
+  grid-template-columns: var(--nav-w) minmax(0, 1fr) minmax(300px, var(--detail-w));
+}
 
-@media (max-width: 1100px) {
-  .app__body,
-  .app__body.has-detail { grid-template-columns: minmax(0, 1fr); }
-  .sidenav { flex-direction: row; overflow-x: auto; }
+/* ---------------------------------------------------------------------
+   Schmale Fenster -- was hier NICHT passieren darf
+
+   Gemessen 07.08. bei 838x674 (Chrome, /werkbank.html): die alte Regel
+   `@media (max-width: 1100px) { .app__body { grid-template-columns:
+   minmax(0,1fr) } }` legte Seitenleiste UND Inhalt untereinander. Aus der
+   Navigation wurde ein 838x273-Kasten mit EIGENER senkrechter
+   Bildlaufleiste (scrollHeight 399 > clientHeight 273) direkt neben der
+   des Inhalts -- "Evidence" war ohne Scrollen im Kasten gar nicht
+   erreichbar. Das `flex-direction: row` derselben Regel griff dabei nicht
+   einmal: die spaetere `.sidenav`-Basisregel hat es bei gleicher
+   Spezifitaet ueberschrieben, also stand die Navigation als hohe Spalte
+   quer ueber der Seite.
+
+   Die Regel ab jetzt: die Rasterform aendert sich NIE. Ab 1280px gilt die
+   Spec-Struktur unveraendert (Seitenleiste 210px, ein Bildlauf im
+   Inhalt); darunter wird die Seitenleiste nur SCHMALER, und die
+   Detailspalte legt sich ueber den Inhalt, statt ihn zu zerquetschen.
+   Zwei ineinandergeschachtelte senkrechte Bildlaeufe gibt es auf keiner
+   Breite.
+   --------------------------------------------------------------------- */
+
+@media (max-width: 1279px) {
+  :root { --nav-w: 150px; --detail-w: 340px; }
+  /* Der Hinweissatz ist Erklaerung, nicht Navigation -- er faellt zuerst.
+     Der Bereichsname bleibt, damit niemand Symbole raten muss. */
+  .sidenav__hint { display: none; }
+  .sidenav__item { grid-template-columns: minmax(0, 1fr) auto; }
+  .search__input { min-width: 0; width: 170px; }
+}
+
+@media (max-width: 1023px) {
+  :root { --nav-w: 144px; }
+  .sidenav { padding: var(--space-2) var(--space-1); }
+  .sidenav__item {
+    padding: var(--space-2);
+    /* Eine Spalte: die Zahl rutscht UNTER den Namen. Nebeneinander
+       ueberlappten "Catalog" und "5.595" bei 108px sichtbar -- gemessen
+       im Bildschirmabzug bei 860px. */
+    grid-template-columns: minmax(0, 1fr);
+  }
+  .sidenav__name { font-size: 0.78rem; overflow-wrap: anywhere; }
+  .sidenav__count { font-size: 0.66rem; grid-column: 1 / -1; }
+  .search__input { width: 130px; }
+  .topbar { padding: var(--space-2) var(--space-3); gap: var(--space-2); }
+
+  /* Die Detailspalte als aufliegende Schicht: sie darf den Inhalt
+     verdecken, aber nie unter ihn rutschen -- untereinander waeren es
+     wieder zwei Bildlaeufe, die man nacheinander bedienen muss. */
+  .app__body.has-detail { grid-template-columns: var(--nav-w) minmax(0, 1fr); }
+  .detail {
+    position: absolute;
+    top: 0;
+    right: 0;
+    bottom: 0;
+    z-index: 5;
+    width: min(360px, 82vw);
+    box-shadow: -2px 0 6px var(--shadow);
+  }
 }
 
 /* ---------------------------------------------------------------------
@@ -339,9 +408,35 @@ html, body { height: 100%; }
   color: var(--ink-muted);
 }
 
-.sidenav__foot { margin-top: auto; padding: var(--space-3); }
+/* ---------------------------------------------------------------------
+   Hinweisstreifen unter der Kopfzeile
 
-.sidenav__note { font-size: 0.68rem; color: var(--ink-faint); line-height: 1.4; }
+   Zwei Saetze, die auf JEDER Breite und in JEDEM Bereich sichtbar bleiben
+   muessen, weil sie Wahrheits-Markierungen sind und keine Verzierung:
+   (1) dass gerade ein AUFGEZEICHNETER Lauf gezeigt wird und von wann,
+   (2) dass die Daten eingespielt sind (`seeded_statement`).
+
+   Der zweite Satz stand bis 07.08. im Fuss der Seitenleiste. Dort ist er
+   bei 150px Breite unlesbar und bei 108px gar nicht mehr unterzubringen
+   -- eine Ehrlichkeits-Angabe, die bei schmalem Fenster verschwindet, ist
+   keine. Jetzt: eine Stelle, volle Breite, immer da.
+   --------------------------------------------------------------------- */
+
+.notice {
+  display: flex;
+  flex-direction: column;
+  gap: 2px;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface-sunk);
+}
+
+.notice[hidden] { display: none; }
+.notice p[hidden] { display: none; }
+
+.notice__replay { font-size: 0.78rem; color: var(--ink); }
+.notice__replay strong { font-weight: 700; }
+.notice__seeded { font-size: 0.7rem; color: var(--ink-faint); line-height: 1.4; }
 
 /* ---------------------------------------------------------------------
    Inhaltsbereich
@@ -441,6 +536,13 @@ html, body { height: 100%; }
 }
 
 .quality__hint { margin-top: var(--space-1); font-size: 0.76rem; color: var(--ink-muted); }
+
+/* Dieselbe Falle wie bei `.pane` und `.detail`: `display: flex` schlaegt
+   die eingebaute [hidden]-Regel des Browsers. Sichtbar geworden im
+   Bildschirmabzug des Leerzustands (07.08.) -- ein leerer grauer Streifen
+   stand dort, wo NICHTS stehen sollte, und ein Streifen ohne Text ist
+   genau die stumme Anzeige, gegen die dieser Durchgang antritt. */
+.warning[hidden] { display: none; }
 
 .warning {
   display: flex;
@@ -1001,7 +1103,40 @@ button.chip { cursor: pointer; }
 
 .empty-state { color: var(--ink-muted); font-size: 0.86rem; padding: var(--space-3); max-width: 60ch; }
 
+/* ---------------------------------------------------------------------
+   Der erklaerte Leerzustand
+
+   Spec, "Die Null-Regel": "keine Daten" und "gemessene Null" sehen NIE
+   gleich aus. Die Regel war auf die Balken angewendet und auf dem
+   Hauptbildschirm vergessen -- `GET /api/connections` antwortete direkt
+   nach dem Serverstart mit `rows: []`, und die Oberflaeche zeigte eine
+   wortlos leere Tabelle. Von "kaputt" ist das nicht zu unterscheiden;
+   genau so ist der Auftraggeber am 07.08. darauf gestossen.
+
+   Ein Leerzustand sagt deshalb IMMER drei Dinge: was fehlt, warum es
+   fehlt, und welcher Knopf es behebt.
+   --------------------------------------------------------------------- */
+
+.blank {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;   /* linksbuendig, Spec Ebene 3 */
+  gap: var(--space-2);
+  padding: var(--space-4);
+  max-width: 62ch;
+}
+
+td .blank, th .blank { padding: var(--space-3); }
+
+.blank__what { font-size: 0.92rem; font-weight: 600; color: var(--ink); }
+.blank__why { font-size: 0.82rem; color: var(--ink-muted); line-height: 1.5; }
+
 /* Abzeichen (Modus, Uhr, Thema) -- neutral, nie in einer Zustandsfarbe. */
+/* `display: inline-flex` schlaegt [hidden] genauso wie `flex` -- das
+   Uhr-Abzeichen blieb im Aufzeichnungsmodus sichtbar, obwohl es
+   ausgeblendet sein sollte. */
+.badge[hidden] { display: none; }
+
 .badge {
   display: inline-flex;
   align-items: center;
