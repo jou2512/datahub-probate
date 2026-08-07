@@ -379,14 +379,105 @@ def _extract_span(quote_norm: str, original_text: str) -> str:
     return m.group(0) if m else quote_norm
 
 
+# --- Der Seed-Hinweis ist kein zitierfaehiger Beleg -----------------------
+#
+# Entscheid: docs/entscheidungen/2026-08-07-seed-hinweis-nicht-zitierfaehig.md
+# Gemessener Fund (Vier-Fokus-Matrix, `harness/judge_matrix.py`): beim
+# `missing`-Fokus zitierte das Modell woertlich unseren EIGENEN
+# Offenlegungs-Hinweis ("probate-seedlab -- synthetische
+# Demonstrationsdaten") als Beleg. Die Zitatpflicht war formal erfuellt
+# (das Zitat steht wortwoertlich im Korpus) und inhaltlich leer (der Beleg
+# sagt nichts ueber die Tabelle, nur etwas ueber unser eigenes
+# Testverfahren) -- eine dritte Luecke in derselben Familie wie C1/C2 aus
+# der ersten Fix-Runde: syntaktisch gueltig, substanziell wertlos.
+#
+# Design-Entscheid (dokumentiert wie im Auftrag verlangt): GENERISCH
+# statt literal. `harness/seed_lineage_lab.py`s `DESC_PREFIX` ("[probate-
+# seedlab -- ...]") wird hier NICHT importiert -- `probate/` darf nicht
+# von `harness/` abhaengen, das waere die falsche Richtung (harness ist
+# Werkzeugkasten UM probate herum, nicht umgekehrt). Statt eines Imports
+# oder eines literal hartkodierten Strings gilt eine STRUKTURELLE Regel:
+# ein FUEHRENDES, in eckigen Klammern stehendes Segment am Anfang eines
+# Feldes ist ein Provenienz-/Offenlegungs-Etikett ueber das Testverfahren,
+# kein Geschaeftsinhalt -- unabhaengig vom genauen Wortlaut. Das deckt den
+# Seedlab-Fall ab, ohne dass diese Datei je wissen muss, wie der genaue
+# Text lautet, und bricht nicht, wenn `DESC_PREFIX` sich aendert.
+#
+# BEWUSST keine Parameter an `gather_context`/`judge_edge` (die zweite,
+# im Auftrag angebotene Option): eine Konstante trifft den Fall genauso
+# und spart eine Konfigurationsflaeche, die durch `judge_ledger`/
+# `ledger.run()`/die CLI haette durchgereicht werden muessen, fuer eine
+# Regel, die strukturell ist (jedes fuehrende `[...]`-Segment), nicht
+# pro Aufruf variiert.
+#
+# Was den Entscheid falsch machen wuerde (aus dem Architektur-Dokument
+# uebernommen): ein ECHTER Katalog, dessen fuehrende Klammer-Segmente
+# tatsaechlich urteilsrelevanten Geschaeftsinhalt tragen (z.B.
+# "[DEPRECATED] ..."). Fuer DIESES Projekt (Demo-Katalog, keine
+# Fremddaten) ist dieses Risiko als vernachlaessigbar bewertet -- nicht
+# von mir neu abgewogen, sondern aus dem Entscheid uebernommen.
+#
+# WICHTIG: der Hinweis bleibt im ZURUECKGEGEBENEN Kontext (`gather_
+# context`s `description`/`text`-Felder) UNVERAENDERT stehen -- er MUSS
+# sichtbar bleiben (Projektregel: geseedete Daten ueberall ausweisen) und
+# das Modell sieht ihn im Prompt weiterhin (er steht im `text`-Feld, das
+# `build_prompt` unveraendert durchreicht). Nur die MATCH-Prüfung hier
+# unten ignoriert ihn -- `gather_context` selbst wird nicht angefasst.
+_DISCLOSURE_PREFIX_RE = re.compile(r"^\s*\[[^\]]*\]\s*")
+
+
+def _strip_disclosure_prefix(text: str) -> str:
+    """Entfernt ein FUEHRENDES Klammer-Segment (genau eins, nur am Anfang)
+    aus dem Text, gegen den ein Zitat geprueft wird. Kein Treffer -> Text
+    unveraendert (kein Fehler, kein Sonderfall bei Feldern ohne Praefix --
+    `name`/`owner`/`glossary`/`domain` tragen im Seedlab nie ein solches
+    Segment, die Funktion laesst sie einfach durch)."""
+    return _DISCLOSURE_PREFIX_RE.sub("", text, count=1)
+
+
+def _leading_disclosure(text: str) -> str | None:
+    """Liefert NUR das fuehrende Klammer-Segment selbst (mit Klammern),
+    oder `None`, wenn keins da ist -- Gegenstueck zu
+    `_strip_disclosure_prefix`, gebraucht um zu unterscheiden 'das Zitat
+    ist erfunden' von 'das Zitat ist woertlich, aber NUR der Hinweis
+    selbst' (zwei verschiedene Aussagen, zwei verschiedene
+    `fallback_reason`-Werte, s. `judge_edge`)."""
+    m = _DISCLOSURE_PREFIX_RE.match(text)
+    return m.group(0) if m else None
+
+
 def _match_in_context(quote_norm: str, ctx: dict) -> tuple[str, str] | None:
     """Sucht das normalisierte Zitat in den Feld-Segmenten EINER Seite --
-    nie ueber zwei Segmente hinweg (C2). Gibt `(Feld-Label,
-    Original-Ausschnitt)` beim ersten Treffer zurueck, sonst `None`."""
+    nie ueber zwei Segmente hinweg (C2), und NIE im fuehrenden Offenlegungs-
+    Etikett eines Feldes (s. Modul-Kommentar oben) -- der Korpus, gegen den
+    hier geprueft wird, hat dieses Segment abgezogen. Gibt `(Feld-Label,
+    Original-Ausschnitt)` beim ersten Treffer zurueck, sonst `None`.
+
+    `_extract_span` bekommt trotzdem den UNGEKUERZTEN Originaltext: ein
+    Treffer ausserhalb des Praefixes findet sich darin genauso (die
+    Klammer davor stoert die Substring-Suche nicht), und der gespeicherte
+    Beleg bleibt so exakt der Katalog-Text inklusive seines echten
+    Whitespace."""
     for label, text in _segments(ctx):
-        if quote_norm in _normalise(text):
+        citable = _normalise(_strip_disclosure_prefix(text))
+        if quote_norm in citable:
             return label, _extract_span(quote_norm, text)
     return None
+
+
+def _quote_is_only_the_disclosure(quote_norm: str, up_ctx: dict, down_ctx: dict) -> bool:
+    """True, wenn das Zitat zwar woertlich in einem der beiden Kontexte
+    steht, aber AUSSCHLIESSLICH im fuehrenden Offenlegungs-Etikett eines
+    Feldes -- unterscheidet den benannten Fall 'das Modell hat unseren
+    eigenen Seed-Hinweis zitiert' vom generischen 'erfundenes Zitat', der
+    `judge_edge` als naechstes prueft (Reihenfolge: dieser Check zuerst,
+    weil er die praezisere Aussage ist)."""
+    for ctx in (up_ctx, down_ctx):
+        for _, text in _segments(ctx):
+            disclosure = _leading_disclosure(text)
+            if disclosure and quote_norm in _normalise(disclosure):
+                return True
+    return False
 
 
 def _fallback(verdict, why: str) -> Judgement:
@@ -415,7 +506,8 @@ def judge_edge(verdict, up_ctx: dict, down_ctx: dict,
     das ein Reply ihn aendern koennte (s. `Judgement`-Docstring).
 
     Reihenfolge der Fehlwege, jeder mit eigenem `fallback_reason` (Fix-
-    Runde 1 fuegt Schritte 2b/3b/3c/5b ein, s. Modul-Kommentar oben):
+    Runde 1 fuegt Schritte 2b/3b/3c/5b ein, Fix-Runde 2 (Seed-Hinweis-
+    Entscheid) fuegt 5c ein, s. Modul-Kommentar oben):
       1. kein Transport injiziert                    -> "kein Transport konfiguriert"
       2. Prompt-Bau schlaegt fehl (I4)                -> KEIN Fallback, propagiert (Bug in unserem Code)
       2b. Transport wirft                             -> "Transport gescheitert (<ExceptionTyp>): <exc>"
@@ -425,7 +517,10 @@ def judge_edge(verdict, up_ctx: dict, down_ctx: dict,
       3c. `important` ist kein echtes Bool (I2)        -> "important-Feld nicht boolesch"
       3d. `reason` fehlt/ist leer (M4)                 -> "keine Begruendung geliefert"
       5. kein Segment auf keiner Seite lesbar (M2)     -> "kein lesbarer Kontext vorhanden"
-      5b. Zitat in keinem Feld-Segment gefunden (C2)   -> "Zitat steht nicht im gelesenen Kontext"
+      5b. Zitat NUR im Seed-Hinweis, sonst nirgends    -> "Zitat nur aus dem Seed-Hinweis, kein Beleg"
+      5c. Zitat in keinem Feld-Segment gefunden (C2)   -> "Zitat steht nicht im gelesenen Kontext"
+          (5b wird VOR 5c geprueft -- die praezisere Aussage gewinnt, s.
+          `_quote_is_only_the_disclosure`)
 
     Garbage-Feldwerte (z.B. `quote` als Zahl statt Text, eine JSON-Antwort,
     die eine Liste statt eines Objekts ist, ein `important` als Liste)
@@ -480,6 +575,12 @@ def judge_edge(verdict, up_ctx: dict, down_ctx: dict,
 
     match = _match_in_context(quote_norm, up_ctx) or _match_in_context(quote_norm, down_ctx)
     if match is None:
+        # Praeziser als der generische Fall (naechste Zeile), wenn
+        # zutreffend: das Zitat ist wortwoertlich vorhanden, aber
+        # ausschliesslich unser eigener Offenlegungs-Hinweis, kein
+        # Geschaeftsinhalt (s. Modul-Kommentar bei `_match_in_context`).
+        if _quote_is_only_the_disclosure(quote_norm, up_ctx, down_ctx):
+            return _fallback(verdict, "Zitat nur aus dem Seed-Hinweis, kein Beleg")
         return _fallback(verdict, "Zitat steht nicht im gelesenen Kontext")
     matched_field, matched_span = match
 

@@ -681,6 +681,86 @@ def test_judge_ledger_respects_the_hard_limit():
     assert len(judge_ledger(G(), ledger, transport=None, limit=2)) == 2
 
 
+# --- Fix-Runde 2: der Seed-Hinweis ist kein zitierfaehiger Beleg --------
+#
+# docs/entscheidungen/2026-08-07-seed-hinweis-nicht-zitierfaehig.md.
+# Gemessener Fund (Vier-Fokus-Matrix, `harness/judge_matrix.py`): beim
+# `missing`-Fokus zitierte das Modell woertlich den eigenen Offenlegungs-
+# Hinweis ("probate-seedlab -- synthetische Demonstrationsdaten") als
+# Beleg -- formal gueltig (Zitat steht woertlich im Korpus), inhaltlich
+# leer (sagt nichts ueber die Tabelle). Die Regel in `judge.py` ist
+# STRUKTURELL (jedes fuehrende `[...]`-Segment), nicht an den woertlichen
+# Seedlab-Text gekoppelt -- `harness/seed_lineage_lab.py` wird hier NICHT
+# importiert (falsche Richtung).
+
+SEED_DISCLOSURE = "[probate-seedlab -- synthetische Demonstrationsdaten]"
+UP_WITH_DISCLOSURE = {
+    "urn": "urn:up", "name": "fin_year_end",
+    "description": f"{SEED_DISCLOSURE} Geprüfter Jahresabschluss, revisionsrelevant",
+    "owners": [], "glossary_terms": [], "domain": "",
+    "text": f"fin_year_end\n{SEED_DISCLOSURE} Geprüfter Jahresabschluss, revisionsrelevant",
+}
+
+
+def test_a_quote_that_is_only_the_seed_disclosure_falls_back_with_its_own_reason():
+    """Der gemessene Fund selbst, nachgebaut: das Zitat steht woertlich im
+    Korpus, aber ausschliesslich im Offenlegungs-Etikett -- ein eigener,
+    praeziserer Rueckfallgrund als das generische 'nicht im Kontext'."""
+    j = judge_edge(DEAD, UP_WITH_DISCLOSURE, DOWN, transport=_reply(
+        important=True, reason="r",
+        quote="probate-seedlab -- synthetische Demonstrationsdaten",
+        source_field="description"))
+    assert j.used_model is False
+    assert j.important is False
+    assert j.quote == ""
+    assert j.fallback_reason == "Zitat nur aus dem Seed-Hinweis, kein Beleg"
+
+
+def test_a_quote_from_the_real_description_after_the_seed_prefix_still_passes():
+    """Derselbe Kontext, aber das Zitat kommt aus dem ECHTEN Beschreibungs-
+    Text NACH dem Praefix -- der Praefix macht das restliche Feld nicht
+    unzitierbar, nur sich selbst."""
+    j = judge_edge(DEAD, UP_WITH_DISCLOSURE, DOWN, transport=_reply(
+        important=True, reason="r",
+        quote="Geprüfter Jahresabschluss, revisionsrelevant",
+        source_field="description"))
+    assert j.used_model is True
+    assert j.quote == "Geprüfter Jahresabschluss, revisionsrelevant"
+    assert j.source_field == "description"
+
+
+def test_the_seed_disclosure_still_appears_in_the_returned_context_unmodified():
+    """Der Hinweis MUSS sichtbar bleiben (Projektregel: geseedete Daten
+    ueberall ausweisen) -- nur die Zitatpruefung ignoriert ihn,
+    `gather_context` selbst wird nicht angefasst und bekommt keinen neuen
+    Parameter."""
+    c = gather_context(FakeGms({"dataset": {
+        "urn": "urn:d",
+        "properties": {"name": "t",
+                       "description": f"{SEED_DISCLOSURE} echte Beschreibung hier"},
+        "ownership": None, "glossaryTerms": None, "domain": None,
+    }}), "urn:d")
+    assert c["description"].startswith(SEED_DISCLOSURE)
+    assert SEED_DISCLOSURE in c["text"]
+
+
+def test_the_exclusion_is_structural_not_coupled_to_the_literal_seedlab_string():
+    """Die Regel greift bei JEDEM fuehrenden Klammer-Segment, nicht nur
+    beim woertlichen Seedlab-Text -- Beleg, dass hier keine versteckte
+    Kopplung an `harness/seed_lineage_lab.py`s `DESC_PREFIX` existiert."""
+    ctx = {
+        "urn": "urn:x", "name": "t",
+        "description": "[Only visible to test operators] Diese Tabelle wird taeglich "
+                        "synchronisiert und dient dem Reporting.",
+        "owners": [], "glossary_terms": [], "domain": "", "text": "irrelevant",
+    }
+    j = judge_edge(DEAD, ctx, DOWN, transport=_reply(
+        important=True, reason="r", quote="Only visible to test operators",
+        source_field="description"))
+    assert j.used_model is False
+    assert j.fallback_reason == "Zitat nur aus dem Seed-Hinweis, kein Beleg"
+
+
 def test_judge_ledger_caches_context_per_urn_not_per_edge():
     """Ein Dataset, das auf beiden Seiten mehrerer Kanten auftaucht, darf
     nur EINMAL abgefragt werden -- API-Aufrufzahl ist eine gemessene
