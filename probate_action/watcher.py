@@ -33,9 +33,12 @@ Protokollzitate in `harness/runs/watcher-live.json`.
 from __future__ import annotations
 
 import json
+import logging
 from pathlib import Path
 
 from datahub_actions.action.action import Action
+
+logger = logging.getLogger(__name__)
 
 ACCESS_ASPECTS = {"operation", "datasetUsageStatistics", "queryUsageStatistics"}
 
@@ -89,8 +92,29 @@ class ProbateWatcher(Action):
             "entityUrn": getattr(mcl, "entityUrn", None),
             "aspectName": getattr(mcl, "aspectName", None),
         }
-        if is_relapse(as_dict, self.closed_urns):
-            self.wb.mutation("raiseIncident", _relapse_incident_q(as_dict["entityUrn"]))
+        relapse = is_relapse(as_dict, self.closed_urns)
+        # INFO, nicht DEBUG: die Kafka-Source-Bibliothek braucht das
+        # Top-Level-`--debug`-Flag an einer nicht offensichtlichen Stelle
+        # (siehe watcher-live.json "findings"), damit ihre eigenen
+        # Debug-Zeilen sichtbar werden. Der eigene Logger dieses Moduls
+        # (`probate_action.watcher`, eigene Hierarchie, nicht Kind von
+        # `datahub_actions`) soll unabhaengig davon sichtbar sein -- INFO
+        # wird vom `run`-Subcommand immer mindestens gesetzt (cli/actions.py).
+        logger.info(
+            "watcher: urn=%s aspect=%s relapse=%s",
+            as_dict["entityUrn"], as_dict["aspectName"], relapse,
+        )
+        if relapse:
+            # Ein verworfenes WriteResult ist auch ein verschlucktes
+            # Ergebnis -- geloggt statt fallengelassen (Fund aus Task 15,
+            # Fix-Runde 1: Writeback.mutation() journalisiert im
+            # dry_run-Zweig nichts; ohne diese Zeile bleibt der Rueckfall
+            # unsichtbar im Protokoll).
+            result = self.wb.mutation("raiseIncident", _relapse_incident_q(as_dict["entityUrn"]))
+            logger.info(
+                "watcher: relapse-mutation urn=%s applied=%s dry_run=%s detail=%s",
+                as_dict["entityUrn"], result.applied, self.wb.dry_run, result.detail,
+            )
         return True
 
     def close(self) -> None:
