@@ -89,7 +89,24 @@ def propose(ledger: dict) -> list[Proposal]:
 
     Signatur bewusst einparametrig (`ledger` allein) -- kein `gms`, kein
     `writeback`: diese Funktion kann strukturell nicht schreiben.
+
+    (Review, CRITICAL 1): `ledger["seeded"]` ist die einzige Stelle im
+    Register, die weiss, ob der Katalog dahinter geseedete Demo-Daten
+    oder echte Warehouse-Nutzung liefert (`ledger.run()` setzt sie oben
+    im Lauf, siehe dortiger Kommentar). Bislang wanderte dieser Wert
+    NIRGENDS in einen Vorschlag -- `apply_proposal` schrieb "seeded data"
+    als Literal in JEDEN `enrich_doc`-Text, unabhaengig davon, was das
+    Register tatsaechlich mass. Heute zufaellig richtig (die einzige
+    existierende Ledger-Quelle ist immer geseedet), gegen echten Verkehr
+    waere es eine unbelegte Behauptung -- genau die Fehlerklasse, gegen
+    die dieses Projekt existiert. `seeded` wird deshalb hier UNVERAENDERT
+    durchgereicht (nicht erfunden): fehlt der Schluessel (z.B. in einem
+    handgeschriebenen Test-Ledger), ist die Herkunft UNBEKANNT
+    (`evidence["seeded"] is None`), nicht "nicht geseedet" -- der
+    Unterschied entscheidet an der Schreibstelle, ob ueberhaupt eine
+    Herkunfts-Aussage in den Katalogtext darf.
     """
+    seeded = ledger.get("seeded")
     out: list[Proposal] = []
     for row in ledger.get("edges", []):
         state, ev = row.get("state"), row.get("evidence") or {}
@@ -125,7 +142,8 @@ def propose(ledger: dict) -> list[Proposal]:
                 kind="enrich_doc", edge_key=key, target_urn=down,
                 aspect="editableDatasetProperties", state=state,
                 evidence={"query_urns": ev.get("query_urns", []),
-                          "last_covered_ms": tl.get("last_covered_ms")},
+                          "last_covered_ms": tl.get("last_covered_ms"),
+                          "seeded": seeded},
                 human_summary=(
                     f"Beobachtete Nutzung von {up} dokumentieren "
                     f"({len(ev.get('query_urns', []))} Abfrage(n))."),
@@ -290,20 +308,41 @@ def _resolve_editable_props_before(before: dict | None) -> dict:
     return value
 
 
+_ENRICH_DOC_TAG = "[probate:enrich_doc]"
+
+
 def merge_editable_description(before: dict | None, note: str) -> dict:
     """Haengt eine probate-Notiz an -- ueberschreibt NIE eine bestehende
-    Beschreibung.
+    Beschreibung, und wird bei wiederholter Anwendung nicht laenger.
 
-    `editableDatasetProperties.description` ist im DataHub-UI die
-    kuratierte, von Menschen geschriebene Beschreibung. Anders als
-    `upstreamLineage.upstreams[].properties` (Task 12, `mark_dead`) gibt
-    es auf diesem Aspekt kein separates Feld, das probate exklusiv
-    gehoert -- also ist Anhaengen an `description`, niemals Ersetzen, die
-    einzige Operation, die menschliche Dokumentation nicht zerstoert.
-    Ein Klobbern der Beschreibung waere dieselbe Fehlerklasse wie das
-    stille Loeschen von `fineGrainedLineages` in `merge_upstreams`
+    **Warum dieses Feld** (`editableDatasetProperties.description`, nicht
+    ein eigenes probate-Feld): es ist im DataHub-UI die kuratierte
+    Beschreibung, die Menschen tatsaechlich lesen. Ein verstecktes Feld
+    (z.B. `customProperties["probate.note"]`) waere "sicherer" im Sinn
+    von nie-vermischt, aber fuer den eigentlichen Zweck -- beobachtete
+    Nutzung SICHTBAR dokumentieren -- nutzlos.
+
+    **Warum ausschliesslich anhaengend** (nie ersetzend): es gibt auf
+    diesem Aspekt kein zweites, probate-exklusives Feld (anders als
+    `upstreamLineage.upstreams[].properties["probate.dead_since"]` bei
+    `mark_dead`, Task 12). Eine bestehende, von einem Menschen
+    geschriebene Beschreibung zu ersetzen waere dieselbe Fehlerklasse wie
+    das stille Loeschen von `fineGrainedLineages` in `merge_upstreams`
     (Task-12-Review, CRITICAL 1) -- nur auf einem Aspekt, den Menschen
-    tatsaechlich lesen.
+    lesen statt nur BI-Tools. Anhaengen ist die einzige Operation, die
+    das strukturell ausschliesst.
+
+    (Review, IMPORTANT 2): eine Korrektur-Runde laeuft wiederholt gegen
+    denselben Ledger -- ohne Erkennung eines bestehenden probate-Blocks
+    haengt jeder Lauf einen weiteren, textgleichen Absatz an, unbegrenzt.
+    `merge_upstreams` verhindert dieselbe Fehlerklasse fuer Kanten
+    (`if u.get("dataset") not in have`) -- hier ist der Wächter
+    `_ENRICH_DOC_TAG`, ein Marker, den NUR probate schreibt: alles VOR
+    dem Marker ist garantiert menschlicher Text und bleibt stehen, alles
+    AB dem Marker ist der letzte probate-Block und wird durch den
+    aktuellen ERSETZT (nicht uebersprungen) -- ein Re-Lauf mit neuer
+    Evidenz (mehr Abfragen, spaeteres Datum) soll den Text auffrischen,
+    nicht auf einer veralteten Fassung sitzen bleiben.
 
     Jeder andere Top-Level-Schluessel des Aspekts (z.B.
     `customProperties`) bleibt unangetastet -- derselbe Grundsatz wie
@@ -311,8 +350,10 @@ def merge_editable_description(before: dict | None, note: str) -> dict:
     ein frisch gebautes `{"description": ...}`.
     """
     resolved = _resolve_editable_props_before(before)
-    old = (resolved.get("description") or "").strip()
-    text = f"{old}\n\n{note}" if old else note
+    old = resolved.get("description") or ""
+    marker = old.find(_ENRICH_DOC_TAG)
+    human_part = old[:marker].rstrip() if marker != -1 else old.strip()
+    text = f"{human_part}\n\n{note}" if human_part else note
     return {**resolved, "description": text}
 
 
@@ -483,19 +524,55 @@ def apply_proposal(
         # bei einem falschen Zustand -- es wird angehaengt, nichts geloescht
         # oder als tot markiert. `_require_substantive_evidence` (oben
         # bereits gelaufen) verweigert ohnehin, wenn `query_urns` leer ist.
+
+        # (Review, IMPORTANT 3): wie `mark_dead` -- ohne gemessenes Datum
+        # waere die "last covered"-Aussage im Katalogtext eine Behauptung
+        # ohne Beleg (`_iso_day(None)` gibt bislang das deutsche Wort
+        # "unbekannt" in einen sonst englischen Satz zurueck -- kein
+        # Enthaltungs-Signal, sondern eine falsche Aussage, die trotzdem
+        # geschrieben wurde). Dieselbe Enthaltungsklasse wie `mark_dead`,
+        # kein zweiter `before`-Fetch noetig, bevor eine Enthaltung feststeht.
+        last_covered_ms = p.evidence.get("last_covered_ms")
+        if last_covered_ms is None:
+            return Abstention(
+                kind="no_measured_last_covered_date", edge_key=p.edge_key,
+                reason=(
+                    "last_covered_ms fehlt in der evidenz -- eine 'zuletzt "
+                    "beobachtet'-aussage waere ohne gemessenes datum unbelegt. "
+                    "das werkzeug enthaelt sich, statt zu schaetzen."
+                ),
+            )
+
+        # (Review, CRITICAL 1): die Herkunfts-Aussage ("seeded data") kommt
+        # AUS der Evidenz (propose() reicht `ledger["seeded"]` durch, siehe
+        # dort), nie als Literal. Unbekannte Herkunft (Schluessel fehlt
+        # oder `None`) behauptet NICHTS -- weder "seeded" noch "real": beides
+        # waere eine unbelegte Aussage im selben Sinn wie ein erfundenes
+        # Datum. Nur `seeded is True` (GEMESSEN, nicht angenommen) darf den
+        # Zusatz "seeded data" tragen.
+        seeded = p.evidence.get("seeded")
+        source_clause = ("source: DataHub usage statistics, seeded data"
+                          if seeded is True else "source: DataHub usage statistics")
+
         before = wb.gms.get_aspect("dataset", p.target_urn, "editableDatasetProperties") \
             if hasattr(wb, "gms") else None
         n = len(p.evidence.get("query_urns", []))
         qword = "query" if n == 1 else "queries"
         note = (
-            f"probate: observed usage from {upstream} in {n} measured "
-            f"{qword}, last covered {_iso_day(p.evidence.get('last_covered_ms'))} "
-            "(source: DataHub usage statistics, seeded data)."
+            f"{_ENRICH_DOC_TAG} observed usage from {upstream} in {n} measured "
+            f"{qword}, last covered {_iso_day(last_covered_ms)} ({source_clause})."
         )
         value = merge_editable_description(before, note)
         return wb.aspect("dataset", p.target_urn, "editableDatasetProperties", value)
 
-    raise ValueError(f"unbekannte vorschlagsart: {p.kind}")
+    # (Review, MINOR 5): kein `raise` hier -- unerreichbar. Jedes `p.kind`
+    # ausserhalb von add_edge/mark_dead/enrich_doc scheitert bereits ganz
+    # oben an `_require_substantive_evidence` (deren eigener `else`-Zweig),
+    # bevor diese Funktion ueberhaupt bis hierher kommt. Ein zweiter,
+    # toter `raise` mit einer nie gezeigten Nachricht waere genau das
+    # Gegenteil von auditierbar -- ein Test, der ihn zu pruefen scheint,
+    # prueft in Wahrheit den `else`-Zweig oben (siehe
+    # test_an_unknown_proposal_kind_is_loud).
 
 
 def remove_edge(wb, upstream: str, downstream: str, now_ms: int = 0):
@@ -510,6 +587,20 @@ def remove_edge(wb, upstream: str, downstream: str, now_ms: int = 0):
     trotzdem (`wb.aspect()` sichert den Vorher-Zustand, `revert_all()`
     rollt sie wie jeden anderen Schreibvorgang zurueck).
 
+    (Review, IMPORTANT 4): reproduzierte urspruenglich BEIDE Fehlschlaege,
+    die Task 12 fuer `mark_dead` bereits behoben hatte (siehe die
+    identische Begruendung dort, `IMPORTANT 3`). (a) Kein Aspekt
+    vorhanden -> `merge_upstreams(None, drop=[...])` haette ein leeres
+    `{"upstreams": []}` GESCHRIEBEN -- eine nie gemessene Behauptung
+    "dieses Dataset hat keine Upstreams", nur weil jemand eine Kante
+    entfernen wollte, die es dort gar nicht gab. (b) Der Upstream steht
+    gar nicht in der bestehenden Liste -> `merge_upstreams` haette die
+    IDENTISCHE Liste zurueckgeschrieben, `applied=True`, ohne jedes
+    Signal, dass nichts passiert ist. Dieselbe Sperre wie bei `mark_dead`
+    (`_resolve_aspect_before` + Mitgliedschafts-Check), auf Entfernen
+    statt Markieren angewandt: beide Faelle verweigern jetzt laut, bevor
+    `wb.aspect()` ueberhaupt aufgerufen wird.
+
     `now_ms` wird bewusst entgegengenommen, aber hier nicht verwendet:
     ein Drop hinterlaesst keinen Zeitstempel auf der Kante (es gibt nach
     dem Entfernen keine Kante mehr, auf der einer stehen koennte) --
@@ -517,5 +608,19 @@ def remove_edge(wb, upstream: str, downstream: str, now_ms: int = 0):
     und dem Journal-Zeitstempel, den `writeback.py` beim Revert nutzt.
     """
     before = wb.gms.get_aspect("dataset", downstream, "upstreamLineage")
+    if before is None:
+        raise ValueError(
+            f"kante entfernen verweigert: {downstream!r} hat ueberhaupt keinen "
+            "upstreamLineage-aspekt -- ohne bestehenden aspekt waere ein "
+            "schreibvorgang eine nie gemessene leere upstreams-liste"
+        )
+    resolved = _resolve_aspect_before(before)
+    existing_urns = {u.get("dataset") for u in resolved.get("upstreams") or []}
+    if upstream not in existing_urns:
+        raise ValueError(
+            f"kante entfernen verweigert: {upstream!r} steht nicht in der bestehenden "
+            f"upstreamLineage von {downstream!r} -- ohne bestehenden eintrag waere das "
+            "ein stiller kein-op, der applied=True meldet, ohne etwas zu tun"
+        )
     value = merge_upstreams(before, drop=[upstream])
     return wb.aspect("dataset", downstream, "upstreamLineage", value)

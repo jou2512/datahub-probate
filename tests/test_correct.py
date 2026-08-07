@@ -19,6 +19,14 @@ LEDGER = {"focus": "urn:up", "edges": [
      "coverage": {"buckets_seen": 0}, "timeline": {}},
 ]}
 
+# LEDGER traegt bewusst KEIN top-level "seeded" -- deckt den Fall
+# "Herkunft unbekannt" ab (ein handgeschriebenes Test-Ledger, das
+# `ledger.run()`s Feld nicht mitfuehrt). LEDGER_SEEDED ist dieselbe
+# Kantenmenge, nur mit der Herkunfts-Behauptung, die `ledger.run()` fuer
+# den geseedeten Beispielkatalog tatsaechlich setzt (Review, CRITICAL 1:
+# propose() reicht dieses Feld jetzt in jedes enrich_doc-Proposal durch).
+LEDGER_SEEDED = {**LEDGER, "seeded": True}
+
 
 def test_a_missing_edge_becomes_an_add_edge_proposal_with_the_query_urn():
     p = [x for x in propose(LEDGER) if x.kind == "add_edge"]
@@ -574,12 +582,80 @@ def test_enrich_doc_preserves_other_top_level_keys_on_the_aspect():
 
 def test_enriched_documentation_names_the_data_as_seeded():
     """Regel 3 der Uebergabe: geseedete Daten werden als geseedet
-    ausgewiesen -- auch in dem Text, der im Katalog landet."""
+    ausgewiesen -- auch in dem Text, der im Katalog landet. Nur der Fall,
+    in dem `ledger["seeded"]` das tatsaechlich MISST (LEDGER_SEEDED),
+    darf diese Behauptung tragen (Review, CRITICAL 1)."""
     wb = RecordingWb()  # kein bestehender Aspekt
-    p = [x for x in propose(LEDGER) if x.kind == "enrich_doc"][0]
+    p = [x for x in propose(LEDGER_SEEDED) if x.kind == "enrich_doc"][0]
+    assert p.evidence["seeded"] is True  # propose() hat es durchgereicht, nicht erfunden
     apply_proposal(wb, p, now_ms=9)
     _, _, _, value, _ = wb.written[0]
     assert "seeded" in value["description"]
+
+
+def test_enrich_doc_says_nothing_about_provenance_when_the_ledger_does_not_measure_it():
+    """Gegenprobe zum Test oben (Review, CRITICAL 1): `LEDGER` traegt kein
+    top-level "seeded" -- die Herkunft ist UNBEKANNT, nicht "nicht
+    geseedet". Der geschriebene Text darf dann WEDER "seeded" behaupten
+    NOCH das Gegenteil -- er schweigt zur Herkunft. Die beiden Texte
+    muessen sich unterscheiden, sonst waere "seeded" nie tatsaechlich aus
+    der Evidenz gerendert, sondern weiterhin ein Literal."""
+    wb_unknown = RecordingWb()
+    wb_seeded = RecordingWb()
+    p_unknown = [x for x in propose(LEDGER) if x.kind == "enrich_doc"][0]
+    p_seeded = [x for x in propose(LEDGER_SEEDED) if x.kind == "enrich_doc"][0]
+    assert p_unknown.evidence["seeded"] is None
+    apply_proposal(wb_unknown, p_unknown, now_ms=9)
+    apply_proposal(wb_seeded, p_seeded, now_ms=9)
+    unknown_text = wb_unknown.written[0][3]["description"]
+    seeded_text = wb_seeded.written[0][3]["description"]
+    assert "seeded" not in unknown_text
+    assert "source: DataHub usage statistics" in unknown_text  # quelle bleibt genannt
+    assert unknown_text != seeded_text
+
+
+def test_enrich_doc_abstains_when_no_last_covered_date_is_measured():
+    """Wie mark_dead (Review, IMPORTANT 3): ohne last_covered_ms waere
+    die 'last covered'-Aussage im Katalogtext unbelegt -- Enthaltung,
+    kein erfundenes Datum, kein deutsches Wort in einem englischen Satz."""
+    wb = RecordingWb({("dataset", "urn:c", "editableDatasetProperties"): {
+        "value": {"description": "Bestehende Beschreibung."}}})
+    p = Proposal(kind="enrich_doc", edge_key="urn:up->urn:c", target_urn="urn:c",
+                 aspect="editableDatasetProperties",
+                 evidence={"query_urns": ["urn:li:query:q1"], "last_covered_ms": None},
+                 state="confirmed", human_summary="kein datum gemessen")
+    result = apply_proposal(wb, p, now_ms=9)
+    assert isinstance(result, Abstention)
+    assert result.kind == "no_measured_last_covered_date"
+    assert wb.written == []
+
+
+def test_enrich_doc_is_idempotent_a_second_run_replaces_not_duplicates():
+    """Wie merge_upstreams' Dubletten-Schutz (`if u.get("dataset") not in
+    have`), nur fuer den probate-Block in der Beschreibung (Review,
+    IMPORTANT 2): eine Korrektur-Runde laeuft wiederholt gegen denselben
+    Ledger -- der zweite Lauf ersetzt den ersten probate-Block, haengt
+    keinen zweiten an."""
+    p = [x for x in propose(LEDGER_SEEDED) if x.kind == "enrich_doc"][0]
+
+    wb = RecordingWb({("dataset", "urn:c", "editableDatasetProperties"): {
+        "value": {"description": "Bestehende Beschreibung."}}})
+    apply_proposal(wb, p, now_ms=9)
+    first_value = wb.written[0][3]
+
+    # Simuliert, was ein echtes GMS nach dem ersten Schreibvorgang
+    # zurueckgeben wuerde -- RecordingWb.aspect() aktualisiert `existing`
+    # nicht von selbst (siehe dessen Docstring), der Test tut es hier,
+    # um den zweiten Lauf gegen den ECHTEN neuen Zustand laufen zu lassen.
+    wb.existing[("dataset", "urn:c", "editableDatasetProperties")] = {"value": first_value}
+    apply_proposal(wb, p, now_ms=99)
+    second_value = wb.written[1][3]
+
+    assert second_value["description"].count("[probate:enrich_doc]") == 1
+    assert second_value["description"].startswith("Bestehende Beschreibung.")
+    # nicht unbegrenzt gewachsen -- der zweite Lauf ERSETZT den Block,
+    # haengt keinen zweiten an (grob: laenge bleibt in derselben Groessenordnung)
+    assert len(second_value["description"]) < len(first_value["description"]) * 2
 
 
 def test_apply_proposal_refuses_to_write_an_enrich_doc_with_vacuous_evidence():
@@ -607,14 +683,37 @@ def test_remove_edge_drops_exactly_one_upstream_and_keeps_the_rest():
     assert [u["dataset"] for u in value["upstreams"]] == ["urn:b"]
 
 
-def test_remove_edge_from_a_dataset_with_no_lineage_aspect_yet_writes_an_empty_list():
-    """`merge_upstreams(None, drop=[...])` ist kein Fehlerfall -- es gibt
-    schlicht nichts zu droppen. Belegt, damit remove_edge sich nicht
-    stillschweigend auf eine Kante verlaesst, die es gar nicht gibt."""
+def test_remove_edge_refuses_on_a_dataset_with_no_lineage_aspect_at_all():
+    """Review, IMPORTANT 4 -- korrigiert die vorherige Fassung dieses
+    Tests, die den Fehlschlag als beabsichtigtes Verhalten kodierte:
+    `merge_upstreams(None, drop=[...])` haette ein leeres
+    `{"upstreams": []}` GESCHRIEBEN -- eine nie gemessene Behauptung
+    "keine Upstreams", nur weil eine Kante entfernt werden sollte, die es
+    dort nie gab. Wie `mark_dead` (Task 12) verweigert remove_edge das
+    jetzt laut, bevor irgendetwas geschrieben wird."""
     wb = RecordingWb({})
-    remove_edge(wb, upstream="urn:a", downstream="urn:ohne-lineage", now_ms=9)
-    _, _, _, value, _ = wb.written[0]
-    assert value["upstreams"] == []
+    try:
+        remove_edge(wb, upstream="urn:a", downstream="urn:ohne-lineage", now_ms=9)
+        assert False, "haette werfen muessen"
+    except ValueError:
+        pass
+    assert wb.written == []
+
+
+def test_remove_edge_refuses_when_the_upstream_was_never_declared():
+    """Review, IMPORTANT 4, zweiter Fehlschlag: der Aspekt existiert,
+    aber der zu entfernende Upstream steht nicht drin -- ohne Sperre
+    schriebe merge_upstreams die IDENTISCHE Liste zurueck, applied=True,
+    ohne jedes Signal, dass nichts passiert ist."""
+    wb = RecordingWb({("dataset", "urn:d", "upstreamLineage"): {"value": {"upstreams": [
+        {"dataset": "urn:someone_else", "type": "TRANSFORMED",
+         "auditStamp": {"time": 1, "actor": "x"}}]}}})
+    try:
+        remove_edge(wb, upstream="urn:a", downstream="urn:d", now_ms=9)
+        assert False, "haette werfen muessen"
+    except ValueError:
+        pass
+    assert wb.written == []
 
 
 def test_an_unknown_proposal_kind_is_loud():

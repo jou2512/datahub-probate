@@ -41,6 +41,21 @@ WARUM diese Datei existiert -- zweifach:
    (`test_enrich_doc_appends_and_never_overwrites_an_existing_
    description`).
 
+Nachtrag (Review, Fix-Runde 1): drei weitere Haertungen in
+`probate/correct.py`, hier live mitbelegt statt nur in Unit-Tests:
+- Die "seeded data"-Klausel kommt jetzt AUS der Evidenz
+  (`p.evidence["seeded"]`), nie als Literal -- dieses Skript setzt sie
+  von Hand auf `True`, weil es tatsaechlich gegen den geseedeten
+  Katalog laeuft (siehe Proposal-Konstruktion unten).
+- Fehlt `last_covered_ms`, enthaelt sich `enrich_doc` (Abstention) statt
+  ein unbelegtes Datum zu schreiben -- dieser Lauf liefert es, deshalb
+  wird hier der Schreibpfad, nicht der Enthaltungspfad belegt.
+- Ein zweiter `enrich_doc`-Lauf gegen dieselbe Kante ersetzt den
+  probate-Block, statt ihn zu verdoppeln -- dieser Live-Beweis schreibt
+  nur einmal; die Idempotenz selbst ist in `tests/test_correct.py`
+  (`test_enrich_doc_is_idempotent_a_second_run_replaces_not_duplicates`)
+  belegt.
+
 Zwei getrennte Beweise in einem Lauf, weil beide denselben
 Journal-Mechanismus nutzen:
 
@@ -107,8 +122,15 @@ def run(gms, manifest_path: Path = MANIFEST_PATH, out_path: Path | None = None) 
     p = Proposal(
         kind="enrich_doc", edge_key=f"{enrich_upstream}->{enrich_target}",
         target_urn=enrich_target, aspect="editableDatasetProperties", state="confirmed",
+        # "seeded": True von Hand gesetzt, nicht ueber propose() gelesen --
+        # dieses Skript konstruiert das Proposal direkt (kein echter
+        # ledger.run()-Lauf). Review-Fix CRITICAL 1: `apply_proposal`
+        # rendert die "seeded data"-Klausel NUR, wenn die Evidenz das
+        # traegt -- dieser Lauf laeuft tatsaechlich gegen den geseedeten
+        # Beispielkatalog (siehe `seeded_statement` unten), also gehoert
+        # der Wert hier hin, nicht als Literal in correct.py.
         evidence={"query_urns": ["urn:li:query:probate-enrich-doc-probe"],
-                  "last_covered_ms": now_ms},
+                  "last_covered_ms": now_ms, "seeded": True},
         human_summary="harness/enrich_doc_probe.py -- committeter beweis",
     )
     enrich_result = apply_proposal(wb, p, now_ms=now_ms)
