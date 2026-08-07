@@ -661,6 +661,17 @@ def usage_evidence(gms, urn: str, now_ms: int | None = None) -> tuple[Coverage, 
 # Groessenordnung -- Schreibereignisse statt Kalendertage -- ist nicht
 # linear zur alten uebertragbar); [hier haette Joel vielleicht anders
 # gewollt] ist die ehrliche Einordnung dieser Zahl.
+#
+# Re-Review 07.08. (Nachtrag, bindend fuer jeden spaeteren Leser dieser
+# Zeile): 3 ist ein ERMESSENSENTSCHEID, KEIN GEMESSENER WERT. Kalibriert
+# an genau EINEM Katalog (seedlab, ein einziger Lauf) -- und liegt dort
+# exakt auf der Kippkante: `confirmed`/`missing` zeigen je GENAU 3
+# Buckets, also GENAU an der Schwelle "noch nicht duenn". Eine andere
+# Datenlage (mehr oder weniger geplante Seed-Buckets) haette denselben
+# Schwellwert anders ausschlagen lassen. NIEMAND soll diese 3 spaeter als
+# empirisch hergeleitet zitieren -- es ist die plausibelste kleine
+# Ganzzahl fuer "ein Trend statt ein Einzelwert", nicht das Ergebnis einer
+# Messreihe ueber mehrere Kataloge.
 COVERAGE_THIN_BELOW_BUCKETS = 3
 
 
@@ -795,7 +806,21 @@ def run(gms, focus: str, now_ms: int, lineage_count: int = 200,
         # hier zusaetzlich EINMAL auf Artefakt-Ebene -- die eine Praemisse,
         # die `dead` von `unknown` trennt, muss nicht mehr aus jeder
         # einzelnen Kante rekonstruiert werden.
-        "window_days": USAGE_WINDOW_DAYS,
+        #
+        # Re-Review 07.08. (Nachtrag): `window_days` NIE als der blosse
+        # `USAGE_WINDOW_DAYS`-Konstantenwert (32) schreiben -- das Fenster
+        # ist tatsaechlich `USAGE_WINDOW_DAYS` Tage RUECKWAERTS plus 1 Tag
+        # Puffer VORWAERTS (`_usage_window_ms`), also 33 Tage `end - start`.
+        # `Coverage.window_days` (und damit jede `dead`-Evidenz) leitet das
+        # bereits korrekt aus `end - start` her; ein hart eingetragener
+        # Konstantenwert waere dieselbe Klasse Fehler wie die urspruengliche
+        # `usageStats`-Aggregation -- eine Zahl, die neben ihrem eigenen
+        # Beleg steht und ihm widerspricht. Live gemessen: Artefakt zeigte
+        # `window_days=32` neben identischen `window_start_ms`/
+        # `window_end_ms`, deren Differenz 33 ergibt -- genau die Kante-
+        # Evidenz zeigte korrekt 33. Jetzt aus DENSELBEN zwei Zahlen
+        # hergeleitet wie jede `Coverage`, nicht aus der Konstante.
+        "window_days": (usage_window_end_ms - usage_window_start_ms) // _DAY_MS,
         "window_start_ms": usage_window_start_ms,
         "window_end_ms": usage_window_end_ms,
         "api_calls": counting.calls,

@@ -719,12 +719,19 @@ def test_run_threads_queries_seen_from_cooccurrence_total_not_page_length():
 def test_run_artifact_carries_the_usage_window_fields():
     """Coordinator-Review IMPORTANT 2: das Fenster gehoert auch auf
     Artefakt-Ebene hin, nicht nur pro Kante -- eine Zahl, die man sonst
-    aus jeder einzelnen `dead`-Kante einzeln zusammensuchen muesste."""
-    from probate.ledger import USAGE_WINDOW_DAYS
+    aus jeder einzelnen `dead`-Kante einzeln zusammensuchen muesste.
 
+    Re-Review-Fund (Nachtrag): `out["window_days"] == USAGE_WINDOW_DAYS`
+    ist tautologisch gegen dieselbe Konstante und kann eine Drift wie
+    "window_days ist hart auf die Konstante gesetzt, statt aus
+    window_end_ms - window_start_ms hergeleitet" strukturell NICHT fangen
+    -- genau das war der Fund (Artefakt zeigte 32, die Differenz der
+    mitgelieferten Grenzen war tatsaechlich 33). Die Zusicherung prueft
+    deshalb explizit gegen die Differenz der beiden ANDEREN Felder im
+    selben Artefakt, nicht gegen die Konstante."""
     out = run(_gms_for_run(), focus="urn:x", now_ms=50 * DAY)
-    assert out["window_days"] == USAGE_WINDOW_DAYS
     assert out["window_end_ms"] > out["window_start_ms"]
+    assert out["window_days"] == (out["window_end_ms"] - out["window_start_ms"]) // DAY
 
 
 def test_run_fetches_usage_at_real_wall_clock_time_not_the_callers_simulated_now_ms():
