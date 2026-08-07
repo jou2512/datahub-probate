@@ -1,5 +1,61 @@
 {
   "live_consumers": 1,
   "parity_ok": true,
-  "signed_count": 1
+  "signed_count": 1,
+
+  "edges_total": 1,
+  "edges_confirmed": 1,
+  "edges_dead": 0,
+  "edges_missing": 0,
+  "edges_unknown": 0,
+  "coverage_buckets_seen": 3,
+  "coverage_days_span": 2,
+
+  "all_four_states_matched_expected": true,
+  "any_edge_judged_with_model": true,
+
+  "revert_restored_exactly": true,
+  "existing_edge_survived_the_merge": true,
+  "new_edge_present_after_write": true,
+  "cll_survived_the_merge": true,
+  "revert_count": 2,
+
+  "properties_survived": true,
+
+  "watcher_started": true,
+  "watcher_events_seen": 10,
+  "watcher_relapses_detected": 1,
+  "watcher_reclassified_edges": 0,
+
+  "loadtest_s_datasets": 50,
+  "loadtest_s_queries": 1000,
+  "loadtest_s_seed_seconds": 11.84,
+  "loadtest_s_coarse_seconds": 1.235,
+  "loadtest_s_coarse_api_calls": 50,
+  "loadtest_s_coarse_peak_mb": 0.38,
+  "loadtest_s_detail_edges": 41,
+  "loadtest_s_detail_seconds_total": 35.614,
+  "loadtest_s_detail_seconds_per_edge": 0.8686,
+  "loadtest_s_detail_peak_mb": 1.7,
+  "loadtest_s_cleanup_verified": true,
+
+  "loadtest_m_datasets": 500,
+  "loadtest_m_queries": 10000,
+  "loadtest_m_seed_seconds": 198.52,
+  "loadtest_m_coarse_seconds": 12.238,
+  "loadtest_m_coarse_api_calls": 500,
+  "loadtest_m_coarse_peak_mb": 3.58,
+  "loadtest_m_detail_edges": 41,
+  "loadtest_m_detail_seconds_total": 47.217,
+  "loadtest_m_detail_seconds_per_edge": 1.1516,
+  "loadtest_m_detail_peak_mb": 1.71,
+  "loadtest_m_cleanup_verified": false,
+  "loadtest_m_cleanup_retry_verified": true,
+  "loadtest_m_final_state_verified": true,
+
+  "loadtest_smoke_coarse_seconds": 1.189,
+  "loadtest_smoke_coarse_api_calls": 50,
+  "loadtest_smoke_coarse_peak_mb": 0.63,
+
+  "loadtest_s_smoke_total_seconds": 107.05
 }

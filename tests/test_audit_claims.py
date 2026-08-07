@@ -1,4 +1,5 @@
 import json
+from pathlib import Path
 
 import pytest
 
@@ -112,6 +113,43 @@ def test_main_exits_1_and_names_both_artefacts_on_a_conflict(tmp_path, monkeypat
     assert "campaign.json" in out and "ledger.json" in out
 
 
+def test_metadata_keys_that_legitimately_differ_per_artefact_are_not_merged(tmp_path):
+    """'seeded' und 'scale' beschreiben DIESEN Lauf, nicht eine geteilte
+    Tatsache -- ein Read-only-Smoke-Check (seeded=false) neben einem
+    geseedeten Lasttest (seeded=true) ist kein Widerspruch, sondern zwei
+    wahre Aussagen ueber zwei verschiedene Laeufe. Belegt am echten Fall
+    aus Task 25: loadtest_smoke.json vs. loadgen_smoke.json."""
+    (tmp_path / "campaign.json").write_text(json.dumps({"seeded": True, "scale": "s"}))
+    (tmp_path / "ledger.json").write_text(json.dumps({"seeded": False, "scale": "m"}))
+    merged = load_runs(tmp_path)
+    assert "seeded" not in merged
+    assert "scale" not in merged
+
+
+def test_seeded_statement_and_generated_at_are_also_excluded_as_per_artefact_prose(tmp_path):
+    """Freitext-Erklaerungen und Erzeugungszeitstempel sind je Lauf
+    verschieden und sollen es sein -- kein Fall fuer ConflictingClaim."""
+    (tmp_path / "campaign.json").write_text(
+        json.dumps({"seeded_statement": "laeuft gegen A", "generated_at": "2026-08-07T01:00:00Z"})
+    )
+    (tmp_path / "ledger.json").write_text(
+        json.dumps({"seeded_statement": "laeuft gegen B", "generated_at": "2026-08-07T02:00:00Z"})
+    )
+    merged = load_runs(tmp_path)
+    assert "seeded_statement" not in merged
+    assert "generated_at" not in merged
+
+
+def test_every_run_file_from_task_25_is_read_without_a_conflict():
+    """Regressionsschutz fuer die eigentliche Aufgabe: load_runs() ueber
+    die echten, committeten Artefakte in harness/runs/ darf nicht mehr
+    an 'seeded'/'scale'/'seeded_statement'/'generated_at' scheitern."""
+    merged = load_runs()
+    assert merged  # es gibt etwas zu behaupten
+    assert "seeded" not in merged
+    assert "scale" not in merged
+
+
 def test_main_still_passes_the_three_existing_campaign_claims(tmp_path, monkeypatch, capsys):
     monkeypatch.setattr(audit_claims, "RUNS", tmp_path)
     (tmp_path / "campaign.json").write_text(
@@ -123,3 +161,13 @@ def test_main_still_passes_the_three_existing_campaign_claims(tmp_path, monkeypa
     assert main() == 0
     out = capsys.readouterr().out
     assert "Alle 3 Zahlen decken sich" in out
+
+
+def test_every_claim_has_a_matching_key_in_some_run_artefact():
+    """Eine Behauptung ohne Beleg-Schluessel ist genau der Fehler, gegen
+    den dieses Werkzeug antritt."""
+    from harness.audit_claims import load_runs
+    claims = json.loads(Path("harness/runs/claims.json").read_text(encoding="utf-8"))
+    runs = load_runs()
+    missing = [k for k in claims if k not in runs]
+    assert not missing, f"behauptet, aber nirgends gemessen: {missing}"

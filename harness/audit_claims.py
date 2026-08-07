@@ -17,10 +17,20 @@ RUNS = Path("harness/runs")
 # zufaellig im Ordner landet (ein Scratch-Dump, ein Log-Rest), soll nie
 # stillschweigend zur Behauptungs-Quelle werden. Ein neuer Eintrag hier
 # ist eine bewusste Entscheidung, nicht ein Nebeneffekt eines neuen
-# Lauf-Skripts. Stand 2026-08-07: campaign (Formular-Kampagne), ledger
-# (Vier-Zustaende-Kanten-Zaehlung), seedlab-verdicts (das geseedete
+# Lauf-Skripts. Stand 2026-08-07 (Task 25): campaign (Formular-Kampagne),
+# ledger (Vier-Zustaende-Kanten-Zaehlung), seedlab-verdicts (das geseedete
 # Vier-Zustaende-Labor selbst), loadgen/loadtest (Lasttest-Fixtures und
-# -Messungen je Groesse s/m/l), query-timestamp-probe (Zeitfeld-Sondierung).
+# -Messungen je Groesse s/m/l), query-timestamp-probe (Zeitfeld-Sondierung),
+# judge-seedlab-matrix (Modell-Urteile ueber alle vier Zustaende),
+# correct-roundtrip (Revert-Rundlauf: schreiben, pruefen, exakt zurueck),
+# watcher-live (der Live-Waechter gegen echten Kafka-Traffic),
+# upstream-properties-probe (ueberleben Custom-Properties den Writeback).
+# loadtest_l.json ABSICHTLICH NICHT hier gelistet: die Datei existiert
+# bereits, aber ihr eigenes 'cleanup_pending_note' sagt woertlich, der
+# Lauf wird 'nach Abschluss des separaten Aufraeum-Laufs ... nachgetragen'
+# -- eine andere Lane schreibt noch daran. Eine Zahl aus einem Artefakt zu
+# behaupten, das laut eigener Aussage noch nicht fertig ist, waere keine
+# Messung, sondern eine Wette auf den naechsten Schreibvorgang.
 RUN_FILES = (
     "campaign.json",
     "ledger.json",
@@ -29,8 +39,35 @@ RUN_FILES = (
     "loadtest_smoke.json",
     "loadtest_s.json",
     "loadtest_m.json",
-    "loadtest_l.json",
     "query-timestamp-probe.json",
+    "judge-seedlab-matrix.json",
+    "correct-roundtrip.json",
+    "watcher-live.json",
+    "upstream-properties-probe.json",
+)
+
+# Schluessel, die NIE gemerged werden, obwohl sie skalar sind: sie sind
+# Metadaten UEBER das einzelne Artefakt (eine Disclosure-Pflicht aus
+# global-constraints.md -- "seeded" muss in JEDEM Artefakt einzeln
+# stehen -- oder ein Zeitstempel/Label des jeweiligen Laufs), keine
+# Tatsachenbehauptung, die ueber mehrere Laeufe hinweg identisch sein
+# muesste. Empirisch belegt (Task 25, 2026-08-07): mit allen oben
+# gelisteten Artefakten zusammen kollidieren genau vier Namen --
+#   - "seeded": true in den meisten Laeufen, false in loadtest_smoke.json
+#     (ein bewusst reiner Read-only-Check gegen die bestehende Instanz,
+#     keine geseedeten Fixtures -- der Unterschied ist korrekt, kein Fehler)
+#   - "scale": "s"/"m" je nach Lasttest-Groesse
+#   - "seeded_statement": vier verschiedene Freitexte, die je erklaeren,
+#     WAS in diesem einen Lauf geseedet wurde
+#   - "generated_at": der Erzeugungszeitstempel des jeweiligen Laufs
+# Keine dieser vier taucht je als Prosa-Zahl auf -- die eigentlichen
+# Messwerte stehen unter eigenen, praefigierten Schluesseln (z. B.
+# "loadtest_s_seed_broke", "loadtest_m_detail_edges"). Sie hier
+# auszuschliessen ist darum kein Praezisionsverlust, sondern verhindert,
+# dass zwei wahre, aber ueber verschiedene Dinge redende Aussagen als
+# ConflictingClaim erscheinen.
+NON_CLAIMABLE_METADATA_KEYS = frozenset(
+    {"seeded", "scale", "seeded_statement", "generated_at"}
 )
 
 
@@ -68,13 +105,22 @@ def load_runs(runs: Path = RUNS) -> dict:
     Nur Skalare (Zahl, Wahrheitswert, kurzer Text) werden gemerged: eine
     Behauptung in der Prosa ist immer eine dieser drei Formen. Verschach-
     teltes (Kantenlisten, Zeitreihen, das 'pairs'-Objekt in
-    seedlab-verdicts.json) ist Beleg fuer eine Behauptung, keine
+    seedlab-verdicts.json, das 'focuses'-Array in
+    judge-seedlab-matrix.json) ist Beleg fuer eine Behauptung, keine
     Behauptung selbst -- es wird uebersprungen statt unter einem
     erfundenen gepunkteten Schluessel (z. B. 'pairs.confirmed.state') zu
     erscheinen, den ohnehin keine claims.json referenziert. Sollte eine
     verschachtelte Zahl je in der Prosa auftauchen, ist der richtige Ort
     dafuer ein eigener skalarer Schluessel im erzeugenden Lauf-Skript --
-    nicht ein Auto-Flatten hier.
+    nicht ein Auto-Flatten hier. Das gilt insbesondere fuer 'wie viele der
+    vier Fokusse hat das Modell mit Zitat beurteilt' aus
+    judge-seedlab-matrix.json: die Einzelwerte liegen nur je Fokus unter
+    'judged_with_model' im 'focuses'-Array, kein Top-Level-Schluessel
+    fasst sie zusammen -- diese Datei gehoert einer anderen Aufgabe, ein
+    Aggregat dort ergaenzen waere ein fremdes Artefakt aendern, keine
+    Beleg-Aufgabe (Task 25 Kontext). Ausserdem werden Schluessel aus
+    NON_CLAIMABLE_METADATA_KEYS uebersprungen -- sie sind Metadaten UEBER
+    das Artefakt, keine Tatsachenbehauptung (siehe Kommentar dort).
 
     Fehlende Dateien werden uebersprungen (siehe _run_file_status).
     Findet sich eine Datei, laesst sich aber nicht als JSON lesen, ist
@@ -94,6 +140,8 @@ def load_runs(runs: Path = RUNS) -> dict:
                 f"{name}: gefunden, aber nicht als JSON lesbar ({exc})"
             ) from exc
         for k, v in data.items():
+            if k in NON_CLAIMABLE_METADATA_KEYS:
+                continue
             if not isinstance(v, (int, float, bool, str)):
                 continue
             if k in merged and merged[k] != v:
