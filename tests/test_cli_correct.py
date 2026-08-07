@@ -222,3 +222,90 @@ def test_correct_remove_edge_rejects_a_malformed_edge_key(tmp_path, monkeypatch)
     _patch_gms(monkeypatch)
     rc = _run(monkeypatch, ["correct", "--edge", "kein-pfeil-hier", "--kind", "remove_edge", "--confirm"])
     assert rc == 1
+
+
+def test_correct_remove_edge_without_confirm_is_also_a_dry_run(tmp_path, monkeypatch, capsys):
+    """remove_edge ist der einzige destruktive, nicht-additive Pfad -- sein
+    dry-run-Verhalten war bisher nur strukturell ueber das geteilte
+    Writeback-Gate mitgedeckt, nie direkt gepinnt (Review-Nachtrag).
+    Kein --confirm -> kein Schreibvorgang, exakt wie bei add_edge."""
+    existing = {("dataset", "urn:down", "upstreamLineage"): {"value": {"upstreams": [
+        {"dataset": "urn:a", "type": "TRANSFORMED", "auditStamp": {"time": 1, "actor": "x"}},
+    ]}}}
+    fake = _patch_gms(monkeypatch, existing)
+
+    rc = _run(monkeypatch, ["correct", "--edge", "urn:a->urn:down", "--kind", "remove_edge"])
+
+    assert rc == 1
+    assert fake.upserts == []
+    assert "DRY-RUN" in capsys.readouterr().out
+
+
+# --- Review-Nachtrag (07.08.): 'revert' unterscheidet ein FEHLENDES Journal
+# nicht von einem VORHANDENEN, leeren -- beide gaben bislang identisch
+# "0 Schreibvorgaenge zurueckgenommen", Exit 0 zurueck. Ein Tippfehler im
+# Pfad oder ein bares 'probate revert' nach 'correct --journal <anderer-
+# pfad>' sieht dann aus wie "nichts stand aus", waehrend ein echter
+# Schreibvorgang live bleibt -- genau die Verwechslung, gegen die dieses
+# Projekt antritt. writeback.py ist gesperrt; die Unterscheidung passiert
+# in cli.py, VOR dem Aufruf von revert_all().
+
+def test_revert_refuses_when_the_journal_file_does_not_exist_at_all(tmp_path, monkeypatch, capsys):
+    _patch_gms(monkeypatch)
+    missing = tmp_path / "nie-geschrieben.jsonl"
+
+    rc = _run(monkeypatch, ["revert", "--journal", str(missing)])
+
+    assert rc == 1  # NICHT 0 -- das waere ununterscheidbar von "0 eintraege, alles gut"
+    out = capsys.readouterr().out
+    assert "KEIN Journal" in out
+    assert str(missing) in out
+
+
+def test_revert_on_an_existing_but_empty_journal_still_reports_zero_and_succeeds(tmp_path, monkeypatch, capsys):
+    """Der Gegenfall zum Fund oben: ein Journal, das WIRKLICH existiert und
+    WIRKLICH leer ist, bleibt der legitime Erfolgsfall (Exit 0) -- die
+    Unterscheidung ist 'existiert die Datei', nicht 'ist sie leer'."""
+    _patch_gms(monkeypatch)
+    empty = tmp_path / "leer.jsonl"
+    empty.write_text("", encoding="utf-8")
+
+    rc = _run(monkeypatch, ["revert", "--journal", str(empty)])
+
+    assert rc == 0
+    assert "0 Schreibvorgaenge zurueckgenommen" in capsys.readouterr().out
+
+
+def test_correct_confirm_on_a_non_default_journal_warns_with_the_exact_revert_command(tmp_path, monkeypatch, capsys):
+    """Ohne diese Warnung waere ein Schreibvorgang unter --journal live und
+    NUR ueber denselben Pfad revertierbar, ohne dass irgendetwas das dem
+    Menschen sagt (Review-Nachtrag)."""
+    proposals_path = tmp_path / "proposals.json"
+    _write_proposals(proposals_path, [ADD_EDGE_PROPOSAL])
+    _patch_gms(monkeypatch)
+    monkeypatch.chdir(tmp_path)
+    custom_journal = tmp_path / "mein-lauf.jsonl"
+
+    rc = _run(monkeypatch, ["correct", "--edge", "urn:up->urn:down", "--kind", "add_edge",
+                             "--proposals", str(proposals_path), "--confirm",
+                             "--journal", str(custom_journal)])
+
+    assert rc == 0
+    out = capsys.readouterr().out
+    assert "ACHTUNG" in out
+    assert f'probate revert --journal "{custom_journal}"' in out
+
+
+def test_correct_confirm_on_the_default_journal_does_not_warn(tmp_path, monkeypatch, capsys):
+    """Gegenprobe: die Warnung ist an den NICHT-Standard-Pfad gebunden, kein
+    Rauschen bei jedem normalen Aufruf."""
+    proposals_path = tmp_path / "proposals.json"
+    _write_proposals(proposals_path, [ADD_EDGE_PROPOSAL])
+    _patch_gms(monkeypatch)
+    monkeypatch.chdir(tmp_path)
+
+    rc = _run(monkeypatch, ["correct", "--edge", "urn:up->urn:down", "--kind", "add_edge",
+                             "--proposals", str(proposals_path), "--confirm"])
+
+    assert rc == 0
+    assert "ACHTUNG" not in capsys.readouterr().out

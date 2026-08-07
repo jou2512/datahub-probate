@@ -343,6 +343,24 @@ def main() -> int:
         return 0
 
     if args.cmd == "revert":
+        # Live-Fund (Review, 07.08.): Writeback.revert_all() behandelt ein
+        # FEHLENDES Journal identisch zu einem VORHANDENEN, leeren Journal --
+        # beide ergeben `0 Schreibvorgaenge zurueckgenommen`, Exit 0.
+        # Genau die Verwechslung, gegen die dieses Projekt antritt: ein
+        # Tippfehler im Pfad oder ein bare 'probate revert' nach 'correct
+        # --journal <anderer-pfad>' sieht dann identisch zu "nichts stand
+        # aus" aus, obwohl ein echter Schreibvorgang live bleibt. writeback.py
+        # ist gesperrt (unmodifiziert) -- die Unterscheidung passiert deshalb
+        # HIER, vor dem Aufruf: fehlt die Datei komplett, ist das ein eigener,
+        # lauter Fall mit eigenem Rueckgabewert, nicht 0 Zeilen.
+        journal_path = Path(args.journal)
+        if not journal_path.exists():
+            print(f"KEIN Journal unter {journal_path} -- das ist NICHT dasselbe wie "
+                  f"'Journal vorhanden, 0 ausstehende Eintraege'. Entweder wurde hier "
+                  f"nie geschrieben, oder der Pfad ist falsch (Tippfehler? falscher "
+                  f"--journal-Wert?). Ein echter Schreibvorgang unter einem ANDEREN "
+                  f"Pfad bleibt in diesem Fall live und unrevertiert.")
+            return 1
         n = Writeback(Gms(args.gms, token=args.token), dry_run=False,
                        journal_path=args.journal).revert_all()
         print(f"{n} Schreibvorgaenge zurueckgenommen")
@@ -465,6 +483,17 @@ def main() -> int:
                   f"--kind {args.kind} --confirm'")
             return 1
         print(f"GESCHRIEBEN: {r.detail}")
+        # Live-Fund (Review, 07.08.): ein Schreibvorgang unter einem
+        # NICHT-Standard-Journal ist nur dann revertierbar, wenn 'revert'
+        # spaeter GENAU denselben Pfad bekommt -- ein bares 'probate revert'
+        # (Vorgabe-Pfad) liesse ihn live liegen, ohne dass irgendetwas das
+        # meldet (siehe Fund oben bei 'revert'). Die Warnung nennt den
+        # exakten Befehl, statt die Vorsicht dem Menschen zu ueberlassen.
+        if args.journal != JOURNAL_PATH:
+            print(f"  ACHTUNG: geschrieben in ein NICHT-Standard-Journal ({args.journal}). "
+                  f"Ein blosses 'probate revert' (Vorgabe-Pfad {JOURNAL_PATH}) nimmt DIESEN "
+                  f"Schreibvorgang NICHT zurueck. Zum Zuruecknehmen: "
+                  f"'probate revert --journal \"{args.journal}\"'.")
         return 0
 
     print(CAMPAIGN_STATE.read_text(encoding="utf-8"))
