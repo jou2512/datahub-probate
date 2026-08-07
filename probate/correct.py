@@ -24,6 +24,7 @@ wuerde JEDE Kante als tot ausweisen, nicht nur die gemessene.
 
 from __future__ import annotations
 
+import datetime as _dt
 from dataclasses import dataclass
 
 
@@ -32,19 +33,27 @@ class Proposal:
     """Ein Vorschlag traegt IMMER seinen Beleg -- `evidence` hat keinen
     Default, ein Proposal ohne Beleg laesst sich also nicht konstruieren
     (siehe tests/test_correct.py, test_a_proposal_cannot_be_constructed_
-    without_evidence)."""
+    without_evidence).
+
+    `state` (Task-12-Haertung, aus dem Task-11-Review): der ROHE
+    Kantenzustand aus dem Register ("dead"/"missing"/"confirmed"), nicht
+    nur `kind`. Ohne Default, aus demselben Grund wie `evidence` -- ein
+    Vorschlag ohne mitgefuehrten Zustand waere an der Schreibstelle nicht
+    gegenprobbar. `apply_proposal` prueft ihn bei `mark_dead` ein zweites
+    Mal, unabhaengig vom if/elif in `propose()`."""
 
     kind: str
     edge_key: str
     target_urn: str
     aspect: str
     evidence: dict
+    state: str
     human_summary: str
 
     def to_json(self) -> dict:
         return {
             "kind": self.kind, "edge": self.edge_key, "target_urn": self.target_urn,
-            "aspect": self.aspect, "evidence": self.evidence,
+            "aspect": self.aspect, "evidence": self.evidence, "state": self.state,
             "human_summary": self.human_summary,
         }
 
@@ -65,7 +74,7 @@ def propose(ledger: dict) -> list[Proposal]:
         if state == "missing":
             out.append(Proposal(
                 kind="add_edge", edge_key=key, target_urn=down,
-                aspect="upstreamLineage",
+                aspect="upstreamLineage", state=state,
                 evidence={"query_urns": ev.get("query_urns", []),
                           "cooccurrence_count": ev.get("cooccurrence_count", 0),
                           "direction_evidence": ev.get("direction_evidence", "")},
@@ -77,7 +86,7 @@ def propose(ledger: dict) -> list[Proposal]:
         elif state == "dead":
             out.append(Proposal(
                 kind="mark_dead", edge_key=key, target_urn=down,
-                aspect="upstreamLineage",
+                aspect="upstreamLineage", state=state,
                 evidence={"last_covered_ms": tl.get("last_covered_ms"),
                           "dead_since_days": tl.get("dead_since_days"),
                           "dead_since_is_lower_bound": tl.get("dead_since_is_lower_bound", False),
@@ -89,7 +98,7 @@ def propose(ledger: dict) -> list[Proposal]:
         elif state == "confirmed":
             out.append(Proposal(
                 kind="enrich_doc", edge_key=key, target_urn=down,
-                aspect="editableDatasetProperties",
+                aspect="editableDatasetProperties", state=state,
                 evidence={"query_urns": ev.get("query_urns", []),
                           "last_covered_ms": tl.get("last_covered_ms")},
                 human_summary=(
@@ -99,3 +108,153 @@ def propose(ledger: dict) -> list[Proposal]:
         # state == "unknown" (oder ein unbekannter Wert): bewusst kein
         # Zweig -- fehlende Datenlage erzeugt keinen Vorschlag.
     return out
+
+
+# --- Schicht 2: Schreiben -- mergen, nie ersetzen -------------------------
+#
+# DataHubs eigener sql_parsing_aggregator baut bei JEDEM Lauf eine frische,
+# leere Kantenliste und emittiert sie als vollen Aspekt
+# (sql_parsing_aggregator.py:1534, selbst nachgelesen im Upstream-Quellcode)
+# -- damit verschwinden legitime Kanten, die dieser Lauf nicht gesehen hat.
+# Dieses Modul tut das Gegenteil: lesen, mergen, zurueckschreiben.
+
+DEAD_MARKER_KEY = "probate.dead_since"
+
+
+def merge_upstreams(
+    before: dict | None,
+    add: list[dict] = (),
+    drop: list[str] = (),
+    mark_dead: dict[str, str] | None = None,
+) -> dict:
+    """Bestehende Kanten bleiben. Immer.
+
+    `before` ist die rohe `get_aspect()`-Antwort (`{"value": {"upstreams":
+    [...]}}` oder `None`, wenn der Aspekt noch nicht existiert). Reihenfolge
+    bewusst add-vor-drop-vor-mark_dead: eine Kante kann in derselben Runde
+    hinzugefuegt und in derselben Runde als tot markiert werden (theoretisch
+    widerspruechlich, aber die Funktion soll dabei nicht raten, welche
+    Absicht Vorrang hat -- sie tut schlicht beides, in dieser Reihenfolge).
+    """
+    existing = list(((before or {}).get("value") or {}).get("upstreams") or [])
+    drop_set = set(drop)
+    out = [u for u in existing if u.get("dataset") not in drop_set]
+    have = {u.get("dataset") for u in out}
+    for u in add:
+        if u.get("dataset") not in have:
+            out.append(dict(u))
+            have.add(u.get("dataset"))
+    if mark_dead:
+        marked = []
+        for u in out:
+            if u.get("dataset") in mark_dead:
+                props = dict(u.get("properties") or {})
+                props[DEAD_MARKER_KEY] = mark_dead[u["dataset"]]
+                marked.append({**u, "properties": props})
+            else:
+                marked.append(u)
+        out = marked
+    return {"upstreams": out}
+
+
+def _iso_day(ms: int | None) -> str:
+    if not ms:
+        return "unbekannt"
+    return _dt.datetime.fromtimestamp(ms / 1000, _dt.timezone.utc).date().isoformat()
+
+
+def _require_substantive_evidence(p: Proposal) -> None:
+    """`evidence={}` laesst sich konstruieren (Task-11-Review, Fund 1) --
+    formal belegt, inhaltlich leer. Ein Proposal darf entstehen und
+    angezeigt werden; angewandt werden darf nur eines, dessen Beleg fuer
+    SEINE Vorschlagsart tatsaechlich traegt. Pro Art eine eigene
+    Substanz-Definition -- "irgendein Schluessel ist gesetzt" waere selbst
+    wieder nur eine Formalitaet, keine Substanz.
+    """
+    if p.kind == "add_edge":
+        query_urns = p.evidence.get("query_urns") or []
+        cooccurrence_count = p.evidence.get("cooccurrence_count") or 0
+        if not query_urns or cooccurrence_count <= 0:
+            raise ValueError(
+                f"vorschlag {p.edge_key} ({p.kind}) hat keinen tragfaehigen beleg -- "
+                f"query_urns={query_urns!r} cooccurrence_count={cooccurrence_count!r} "
+                "-- wird nicht geschrieben"
+            )
+    elif p.kind == "mark_dead":
+        dead_since_days = p.evidence.get("dead_since_days")
+        buckets_checked = p.evidence.get("buckets_checked") or 0
+        if dead_since_days is None or dead_since_days < 0 or buckets_checked <= 0:
+            raise ValueError(
+                f"vorschlag {p.edge_key} ({p.kind}) hat keinen tragfaehigen beleg -- "
+                f"dead_since_days={dead_since_days!r} buckets_checked={buckets_checked!r} "
+                "-- wird nicht geschrieben"
+            )
+    elif p.kind == "enrich_doc":
+        query_urns = p.evidence.get("query_urns") or []
+        if not query_urns:
+            raise ValueError(
+                f"vorschlag {p.edge_key} ({p.kind}) hat keinen tragfaehigen beleg -- "
+                f"query_urns={query_urns!r} -- wird nicht geschrieben"
+            )
+    else:
+        raise ValueError(f"unbekannte vorschlagsart fuer beleg-pruefung: {p.kind}")
+
+
+def _require_dead_state(state: str | None) -> None:
+    """Zweite, von `propose()` UNABHAENGIGE Sperre gegen die
+    unknown-als-tot-Verwechslung (Task-11-Review, Fund 2).
+
+    Das if/elif in `propose()` ist eine Allowlist, aber eine Allowlist an
+    einer einzigen Stelle im Code ist kein versiegelter Pfad -- ein
+    kuenftiger Refactor dort koennte sie leise aufweichen. Diese Funktion
+    prueft an der SCHREIBSTELLE ein zweites Mal, gegen den Zustand, den
+    der Vorschlag selbst mitfuehrt (`Proposal.state`), und akzeptiert
+    ausschliesslich den exakten String "dead". "unknown", "confirmed",
+    "missing", `None` und jede Gross-/Kleinschreibungs-Variante werden
+    abgelehnt.
+    """
+    if state != "dead":
+        raise ValueError(
+            f"dead-markierung verweigert: kantenzustand ist {state!r}, nicht 'dead'"
+        )
+
+
+def apply_proposal(
+    wb, p: Proposal,
+    actor: str = "urn:li:corpuser:__datahub_system",
+    now_ms: int = 0,
+):
+    """Wendet EINEN bestaetigten Vorschlag an -- ueber writeback.py.
+
+    Nie direkt ueber gms: writeback sichert den Vorher-Zustand ins
+    Journal, und nur dadurch deckt `probate revert` auch diese
+    Schreibvorgaenge. `wb.aspect()` gibt intern eine LISTE an
+    gms.upsert() (Falle 1) -- ein eigener Weg wuerde das umgehen.
+
+    Beide Haertungen aus dem Task-11-Review laufen VOR jedem Schreiben,
+    nicht nur im `add_edge`-Zweig: ein Vorschlag ohne tragfaehigen Beleg
+    oder mit einem `mark_dead` auf einer nicht-toten Kante scheitert hier
+    laut, bevor `wb.aspect()` ueberhaupt aufgerufen wird.
+    """
+    _require_substantive_evidence(p)
+    upstream = p.edge_key.split("->", 1)[0]
+
+    if p.kind == "add_edge":
+        before = wb.gms.get_aspect("dataset", p.target_urn, "upstreamLineage") \
+            if hasattr(wb, "gms") else None
+        value = merge_upstreams(before, add=[{
+            "dataset": upstream, "type": "TRANSFORMED",
+            "auditStamp": {"time": now_ms, "actor": actor},
+            "properties": {"probate.evidence": ",".join(p.evidence.get("query_urns", [])),
+                           "probate.direction": p.evidence.get("direction_evidence", "")},
+        }])
+        return wb.aspect("dataset", p.target_urn, "upstreamLineage", value)
+
+    if p.kind == "mark_dead":
+        _require_dead_state(p.state)
+        before = wb.gms.get_aspect("dataset", p.target_urn, "upstreamLineage") \
+            if hasattr(wb, "gms") else None
+        value = merge_upstreams(before, mark_dead={upstream: _iso_day(now_ms)})
+        return wb.aspect("dataset", p.target_urn, "upstreamLineage", value)
+
+    raise ValueError(f"unbekannte vorschlagsart: {p.kind}")
