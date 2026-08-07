@@ -3,7 +3,7 @@
   "seeded_statement": "Laeuft gegen den geseedeten Beispielkatalog (namespace probate_seedlab, harness/seed_lineage_lab.py) -- kein neues Entity angelegt, nur bestehende Aspekte geschrieben und vollstaendig zurueckgerollt.",
   "gms_url": "http://localhost:28080",
   "manifest": "examples\\seedlab-manifest.json",
-  "generated_at": "2026-08-07T02:13:16.476071+00:00",
+  "generated_at": "2026-08-07T02:57:55.397091+00:00",
   "enrich_doc": {
     "target": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)",
     "upstream": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
@@ -27,11 +27,11 @@
       "value": {
         "upstreams": [
           {
-            "type": "TRANSFORMED",
             "auditStamp": {
               "actor": "urn:li:corpuser:datahub",
               "time": 1754300000000
             },
+            "type": "TRANSFORMED",
             "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)"
           }
         ]
@@ -46,11 +46,11 @@
       "value": {
         "upstreams": [
           {
-            "type": "TRANSFORMED",
             "auditStamp": {
               "actor": "urn:li:corpuser:datahub",
               "time": 1754300000000
             },
+            "type": "TRANSFORMED",
             "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)"
           }
         ]

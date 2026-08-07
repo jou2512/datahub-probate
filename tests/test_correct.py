@@ -658,6 +658,31 @@ def test_enrich_doc_is_idempotent_a_second_run_replaces_not_duplicates():
     assert len(second_value["description"]) < len(first_value["description"]) * 2
 
 
+def test_enrich_doc_replaces_an_old_format_probate_block_not_just_the_current_tag():
+    """Review, Fixrunde 2, IMPORTANT: der Detektor erkannte urspruenglich
+    nur `_ENRICH_DOC_TAG` -- ein Block im literalen VORHER-Format
+    ("probate: observed usage...", ohne Tag, exakt das, was dieser
+    Task-13-Fix selbst ersetzt hat) waere fuer ihn unsichtbar gewesen,
+    haette als menschlicher Text gegolten, und ein zweiter Block waere
+    darunter angehaengt worden. Belegt die Gegenprobe: ein bestehendes
+    Alt-Format-Feld wird ERSETZT, nicht dupliziert."""
+    old_format_block = (
+        "probate: observed usage from urn:li:dataset:(urn:li:dataPlatform:postgres,"
+        "old_upstream,PROD) in 3 measured queries, last covered 2026-01-01 "
+        "(source: DataHub usage statistics, seeded data)."
+    )
+    wb = RecordingWb({("dataset", "urn:c", "editableDatasetProperties"): {
+        "value": {"description": f"Bestehende Beschreibung.\n\n{old_format_block}"}}})
+    p = [x for x in propose(LEDGER_SEEDED) if x.kind == "enrich_doc"][0]
+    apply_proposal(wb, p, now_ms=9)
+    _, _, _, value, _ = wb.written[0]
+    desc = value["description"]
+    assert desc.startswith("Bestehende Beschreibung.")
+    assert "old_upstream" not in desc            # alter block ist WEG, nicht nur ergaenzt
+    assert desc.count("probate:") == 1            # kein zweiter block daneben
+    assert desc.count("observed usage from") == 1
+
+
 def test_apply_proposal_refuses_to_write_an_enrich_doc_with_vacuous_evidence():
     wb = RecordingWb({("dataset", "urn:c", "editableDatasetProperties"): {
         "value": {"description": "Bestehende Beschreibung."}}})

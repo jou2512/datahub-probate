@@ -309,6 +309,14 @@ def _resolve_editable_props_before(before: dict | None) -> dict:
 
 
 _ENRICH_DOC_TAG = "[probate:enrich_doc]"
+# EINGEFROREN ab jetzt (Review, Fixrunde 2): dieser Wortlaut aendert sich nie
+# wieder. Jede kuenftige Formulierungsaenderung des Notiztexts bleibt hinter
+# demselben Tag -- sonst wiederholt sich genau der Fund unten in einer
+# weiteren Runde.
+_LEGACY_ENRICH_DOC_PREFIX = "probate:"
+# Deckt jeden Block ab, den eine Fassung DIESES Moduls VOR der Einfuehrung
+# des Tags geschrieben hat -- jede historische Notiz begann mit exakt diesem
+# Praefix (siehe Docstring unten, Review Fixrunde 2 fuer das WARUM).
 
 
 def merge_editable_description(before: dict | None, note: str) -> dict:
@@ -344,6 +352,36 @@ def merge_editable_description(before: dict | None, note: str) -> dict:
     Evidenz (mehr Abfragen, spaeteres Datum) soll den Text auffrischen,
     nicht auf einer veralteten Fassung sitzen bleiben.
 
+    (Review, Fixrunde 2, IMPORTANT -- lauffaehig gefunden): der erste
+    Fix erkannte NUR den eigenen, aktuellen `_ENRICH_DOC_TAG`. Ein Block,
+    den eine FRUEHERE Fassung dieser Funktion geschrieben hat -- z.B. das
+    literale Vorher-Format `"probate: observed usage..."`, das genau
+    dieser Task-13-Fix selbst ersetzt hat -- war fuer den Detektor
+    unsichtbar, zaehlte als menschlicher Text, und ein ZWEITER Block
+    wurde darunter angehaengt. Betrifft nicht nur hypothetische
+    Zukunftsversionen: der eigene Fix-Wortlaut dieser Funktion war beim
+    ersten Versuch eine Instanz genau der Klasse, die sie nicht faengt --
+    und ein Kunde, der das Werkzeug upgraded, waere derselbe Fall.
+
+    Deshalb zwei Marker statt einem, und die FRUEHESTE Fundstelle
+    entscheidet: `_ENRICH_DOC_TAG` ist ab jetzt eingefroren (sein
+    Wortlaut aendert sich nie wieder -- jede kuenftige Notiz-Formulierung
+    bleibt hinter demselben Tag), `_LEGACY_ENRICH_DOC_PREFIX` ("probate:",
+    ohne Klammern) faengt zusaetzlich JEDEN Block, den eine Fassung
+    dieses Moduls vor der Tag-Einfuehrung geschrieben hat -- jede
+    historische Notiz begann mit exakt diesem Praefix. Eine Alternative
+    waere gewesen, den Marker nur fuer zukuenftige Versionen einzufrieren
+    und alte Bloecke als verlorenen Fall hinzunehmen -- verworfen, weil
+    das genau die zwei konkreten Faelle nicht schliesst, die der Review
+    nennt: Bloecke, die heute Nacht schon im Demo-Katalog liegen
+    koennten, und ein realer Kunden-Upgrade. Risiko der Wahl: ein Mensch,
+    dessen eigener Text zufaellig mit "probate:" beginnt, wird ab dort
+    faelschlich als probate-Block behandelt -- kein Escape-Mechanismus
+    dagegen. Bewusst in Kauf genommen: eine falsch erkannte Grenze
+    verliert im schlimmsten Fall einen Satz Kontext, eine NICHT erkannte
+    alte Notiz haeuft sich dagegen bei jedem weiteren Korrektur-Lauf
+    weiter an -- das unbegrenzte Wachstum ist der schlimmere Fehler.
+
     Jeder andere Top-Level-Schluessel des Aspekts (z.B.
     `customProperties`) bleibt unangetastet -- derselbe Grundsatz wie
     `merge_upstreams`: der ganze aufgeloeste Wert ist die Basis, nicht
@@ -351,7 +389,11 @@ def merge_editable_description(before: dict | None, note: str) -> dict:
     """
     resolved = _resolve_editable_props_before(before)
     old = resolved.get("description") or ""
-    marker = old.find(_ENRICH_DOC_TAG)
+    positions = [
+        pos for pos in (old.find(_ENRICH_DOC_TAG), old.find(_LEGACY_ENRICH_DOC_PREFIX))
+        if pos != -1
+    ]
+    marker = min(positions) if positions else -1
     human_part = old[:marker].rstrip() if marker != -1 else old.strip()
     text = f"{human_part}\n\n{note}" if human_part else note
     return {**resolved, "description": text}
