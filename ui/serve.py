@@ -264,6 +264,15 @@ def route(method: str, path: str, query: dict) -> tuple[str, dict]:
         return "mode", {}
     if path == "/api/ledger" and method == "GET":
         return "ledger", {}
+    if path == "/api/ledger/progress" and method == "GET":
+        # Ein voller Lauf ueber den SICHTBAREN Umfang dauert Sekunden
+        # (gemessen 07.08.: 21,75s ueber 330 Quelltabellen, 513 Kanten,
+        # 1476 API-Aufrufe). Ohne diesen Weg bliebe der Oberflaeche nur,
+        # entweder still zu warten oder den Umfang heimlich zu
+        # verkleinern -- und genau das Verkleinern hat den Startzustand
+        # der Demo zerstoert (4 statt 513 Kanten nach einem Knopfdruck).
+        # Der Weg misst NICHTS, er liest nur den Zaehler.
+        return "ledger-progress", {}
     if path == "/api/current" and method == "GET":
         # Der ZWISCHENSTAND, ohne zu messen. `/api/ledger` ist ein echter
         # Lauf gegen GMS (Sekunden, API-Aufrufe, Kosten) -- den beim
@@ -794,9 +803,40 @@ def build_handler(gms_url: str, focus: str, log: list):
     # `recorded_at_iso`), nie als frische Messung.
     _cached_ledger: dict | None = load_recorded_ledger(focuses=focus_list)
 
+    # --- Fortschritt eines laufenden Registerlaufs ----------------------
+    #
+    # Nur Zaehler, kein Zustand, der irgendetwas steuert: `done` von
+    # `total` Quelltabellen. Ein Wörterbuch statt mehrerer nonlocal-
+    # Variablen, damit der Lese-Weg eine Momentaufnahme kopieren kann,
+    # ohne die Schreibseite zu sperren.
+    _progress = {"running": False, "done": 0, "total": 0,
+                 "started_ms": None, "seconds": None, "edges": None}
+
     def note(text: str, number=None) -> None:
         """Jede Protokollzeile traegt eine Zahl, kein Gefuehl."""
         log.append({"t": int(time.time() * 1000), "text": text, "n": number})
+
+    def scope_focuses() -> list[str]:
+        """WAS eine Pruefung misst: den Umfang, den man gerade sieht.
+
+        Gemessener Defekt (07.08., Joel/Auftrag): der Knopf "Run a check"
+        lief ueber `focus_list` -- die VIER Labor-Fokusse aus dem Manifest.
+        Die Konsole zeigt beim Start aber das aufgezeichnete Register mit
+        330 Quelltabellen und 513 Kanten. Ein Juror drueckt den Knopf, und
+        aus 513 Zeilen werden 4: der Demo-Katalog ist weg, ohne dass
+        jemand das angeordnet haette. Ein Knopf, der den Umfang heimlich
+        verkleinert, ist genau der Fall, den die Spec verbietet ("kein
+        Knopf, dessen Wirkung man erst nach dem Druecken erfaehrt").
+
+        Deshalb: die Fokusse des GEZEIGTEN Registers, vereinigt mit den
+        beobachteten aus `--focus`. Vereinigt und nicht ersetzt, weil
+        `--focus` eine ausdrueckliche Angabe des Aufrufers ist -- sie darf
+        nicht verschwinden, nur weil eine Aufzeichnung sie nicht kennt.
+        Reihenfolge bleibt stabil (`dict.fromkeys`), damit zwei Laeufe
+        vergleichbar sind.
+        """
+        shown = [f for f in ((_cached_ledger or {}).get("focuses") or []) if f]
+        return list(dict.fromkeys(shown + focus_list))
 
     def run_full_ledger(gms, now_ms: int) -> dict:
         """Ein Lauf pro Fokus, zu EINEM Register zusammengelegt.
@@ -820,10 +860,27 @@ def build_handler(gms_url: str, focus: str, log: list):
         from probate.ledger import run as ledger_run
 
         nonlocal _cached_ledger
-        runs = [ledger_run(gms, f, now_ms) for f in focus_list]
-        out = combine_runs(runs)
+        wanted = scope_focuses()
+        started = time.perf_counter()
+        _progress.update({"running": True, "done": 0, "total": len(wanted),
+                          "started_ms": int(time.time() * 1000),
+                          "seconds": None, "edges": None})
+        runs = []
+        try:
+            for f in wanted:
+                runs.append(ledger_run(gms, f, now_ms))
+                _progress["done"] += 1
+            out = combine_runs(runs)
+        finally:
+            _progress["running"] = False
         out["recording"] = False
         out["live"] = True
+        # Wie lange dieser Lauf wirklich gedauert hat -- damit der Knopf
+        # beim NAECHSTEN Mal eine gemessene Dauer ankuendigen kann statt
+        # einer geschaetzten.
+        out["run_seconds"] = round(time.perf_counter() - started, 2)
+        _progress["seconds"] = out["run_seconds"]
+        _progress["edges"] = out.get("edges_total")
         out["seeded_statement"] = SEEDED_STATEMENT
         out["demo_focus"] = DEMO_FOCUS
         out["demo_partner"] = DEMO_PARTNER
@@ -1030,6 +1087,10 @@ def build_handler(gms_url: str, focus: str, log: list):
                     out = dict(_cached_ledger)
                     out.update(_provenance(_cached_ledger))
                     return self._json(out)
+                if kind == "ledger-progress":
+                    # Wie `current`: VOR `Gms(gms_url)`. Ein Zaehler zu
+                    # lesen braucht keine Instanz.
+                    return self._json(dict(_progress))
                 if kind == "reset-time":
                     # Vor `Gms(gms_url)`: reset schreibt nichts, braucht
                     # gar keine GMS-Verbindung (dieselbe Garantie wie
@@ -1043,6 +1104,12 @@ def build_handler(gms_url: str, focus: str, log: list):
                     return self._json({"mode": "live", "gms": gms_url,
                                         "focus": focus_list[0] if focus_list else "",
                                         "focuses": focus_list,
+                                        # Was ein Druck auf "Run a check"
+                                        # messen WIRD -- vor dem Druecken
+                                        # abrufbar, damit der Knopf es
+                                        # ansagen kann.
+                                        "scope_focuses": len(scope_focuses()),
+                                        "scope_edges": (_cached_ledger or {}).get("edges_total"),
                                         "demo_focus": DEMO_FOCUS,
                                         "demo_partner": DEMO_PARTNER,
                                         "seeded_statement": SEEDED_STATEMENT,
@@ -1057,7 +1124,8 @@ def build_handler(gms_url: str, focus: str, log: list):
                     out = run_full_ledger(gms, int(time.time() * 1000)
                                            + _view_offset_days * 86_400_000)
                     note(f"full check: {out['edges_total']} edge(s) over "
-                         f"{len(focus_list)} focus dataset(s), {out['api_calls']} API calls",
+                         f"{len(out.get('focuses') or [])} focus dataset(s), "
+                         f"{out['api_calls']} API calls, {out['run_seconds']}s",
                          out["edges_total"])
                     # KEIN Modellaufruf an dieser Stelle. Jeder Knopfdruck
                     # holt das Register neu -- ein Urteilslauf pro Abruf

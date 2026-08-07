@@ -293,6 +293,58 @@ def edge_row(edge: dict, gov: dict | None = None) -> dict:
     }
 
 
+# --- Gruppierung: Plattform -> Datenbank ---------------------------------
+#
+# Aus der Referenz abgelesen (docs/werkbank-spec.md, "Tabellen sind
+# gruppiert"): fette Gruppenzeile mit Summen, darunter die Kinderzeilen.
+# Bei 513 Kanten ist die naheliegende Gruppierung Plattform -> Datenbank.
+#
+# Die Gruppe einer KANTE ist die ihrer QUELLE (`from`). Eine Kante hat zwei
+# Enden und koennte in zwei Gruppen fallen -- dann waere die Summe aller
+# Gruppen groesser als die Zeilenzahl, und eine Summe, die nicht aufgeht,
+# ist auf dieser Werkbank besonders teuer (derselbe Fehler wie die
+# Facetten, die Kanten-ENDEN zaehlten). Eine Zeile, eine Gruppe.
+# Der Trenner ist ausdruecklich ein Steuerzeichen und kein Punkt: ein
+# Datenbankname darf Punkte tragen, eine Plattform theoretisch auch --
+# zwei verschiedene Paare duerfen nie denselben Schluessel bekommen.
+GROUP_SEP = "\x1f"
+
+
+def group_key(row: dict) -> str:
+    ref = row["from"]
+    return f"{ref['platform']}{GROUP_SEP}{ref['database']}"
+
+
+def groups(rows: list[dict]) -> list[dict]:
+    """Zustands-Summen je Plattform/Datenbank ueber die GEFILTERTE Menge.
+
+    Nicht ueber die Seite: eine Gruppenzeile, die nur die 50 sichtbaren
+    Zeilen zaehlt, behauptet eine Summe, die es nicht gibt. Die Zahl gilt
+    fuer den gerade eingestellten Filter, und die Oberflaeche schreibt
+    dazu, wie viele davon auf dieser Seite stehen.
+    """
+    out: dict[str, dict] = {}
+    for r in rows:
+        key = group_key(r)
+        g = out.get(key)
+        if g is None:
+            g = out[key] = {
+                "key": key,
+                "platform": r["from"]["platform"],
+                "database": r["from"]["database"],
+                "total": 0,
+                "confirmed": 0, "dead": 0, "missing": 0, "unknown": 0,
+            }
+        g["total"] += 1
+        if r["state"] in g:
+            g[r["state"]] += 1
+    return sorted(out.values(), key=lambda g: (g["platform"], g["database"]))
+
+
+# Innerhalb einer Gruppe zuerst das, was Arbeit macht: tot, fehlend,
+# nicht beurteilbar, bestaetigt.
+_STATE_RANK = {"dead": 0, "missing": 1, "unknown": 2, "confirmed": 3}
+
 _SORTS = {
     "state": lambda r: r["state"],
     "from": lambda r: (r["from"]["qualified"] or ""),
@@ -302,6 +354,12 @@ _SORTS = {
     # fehlende Messung ist kein "sehr altes Datum".
     "last": lambda r: (r["last_covered_ms"] is None, r["last_covered_ms"] or 0),
     "traffic": lambda r: r["traffic_total"],
+    # Gruppiert: die Reihenfolge MUSS zur Gruppenbildung passen, sonst
+    # zerfaellt eine Gruppe ueber mehrere Seiten und die Gruppenzeile
+    # erscheint mehrfach.
+    "group": lambda r: (r["from"]["platform"], r["from"]["database"],
+                        _STATE_RANK.get(r["state"], 9),
+                        r["from"]["qualified"], r["to"]["qualified"]),
 }
 
 
@@ -442,6 +500,10 @@ def filter_sort_page(edges: list[dict], judgements: dict, params: dict,
         "total": len(rows),
         "total_unfiltered": total_unfiltered,
         "state_counts": by_state,
+        # Die Gruppen-Summen gelten fuer die GEFILTERTE Menge, nicht fuer
+        # die Seite -- sonst waere die fette Zeile eine Behauptung ueber
+        # 50 Zeilen, die wie eine Aussage ueber alle aussieht.
+        "groups": groups(rows),
         # Nur gesetzt, wenn nach Stillstandsdauer gefiltert wurde: so viele
         # Kanten liessen sich mangels Messung nicht altern. Ohne diese Zahl
         # waeren sie einfach weg -- und ein Filter, der schweigend etwas

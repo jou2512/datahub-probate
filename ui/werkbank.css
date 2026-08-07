@@ -43,6 +43,23 @@
   --quote-wash-light: rgba(61, 90, 153, 0.06);
   --sunk-wash-light:  rgba(20, 23, 29, 0.03);
 
+  /* Die dunkle Seitenleiste (Referenz: tiefes Marineblau gegen hellen
+     Inhalt -- "das allein macht den groessten Teil des SaaS-Eindrucks").
+     Sie ist in BEIDEN Themen dunkel: eine helle Seitenleiste im hellen
+     Thema waere genau der Zustand, den Joel zurueckgewiesen hat. */
+  --nav-bg-light:        #1b2431;
+  --nav-bg-sunk-light:   #26303f;
+  --nav-ink-light:       #eef1f6;
+  --nav-ink-muted-light: #97a3b4;
+  --nav-line-light:      #2c3745;
+  --nav-accent-light:    #7aa2e8;
+
+  /* Der EINE Akzent (Referenz: ein Blau fuer Hauptaktion, Balken,
+     Links). Zustandsfarben bleiben den Zustaenden vorbehalten. */
+  --accent-light:      #2f5bb7;
+  --accent-ink-light:  #ffffff;
+  --accent-soft-light: #dfe7f7;
+
   /* Dunkelwerte -- dieselbe Rolle je Token, angepasste Leuchtdichte. */
   --bg-dark:           #101318;
   --surface-dark:      #191d24;
@@ -62,6 +79,17 @@
   --quote-wash-dark: rgba(145, 169, 226, 0.10);
   --sunk-wash-dark:  rgba(255, 255, 255, 0.04);
 
+  --nav-bg-dark:        #0b0e13;
+  --nav-bg-sunk-dark:   #1a1f28;
+  --nav-ink-dark:       #e9ecf1;
+  --nav-ink-muted-dark: #868f9d;
+  --nav-line-dark:      #212832;
+  --nav-accent-dark:    #91a9e2;
+
+  --accent-dark:      #6d92dd;
+  --accent-ink-dark:  #0b0e13;
+  --accent-soft-dark: #1e2738;
+
   /* Aktives Thema -- Vorgabe hell, Umschaltung weiter unten. */
   --bg:            var(--bg-light);
   --surface:       var(--surface-light);
@@ -80,6 +108,15 @@
   --shadow:      var(--shadow-light);
   --quote-wash:  var(--quote-wash-light);
   --sunk-wash:   var(--sunk-wash-light);
+  --nav-bg:        var(--nav-bg-light);
+  --nav-bg-sunk:   var(--nav-bg-sunk-light);
+  --nav-ink:       var(--nav-ink-light);
+  --nav-ink-muted: var(--nav-ink-muted-light);
+  --nav-line:      var(--nav-line-light);
+  --nav-accent:    var(--nav-accent-light);
+  --accent:      var(--accent-light);
+  --accent-ink:  var(--accent-ink-light);
+  --accent-soft: var(--accent-soft-light);
 
   /* Form: bewusst NICHT ueberall dieselbe grosse Rundung. */
   --r-card:  5px;
@@ -124,6 +161,15 @@
     --shadow:      var(--shadow-dark);
     --quote-wash:  var(--quote-wash-dark);
     --sunk-wash:   var(--sunk-wash-dark);
+    --nav-bg:        var(--nav-bg-dark);
+    --nav-bg-sunk:   var(--nav-bg-sunk-dark);
+    --nav-ink:       var(--nav-ink-dark);
+    --nav-ink-muted: var(--nav-ink-muted-dark);
+    --nav-line:      var(--nav-line-dark);
+    --nav-accent:    var(--nav-accent-dark);
+    --accent:      var(--accent-dark);
+    --accent-ink:  var(--accent-ink-dark);
+    --accent-soft: var(--accent-soft-dark);
   }
 }
 
@@ -148,6 +194,15 @@
   --shadow:      var(--shadow-dark);
   --quote-wash:  var(--quote-wash-dark);
   --sunk-wash:   var(--sunk-wash-dark);
+  --nav-bg:        var(--nav-bg-dark);
+  --nav-bg-sunk:   var(--nav-bg-sunk-dark);
+  --nav-ink:       var(--nav-ink-dark);
+  --nav-ink-muted: var(--nav-ink-muted-dark);
+  --nav-line:      var(--nav-line-dark);
+  --nav-accent:    var(--nav-accent-dark);
+  --accent:      var(--accent-dark);
+  --accent-ink:  var(--accent-ink-dark);
+  --accent-soft: var(--accent-soft-dark);
 }
 :root[data-theme="light"] {
   --bg:            var(--bg-light);
@@ -167,6 +222,15 @@
   --shadow:      var(--shadow-light);
   --quote-wash:  var(--quote-wash-light);
   --sunk-wash:   var(--sunk-wash-light);
+  --nav-bg:        var(--nav-bg-light);
+  --nav-bg-sunk:   var(--nav-bg-sunk-light);
+  --nav-ink:       var(--nav-ink-light);
+  --nav-ink-muted: var(--nav-ink-muted-light);
+  --nav-line:      var(--nav-line-light);
+  --nav-accent:    var(--nav-accent-light);
+  --accent:      var(--accent-light);
+  --accent-ink:  var(--accent-ink-light);
+  --accent-soft: var(--accent-soft-light);
 }
 
 /* ---------------------------------------------------------------------
@@ -213,11 +277,23 @@ html, body { height: 100%; }
 .app {
   height: 100vh;
   display: grid;
-  /* Kopfzeile · Hinweisstreifen · Inhalt · Statusleiste. Nur die dritte
+  /* ZWEI Spalten: die dunkle Seitenleiste ueber die volle Hoehe (Spalte
+     1, Referenz) und daneben die bekannte Vier-Zeilen-Spalte.
+     Kopfzeile · Hinweisstreifen · Inhalt · Statusleiste. Nur die dritte
      Zeile darf wachsen und scrollen -- das ist "ein einziger Bildlauf". */
+  grid-template-columns: var(--nav-w) minmax(0, 1fr);
   grid-template-rows: auto auto minmax(0, 1fr) auto;
   background: var(--bg);
 }
+
+/* Jedes Kind der rechten Spalte steht in Spalte 2; die Seitenleiste
+   nimmt Spalte 1 ueber alle vier Zeilen. */
+.app > .topbar,
+.app > .notice,
+.app > .app__body,
+.app > .statusbar { grid-column: 2; }
+
+.app > .sidebar { grid-column: 1; grid-row: 1 / -1; }
 
 .topbar {
   display: flex;
@@ -228,25 +304,6 @@ html, body { height: 100%; }
   padding: var(--space-2) var(--space-4);
   border-bottom: 1px solid var(--line);
   background: var(--surface);
-}
-
-.topbar__brand { display: flex; align-items: baseline; gap: var(--space-3); min-width: 0; }
-
-.topbar__mark {
-  font-family: var(--font-mono);
-  font-size: 0.78rem;
-  letter-spacing: 0.12em;
-  text-transform: uppercase;
-  font-weight: 700;
-}
-
-.topbar__instance {
-  font-family: var(--font-mono);
-  font-size: 0.72rem;
-  color: var(--ink-faint);
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
 }
 
 .topbar__tools { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
@@ -281,19 +338,65 @@ html, body { height: 100%; }
 .btn:hover { background: var(--surface-sunk); }
 .btn:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* Der einzige hervorgehobene Knopf der Seite -- in der Mess-Farbe, nicht
-   in einer Zustandsfarbe. Rot bleibt den Kanten vorbehalten. */
-.btn--primary { border-color: var(--measured); color: var(--measured); font-weight: 600; }
-
-.app__body {
-  position: relative;   /* Anker fuer die ueberlagerte Detailspalte, s.u. */
-  display: grid;
-  grid-template-columns: var(--nav-w) minmax(0, 1fr);
-  min-height: 0;
+/* Der einzige gefuellte Knopf der Seite -- im EINEN Akzentton
+   (Referenz: eine farbig gefuellte Hauptaktion, sonst nichts). Rot
+   bleibt den Kanten vorbehalten, Gruen den Messwerten. */
+.btn--primary {
+  display: inline-flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: 5px var(--space-3);
+  background: var(--accent);
+  border-color: var(--accent);
+  color: var(--accent-ink);
+  font-weight: 600;
 }
 
-.app__body.has-detail {
-  grid-template-columns: var(--nav-w) minmax(0, 1fr) minmax(300px, var(--detail-w));
+.btn--primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
+
+/* Was der Knopf messen WIRD, bevor man ihn drueckt. Ohne diese Zeile
+   waere er genau der Fall, den die Spec verbietet. */
+.btn__scope { font-size: 0.68rem; font-weight: 400; opacity: 0.85; }
+
+/* Der Fortschritt eines laufenden Registerlaufs -- ein duenner Balken
+   (Referenz), kein Klotz. Volle Breite unter der Kopfzeile. */
+.progress[hidden] { display: none; }
+
+.progress { flex: 1 0 100%; display: flex; flex-direction: column; gap: 3px; margin-top: var(--space-2); }
+
+.progress__bar {
+  height: 3px;
+  background: var(--surface-sunk);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.progress__fill {
+  display: block;
+  height: 100%;
+  width: 0;
+  background: var(--accent);
+  transition: width var(--t-calm);
+}
+
+.progress__text {
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+/* Inhalt und Detailspalte nebeneinander. BEWUSST flex und kein Raster:
+   die Seitenleiste ist seit dem Referenz-Umbau kein Kind mehr davon --
+   ein `grid-template-columns` mit nur einer Spalte saehe hier aus wie
+   der alte Defekt (Navigation und Inhalt untereinander) und liesse sich
+   von ihm nicht unterscheiden. */
+.app__body {
+  position: relative;   /* Anker fuer die ueberlagerte Detailspalte, s.u. */
+  display: flex;
+  align-items: stretch;
+  min-height: 0;
+  min-width: 0;
 }
 
 /* ---------------------------------------------------------------------
@@ -323,13 +426,13 @@ html, body { height: 100%; }
   /* Der Hinweissatz ist Erklaerung, nicht Navigation -- er faellt zuerst.
      Der Bereichsname bleibt, damit niemand Symbole raten muss. */
   .sidenav__hint { display: none; }
-  .sidenav__item { grid-template-columns: minmax(0, 1fr) auto; }
   .search__input { min-width: 0; width: 170px; }
+  .cardgrid { grid-template-columns: minmax(0, 1fr); }
 }
 
 @media (max-width: 1023px) {
   :root { --nav-w: 144px; }
-  .sidenav { padding: var(--space-2) var(--space-1); }
+  .sidebar__nav { padding: var(--space-2) var(--space-1); }
   .sidenav__item {
     padding: var(--space-2);
     /* Eine Spalte: die Zahl rutscht UNTER den Namen. Nebeneinander
@@ -338,20 +441,22 @@ html, body { height: 100%; }
     grid-template-columns: minmax(0, 1fr);
   }
   .sidenav__name { font-size: 0.78rem; overflow-wrap: anywhere; }
-  .sidenav__count { font-size: 0.66rem; grid-column: 1 / -1; }
+  .sidenav__count { font-size: 0.66rem; grid-column: 1 / -1; justify-self: start; }
+  .sidebar__product { font-size: 0.76rem; }
   .search__input { width: 130px; }
   .topbar { padding: var(--space-2) var(--space-3); gap: var(--space-2); }
+  .kpis__cards { grid-template-columns: repeat(2, minmax(0, 1fr)); }
 
   /* Die Detailspalte als aufliegende Schicht: sie darf den Inhalt
      verdecken, aber nie unter ihn rutschen -- untereinander waeren es
      wieder zwei Bildlaeufe, die man nacheinander bedienen muss. */
-  .app__body.has-detail { grid-template-columns: var(--nav-w) minmax(0, 1fr); }
   .detail {
     position: absolute;
     top: 0;
     right: 0;
     bottom: 0;
     z-index: 5;
+    flex: 0 0 auto;
     width: min(360px, 82vw);
     box-shadow: -2px 0 6px var(--shadow);
   }
@@ -362,15 +467,84 @@ html, body { height: 100%; }
    ueber einen Knopf im Fliesstext erreicht (Spec, Ebene 1).
    --------------------------------------------------------------------- */
 
-.sidenav {
+/* Dunkel gegen hellen Inhalt -- der groesste Einzeleffekt der Referenz.
+   Drei Zonen: Markenkachel oben, Navigation in der Mitte (die einzige,
+   die scrollen darf), Systemzustand unten VERANKERT. */
+.sidebar {
   display: flex;
   flex-direction: column;
-  gap: 2px;
-  padding: var(--space-3) var(--space-2);
-  border-right: 1px solid var(--line);
-  background: var(--surface);
-  overflow-y: auto;
+  min-height: 0;
+  background: var(--nav-bg);
+  color: var(--nav-ink);
+  border-right: 1px solid var(--nav-line);
 }
+
+.sidebar__brand {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--nav-line);
+  min-width: 0;
+}
+
+/* Eine BUCHSTABENKACHEL, kein Emoji und kein erfundenes Logo
+   (Spec: "Der Markenblock traegt kein erfundenes Logo"). */
+.sidebar__tile {
+  flex: 0 0 auto;
+  display: grid;
+  place-items: center;
+  width: 28px;
+  height: 28px;
+  border-radius: var(--r-chip);
+  background: var(--accent);
+  color: var(--accent-ink);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-weight: 700;
+  letter-spacing: 0.04em;
+}
+
+.sidebar__names { display: flex; flex-direction: column; min-width: 0; }
+
+.sidebar__product {
+  font-size: 0.84rem;
+  font-weight: 600;
+  line-height: 1.2;
+  overflow-wrap: anywhere;
+}
+
+.sidebar__owner {
+  font-size: 0.68rem;
+  color: var(--nav-ink-muted);
+  font-family: var(--font-mono);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__nav {
+  flex: 1 1 auto;
+  min-height: 0;
+  overflow-y: auto;
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  padding: var(--space-3) var(--space-2);
+}
+
+/* Abschnittsueberschriften in Grossbuchstaben (Referenz: PROGRAMME,
+   EINSTELLUNGEN). */
+.sidebar__section {
+  margin: var(--space-3) 0 var(--space-1);
+  padding: 0 var(--space-2);
+  font-size: 0.62rem;
+  letter-spacing: 0.14em;
+  text-transform: uppercase;
+  color: var(--nav-ink-muted);
+}
+
+.sidebar__section:first-child { margin-top: 0; }
 
 .sidenav__item {
   display: grid;
@@ -378,35 +552,80 @@ html, body { height: 100%; }
   align-items: baseline;
   gap: 0 var(--space-2);
   text-align: left;
-  padding: var(--space-2) var(--space-3);
+  padding: var(--space-2);
+  color: var(--nav-ink);
   background: none;
-  border: 1px solid transparent;
+  border: none;
+  border-left: 2px solid transparent;
   border-radius: var(--r-input);
   cursor: pointer;
 }
 
-.sidenav__item:hover { background: var(--surface-sunk); }
+.sidenav__item:hover { background: var(--nav-bg-sunk); }
 
 .sidenav__item.is-active {
-  background: var(--surface-sunk);
-  border-color: var(--line);
+  background: var(--nav-bg-sunk);
+  border-left-color: var(--nav-accent);
 }
 
-.sidenav__name { font-size: 0.9rem; font-weight: 600; }
+.sidenav__name { font-size: 0.85rem; font-weight: 600; }
 
 .sidenav__hint {
   grid-column: 1 / -1;
-  font-size: 0.72rem;
-  color: var(--ink-faint);
+  font-size: 0.68rem;
+  color: var(--nav-ink-muted);
   line-height: 1.35;
 }
 
+/* Die Zahl rechts an jedem Punkt (Referenz). Sie steht NIE erfunden da:
+   was nicht gemessen ist, bleibt ein Gedankenstrich mit Erklaerung im
+   title -- eine 0 waere eine gemessene Null und damit gelogen. */
 .sidenav__count {
+  justify-self: end;
   font-family: var(--font-mono);
-  font-size: 0.72rem;
+  font-size: 0.7rem;
   font-variant-numeric: tabular-nums;
-  color: var(--ink-muted);
+  color: var(--nav-ink-muted);
 }
+
+/* Unten verankert, durch eine Haarlinie getrennt: der Systemzustand.
+   ABWEICHUNG von der Referenz, benannt: dort steht hier ein BENUTZER mit
+   Avatar. Diese Werkbank kennt keinen Benutzer -- sie laeuft gegen eine
+   Instanz. Ein erfundenes Konto waere AI-Slop. */
+.sidebar__system {
+  flex: 0 0 auto;
+  border-top: 1px solid var(--nav-line);
+  padding: var(--space-3) var(--space-3) var(--space-3) var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+}
+
+.sidebar__stat {
+  display: flex;
+  flex-direction: column;
+  gap: 1px;
+  min-width: 0;
+}
+
+.sidebar__stat-key {
+  font-size: 0.6rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--nav-ink-muted);
+}
+
+.sidebar__stat-value {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  color: var(--nav-ink);
+  font-variant-numeric: tabular-nums;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.sidebar__stat-value[data-mode="live"] { color: var(--nav-accent); }
 
 /* ---------------------------------------------------------------------
    Hinweisstreifen unter der Kopfzeile
@@ -442,7 +661,7 @@ html, body { height: 100%; }
    Inhaltsbereich
    --------------------------------------------------------------------- */
 
-.view { overflow-y: auto; min-width: 0; }
+.view { flex: 1 1 auto; overflow-y: auto; min-width: 0; }
 
 /* `display: flex` schlaegt die eingebaute [hidden]-Regel des Browsers --
    ohne diese Zeile stehen ALLE fuenf Bereiche untereinander auf dem
@@ -462,15 +681,20 @@ html, body { height: 100%; }
 
 .pane__caption { color: var(--ink-muted); font-size: 0.85rem; max-width: 80ch; }
 
+/* Der Satz, der bis 07.08. als Schlagzeile ueber der Uebersicht stand.
+   Er ist nicht geloescht, sondern versetzt (Bereich "Belege") -- und
+   dort ist er UNTERTITEL, nicht Ueberschrift: er darf den Seitentitel
+   nicht ueberragen, sonst ist die Landeseite nur umgezogen. */
 .bench__problem {
-  font-size: clamp(1.35rem, 2.2vw, 1.85rem);
-  line-height: 1.2;
+  font-size: 1.05rem;
+  line-height: 1.4;
   font-weight: 600;
-  letter-spacing: -0.015em;
-  max-width: 30ch;
+  max-width: 62ch;
+  border-left: 2px solid var(--line);
+  padding-left: var(--space-3);
 }
 
-.bench__problem-turn { display: block; color: var(--ink-muted); font-weight: 500; }
+.bench__problem-turn { color: var(--ink-muted); font-weight: 500; }
 
 .bench__lede { max-width: 74ch; color: var(--ink-muted); font-size: 0.95rem; }
 .bench__lede em { color: var(--ink); font-style: italic; }
@@ -482,43 +706,119 @@ html, body { height: 100%; }
    ist ausdruecklich nicht gewollt (Spec, "Was NICHT gebaut wird").
    --------------------------------------------------------------------- */
 
-.kpis {
-  border-top: 2px solid var(--ink);
-  border-bottom: 1px solid var(--line);
-  padding: var(--space-3) 0;
-}
+/* Karten statt einer durchlaufenden Zeile (Referenz): grosse Zahl oben,
+   gedaempfte Beschriftung mit Nenner darunter, weiss, 1px Kante,
+   kleiner Radius, KEIN Schlagschatten. */
+.kpis { display: flex; flex-direction: column; gap: var(--space-2); }
 
-.kpis__row {
-  display: flex;
-  flex-wrap: wrap;
-  align-items: baseline;
-  gap: var(--space-2) var(--space-4);
-  font-size: clamp(1rem, 1.6vw, 1.3rem);
-  font-variant-numeric: tabular-nums;
-}
-
-.kpis__lead { font-weight: 600; }
-
-.kpis__seg { display: inline-flex; align-items: baseline; gap: var(--space-2); }
-
-.kpis__count { font-weight: 700; }
-
-.kpis__label { color: var(--ink-muted); font-size: 0.78em; }
-
-.kpis__denominator { color: var(--ink-faint); font-size: 0.7em; }
-
-.quality {
+.kpis__cards {
   display: grid;
-  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  grid-template-columns: repeat(4, minmax(0, 1fr));
   gap: var(--space-3);
 }
 
-.quality__item {
+.kpi {
   border: 1px solid var(--line);
   border-radius: var(--r-card);
   background: var(--surface);
   padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-1);
+  min-width: 0;
 }
+
+.kpi__value {
+  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  font-weight: 700;
+  line-height: 1.05;
+  font-variant-numeric: tabular-nums;
+  letter-spacing: -0.02em;
+}
+
+.kpi__label { display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; }
+
+.kpi__denominator { font-size: 0.74rem; color: var(--ink-muted); }
+
+.kpi__note { font-size: 0.72rem; color: var(--ink-faint); }
+
+/* Der duenne Balken IN der Karte (Referenz: "bei Bedarf ein duenner
+   Fortschrittsbalken in der Karte"), im Zustandston der Karte. */
+.kpi__bar { height: 3px; background: var(--surface-sunk); border-radius: 2px; overflow: hidden; }
+.kpi__bar span { display: block; height: 100%; background: var(--shape-ink); }
+
+.kpi--confirmed { --shape-ink: var(--state-confirmed); }
+.kpi--dead      { --shape-ink: var(--state-dead); }
+.kpi--missing   { --shape-ink: var(--state-missing); }
+.kpi--unknown   { --shape-ink: var(--state-unknown); }
+
+/* Der Deutungssatz unter einer Kennzahlgruppe (Referenz: "Groesster
+   Abfall ... Dort ist der Engpass"). Eine Zahl, die sich selbst
+   erklaert -- sonst muss sie jeder Leser selbst deuten. */
+.reading { font-size: 0.82rem; color: var(--ink-muted); line-height: 1.5; max-width: 92ch; }
+.reading strong { color: var(--ink); font-weight: 600; }
+.reading:empty { display: none; }
+
+/* Zwei Karten nebeneinander (Referenz: "Naechste Schritte" links, "Vom
+   Stoff zur Aufgabe" rechts). */
+.cardgrid {
+  display: grid;
+  grid-template-columns: repeat(2, minmax(0, 1fr));
+  gap: var(--space-3);
+  align-items: start;
+}
+
+.card {
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  padding: var(--space-3);
+  display: flex;
+  flex-direction: column;
+  gap: var(--space-2);
+  min-width: 0;
+}
+
+/* Kartenueberschriften: klein, Grossbuchstaben, gesperrt, gedaempft. */
+.card__title {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  font-weight: 600;
+}
+
+.card__note { font-size: 0.76rem; color: var(--ink-muted); }
+
+/* Abschnittsueberschrift links, Nebenaktion als gedaempfter Textlink
+   rechts (Referenz: "Alle Projekte →"). Kein Knopf -- ein zweiter Knopf
+   neben der Hauptaktion waere genau das, was die Spec ausschliesst. */
+.card__head { display: flex; align-items: baseline; justify-content: space-between; gap: var(--space-3); }
+
+.card__more {
+  font-size: 0.74rem;
+  color: var(--accent);
+  text-decoration: none;
+  white-space: nowrap;
+}
+
+.card__more::after { content: " \2192"; }
+.card__more:hover { text-decoration: underline; }
+
+.quality {
+  display: flex;
+  flex-direction: column;
+  gap: 0;
+}
+
+/* Haarlinien zwischen den Zeilen statt eines Rahmens um jede Zeile. */
+.quality__item {
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.quality__item:last-child { border-bottom: none; }
 
 .quality__label {
   font-family: var(--font-mono);
@@ -559,41 +859,40 @@ html, body { height: 100%; }
    Knopf, dessen Wirkung man erst nach dem Druecken erfaehrt").
    --------------------------------------------------------------------- */
 
-.controls { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+/* Der Block aus sechs gleich schweren Knoepfen ist weg. Statt dessen:
+   eine Liste, in der jede Zeile SAGT was sie tut und den Knopf RECHTS
+   in derselben Zeile traegt (Referenz: "Naechste Schritte" mit "Lauf
+   starten" je Zeile). Genau das war Joels Befund -- sechs losgeloeste
+   Knoepfe sind der Hauptgrund, warum niemand weiss, was einer tut. */
+.actionrows { display: flex; flex-direction: column; }
 
-.controls button {
+.actionrow {
   display: flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  padding: var(--space-2) var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-input);
-  cursor: pointer;
-  text-align: left;
-  transition: background var(--t-fast);
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-3);
+  padding: var(--space-2) 0;
+  border-bottom: 1px solid var(--line-soft);
 }
 
-.controls button:hover { background: var(--surface-sunk); }
-.controls button:disabled { opacity: 0.45; cursor: not-allowed; }
-.controls button:disabled:hover { background: var(--surface); }
+.actionrow:last-child { border-bottom: none; }
+
+.actionrow__text { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+.actionrow__name { font-size: 0.84rem; font-weight: 600; }
+.actionrow__writes { font-size: 0.72rem; color: var(--ink-faint); }
+.actionrow .btn { flex: 0 0 auto; }
 
 .btn__name { font-size: 0.86rem; font-weight: 600; }
 .btn__writes { font-size: 0.7rem; color: var(--ink-faint); }
-
-.controls button[data-action="run-ledger"] .btn__name { color: var(--measured); }
 
 /* ---------------------------------------------------------------------
    Legende
    --------------------------------------------------------------------- */
 
-.legend {
+.legend__items {
   display: grid;
   grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
   gap: var(--space-2) var(--space-4);
-  padding-top: var(--space-2);
-  border-top: 1px solid var(--line-soft);
 }
 
 .legend__item { display: flex; align-items: baseline; gap: var(--space-2); font-size: 0.82rem; }
@@ -619,7 +918,9 @@ html, body { height: 100%; }
   align-items: center;
   gap: var(--space-2);
   padding: 1px var(--space-2);
-  border-radius: var(--r-chip);
+  /* Pille MIT KONTUR (Referenz), bewusst eine andere Rundung als die
+     Karten -- nicht ueberall dieselbe grosse Rundung. */
+  border-radius: 999px;
   border: 1px solid var(--line);
   background: var(--surface);
   font-family: var(--font-mono);
@@ -786,6 +1087,55 @@ button.chip { cursor: pointer; }
 .grid tbody tr.is-selectable:hover { background: var(--sunk-wash); }
 .grid tbody tr.is-selected { background: var(--sunk-wash); }
 
+/* ---------------------------------------------------------------------
+   Gruppenzeile: Plattform -> Datenbank, mit Zustands-Summen (Referenz:
+   "Projekte nach Programm" -- fette Gruppenzeile mit Summen, darunter
+   eingerueckte Kinderzeilen).
+
+   Die Summen gelten fuer die GEFILTERTE Menge, nicht fuer die Seite --
+   der Server rechnet sie (`console_api.groups`). Eine Gruppenzeile, die
+   nur die 50 sichtbaren Zeilen zaehlt, waere eine Summe, die nicht
+   aufgeht.
+   --------------------------------------------------------------------- */
+
+.grid tbody tr.grouprow td {
+  background: var(--surface-sunk);
+  border-bottom: 1px solid var(--line);
+  padding: var(--space-2) var(--space-3);
+}
+
+.grouprow__head { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-2) var(--space-3); }
+
+.grouprow__name {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-weight: 700;
+}
+
+.grouprow__where { font-size: 0.7rem; color: var(--ink-faint); font-family: var(--font-mono); }
+
+.grouprow__sums { display: flex; align-items: baseline; gap: var(--space-3); margin-left: auto; }
+
+.grouprow__sum {
+  display: inline-flex;
+  align-items: baseline;
+  gap: var(--space-1);
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+}
+
+.grouprow__sum b { color: var(--shape-ink, var(--ink)); font-weight: 700; }
+
+.grouprow__sum--confirmed { --shape-ink: var(--state-confirmed); }
+.grouprow__sum--dead      { --shape-ink: var(--state-dead); }
+.grouprow__sum--missing   { --shape-ink: var(--state-missing); }
+.grouprow__sum--unknown   { --shape-ink: var(--state-unknown); }
+
+/* Kinderzeilen eingerueckt -- die Einrueckung ist die einzige Stelle,
+   an der die Zugehoerigkeit ohne Text sichtbar wird. */
+.grid tbody tr.is-child td:first-child { padding-left: var(--space-4); }
+
 /* Die Herkunft steht KLEIN UEBER dem Tabellennamen -- ein Name ohne
    seinen Ort ist bei 5.594 Datensaetzen wertlos (Spec, Spalte Von/Nach,
    und woertlich Joels Kritik). */
@@ -902,6 +1252,9 @@ button.chip { cursor: pointer; }
 .detail[hidden] { display: none; }
 
 .detail {
+  /* Dritte Spalte des Inhaltsbereichs -- als Flex-Element, seit die
+     Seitenleiste nicht mehr Teil dieses Rasters ist. */
+  flex: 0 0 clamp(300px, var(--detail-w), 40%);
   border-left: 1px solid var(--line);
   background: var(--surface);
   overflow-y: auto;

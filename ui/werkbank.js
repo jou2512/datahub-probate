@@ -35,6 +35,22 @@ function stateHelpNode(state) {
 
 function plural(n, one, many) { return `${n} ${n === 1 ? one : many}`; }
 
+// Die Zahl rechts an einem Navigationspunkt (Referenz). `null` heisst
+// NICHT null, sondern "noch nicht gezaehlt" -- und sieht deshalb anders
+// aus als eine gemessene Null, mit dem Grund im title. Genau diese
+// Verwechslung ist die Null-Regel der Spec.
+function setNavCount(id, value, what) {
+  const host = document.getElementById(id);
+  if (!host) return;
+  if (value == null) {
+    host.textContent = '—';
+    host.title = `not counted yet — open this section to count ${what}`;
+    return;
+  }
+  host.textContent = num(value);
+  host.title = `${num(value)} ${what}`;
+}
+
 function num(n) { return (n == null ? '—' : Number(n).toLocaleString()); }
 
 // Die Gruende kommen woertlich aus probate/ledger.py und probate/judge.py
@@ -149,6 +165,11 @@ const state = {
     // Stillstandsdauer in Tagen (siehe console_api.filter_sort_page).
     domain: '', owner: '', idle: '',
     judged: false, abstained: false,
+    // Gruppiert nach Plattform -> Datenbank (Referenz: "Projekte nach
+    // Programm"). Voreingestellt AN: bei 513 Kanten ueber vier
+    // Plattformen ist die flache Liste die Ansicht, in der man nicht
+    // weiss, wovon die Rede ist -- genau Joels Kritik.
+    grouped: true,
     sort: 'state', dir: 'asc', start: 0,
   },
   // Beschriftungen der Auswahllisten, gemerkt fuer die Chips: der Chip soll
@@ -204,10 +225,86 @@ function judgementFor(edgeKey) {
 
 // --- Bereich 1: Uebersicht ---------------------------------------------
 
+// Die vier Kennzahlkarten (Referenz: grosse Zahl oben, gedaempfte
+// Beschriftung mit Nenner darunter, duenner Balken in der Karte).
+//
+// Eine Karte je Zustand, IMMER alle vier -- auch bei null. Das ist keine
+// Kachelwand ohne Nenner (die verbietet die Spec), sondern die
+// Umkehrung: ein Zustand, der nicht vorkommt, ist eine GEMESSENE NULL
+// und muss als Ziffer dastehen. Ihn wegzulassen (so war es bis heute:
+// `if (!count) continue`) macht aus der gemessenen Null ein Schweigen --
+// genau die Verwechslung, gegen die dieses Produkt antritt.
+const KPI_NOTE = {
+  confirmed: 'real traffic on both sides',
+  dead: 'claimed, but nothing flowed',
+  missing: 'queries join them, nobody declared it',
+  unknown: 'no usage data — we do not judge',
+};
+
+function kpiCard(stateName, count, total, note) {
+  const card = el('div', `kpi kpi--${stateName}`);
+  card.append(el('p', 'kpi__value', num(count)));
+  const label = el('p', 'kpi__label');
+  label.append(el('span', `chip chip--${stateName}`, STATE_WORD[stateName]));
+  // Jede Zahl MIT Nenner -- eine nackte Kennzahl ist nicht
+  // interpretierbar (Spec).
+  label.append(el('span', 'kpi__denominator', `of ${num(total)} checked`));
+  card.append(label);
+  const bar = el('div', 'kpi__bar');
+  const fill = el('span');
+  fill.style.width = total ? `${Math.round((count / total) * 100)}%` : '0';
+  bar.append(fill);
+  card.append(bar, el('p', 'kpi__note', note));
+  return card;
+}
+
+// Der Deutungssatz (Referenz: "Groesster Abfall ... Dort ist der
+// Engpass"). Er nennt NUR gemessene Groessen und erfindet keine
+// Rangfolge, die die Zahlen nicht hergeben.
+function overviewReading(l) {
+  const total = (l.edges || []).length;
+  if (!total) return '';
+  const deadDays = (l.edges || []).filter((e) => e.state === 'dead')
+    .map((e) => (e.timeline || {}).dead_since_days).filter((d) => d != null);
+  const worst = deadDays.length ? Math.max(...deadDays) : null;
+  const parts = [];
+  // Bewusst NUR die beiden Zustaende, gegen die man etwas TUN kann. Der
+  // dritte (`unknown`) steht im Warnstreifen direkt darunter -- ihn hier
+  // noch einmal zu erzaehlen waere derselbe Satz an zwei Stellen, und der
+  // Deutungssatz soll auf den Engpass zeigen, nicht ihn verdoppeln.
+  const problems = [
+    ['dead', l.edges_dead || 0],
+    ['missing', l.edges_missing || 0],
+  ].sort((a, b) => b[1] - a[1]);
+  const [top, topN] = problems[0];
+  if (topN > 0) {
+    const phrase = {
+      dead: `${topN} of ${total} connections are declared but carried nothing in the checked`
+          + ` window${worst != null ? `, the longest idle for ${plural(worst, 'day', 'days')}` : ''}.`
+          + ' That is the removal list — the bottleneck sits there.',
+      missing: `${topN} of ${total} connections were measured but never declared.`
+          + ' Your lineage is incomplete exactly there.',
+    }[top];
+    parts.push(`Biggest thing to act on: ${phrase}`);
+    const other = problems[1];
+    if (other && other[1] > 0) {
+      parts.push(other[0] === 'missing'
+        ? `A further ${other[1]} run undeclared.`
+        : `A further ${other[1]} are declared but dead.`);
+    }
+  } else if ((l.edges_unknown || 0) < total) {
+    parts.push(`Nothing to act on: every judged connection of the ${total} checked is confirmed`
+             + ' by measured traffic.');
+  }
+  return parts.join(' ');
+}
+
 function renderOverview() {
   const l = state.ledger;
   const host = document.getElementById('run-verdict');
+  const reading = document.getElementById('kpis-reading');
   host.innerHTML = '';
+  reading.textContent = '';
 
   if (!l || !(l.edges || []).length) {
     // Auch die Uebersicht bekommt den erklaerten Leerzustand, nicht nur
@@ -225,28 +322,12 @@ function renderOverview() {
     }));
   } else {
     const total = l.edges.length;
-    const deadDays = l.edges.filter((e) => e.state === 'dead')
-      .map((e) => (e.timeline || {}).dead_since_days).filter((d) => d != null);
-    const worst = deadDays.length ? Math.max(...deadDays) : null;
-
-    host.append(el('span', 'kpis__lead', `${plural(total, 'connection', 'connections')} checked`));
-    const segs = [
-      ['confirmed', l.edges_confirmed, 'confirmed'],
-      ['dead', l.edges_dead, worst != null ? `dead for ${plural(worst, 'day', 'days')}` : 'dead'],
-      ['missing', l.edges_missing, 'running undeclared'],
-      ['unknown', l.edges_unknown, 'we cannot judge — no usage data'],
-    ];
-    for (const [s, count, label] of segs) {
-      if (!count) continue;
-      const seg = el('span', 'kpis__seg');
-      seg.append(el('span', `chip chip--${s}`, STATE_WORD[s]),
-                 el('span', 'kpis__count', String(count)),
-                 el('span', 'kpis__label', label),
-                 // Jede Zahl MIT Nenner -- eine nackte Kennzahl ist nicht
-                 // interpretierbar (Spec).
-                 el('span', 'kpis__denominator', `of ${total}`));
-      host.append(seg);
-    }
+    host.append(
+      kpiCard('confirmed', l.edges_confirmed, total, KPI_NOTE.confirmed),
+      kpiCard('dead', l.edges_dead, total, KPI_NOTE.dead),
+      kpiCard('missing', l.edges_missing, total, KPI_NOTE.missing),
+      kpiCard('unknown', l.edges_unknown, total, KPI_NOTE.unknown));
+    reading.textContent = overviewReading(l);
   }
 
   // Abdeckung als STATISTIK (was haben wir angesehen) ...
@@ -296,7 +377,38 @@ function renderOverview() {
     ? `${new Date(l.generated_at_ms).toLocaleString()} · `
       + `${plural((l.edges || []).length, 'connection', 'connections')} · `
       + `${l.recording ? 'recorded run' : 'live run'}`
+      + (l.run_seconds != null ? ` · ${l.run_seconds}s` : '')
     : 'never';
+
+  // Deutungssatz der zweiten Kennzahlgruppe: was die Abdeckung fuer die
+  // Zahlen darueber bedeutet. Ohne ihn ist "454 of 513" eine Zahl, die
+  // sich jeder Leser selbst deuten muss.
+  const qr = document.getElementById('quality-reading');
+  if (!l) {
+    qr.textContent = '';
+  } else {
+    const totalEdges = (l.edges || []).length;
+    const measured = (l.edges || []).filter((e) => (e.coverage || {}).buckets_seen > 0).length;
+    const gap = totalEdges - measured;
+    qr.textContent = gap > 0
+      ? `Coverage is the ceiling for every number above: ${gap} of ${totalEdges} connections`
+        + ' had no usage window, so no verdict about them could rest on a measurement.'
+        + ' That gap is reported, not filled.'
+      : `Every one of the ${totalEdges} checked connections had at least one usage window,`
+        + ' so no verdict above rests on an absent measurement.';
+  }
+
+  // Die Seitenleiste traegt den Systemzustand unten (Referenz) und die
+  // Zahl an jedem Navigationspunkt.
+  document.getElementById('sidebar-last-run').textContent = l
+    ? `${new Date(l.generated_at_ms).toLocaleTimeString()} · ${(l.edges || []).length}`
+    : 'never';
+  // Die Zahl an "Connections" steht schon hier fest -- sie ist die
+  // Kantenzahl des gezeigten Laufs. Sie erst beim Oeffnen des Bereichs zu
+  // setzen liesse in der Seitenleiste einen Gedankenstrich stehen, obwohl
+  // die Zahl bekannt ist ("nicht gezaehlt" waere unwahr).
+  setNavCount('nav-count-connections', l ? (l.edges || []).length : null,
+              'checked connections');
 
   document.getElementById('status-run').textContent = l
     ? `last run ${new Date(l.generated_at_ms).toLocaleTimeString()}`
@@ -369,7 +481,10 @@ function filterQuery() {
   if (f.q) p.set('q', f.q);
   if (f.judged) p.set('judged', '1');
   if (f.abstained) p.set('abstained', '1');
-  p.set('sort', f.sort);
+  // Gruppiert heisst: der Server sortiert nach Plattform/Datenbank. Eine
+  // Gruppierung ueber einer FREMDEN Sortierung waere keine -- die Gruppe
+  // zerfiele ueber mehrere Seiten und ihre Kopfzeile erschiene mehrfach.
+  p.set('sort', f.grouped ? 'group' : f.sort);
   p.set('dir', f.dir);
   p.set('start', String(f.start));
   p.set('count', String(PAGE));
@@ -484,8 +599,8 @@ async function renderConnections() {
       + (data.unaged ? ` · ${data.unaged} never measured, so they cannot be aged` : '')
       + (state.catalogTotal ? ` · catalog holds ${num(state.catalogTotal)} datasets` : '')
     : 'no check has run yet';
-  document.getElementById('nav-count-connections').textContent =
-    data.has_run ? String(data.total_unfiltered) : '';
+  setNavCount('nav-count-connections',
+    data.has_run ? data.total_unfiltered : null, 'checked connections');
 
   renderActiveFilters();
   renderPager('connections-pager', data.start, data.count, data.total, (start) => {
@@ -517,8 +632,31 @@ async function renderConnections() {
     return;
   }
 
+  // Gruppenzeilen (Referenz): Plattform · Datenbank, mit den Summen der
+  // GEFILTERTEN Menge (vom Server, `console_api.groups`) und dazu, wie
+  // viele davon auf dieser Seite stehen. Eine Gruppenzeile, die nur die
+  // 50 sichtbaren zaehlt, waere eine Summe, die nicht aufgeht.
+  // Derselbe Trenner wie in `console_api.GROUP_SEP` -- ein Steuerzeichen,
+  // damit ein Punkt im Datenbanknamen nie zwei Gruppen zusammenwirft.
+  const groupKey = (ref) => `${ref.platform}\x1f${ref.database}`;
+  const groups = new Map((data.groups || []).map((g) => [g.key, g]));
+  const onPage = new Map();
+  if (state.filters.grouped) {
+    for (const row of data.rows) {
+      const key = groupKey(row.from);
+      onPage.set(key, (onPage.get(key) || 0) + 1);
+    }
+  }
+  let lastGroup = null;
+
   for (const row of data.rows) {
-    const tr = el('tr', 'is-selectable');
+    const key = groupKey(row.from);
+    if (state.filters.grouped && key !== lastGroup) {
+      lastGroup = key;
+      body.append(groupRow(groups.get(key), row.from, onPage.get(key) || 0));
+    }
+
+    const tr = el('tr', `is-selectable${state.filters.grouped ? ' is-child' : ''}`);
     if (state.selected === row.edge) tr.classList.add('is-selected');
 
     const verdict = el('td');
@@ -551,6 +689,39 @@ async function renderConnections() {
   }
 }
 
+// Die fette Gruppenzeile. Ohne Summen vom Server wird KEINE erfunden:
+// dann nennt sie nur, was sie weiss (die Zeilen dieser Seite) und sagt
+// das auch -- eine Summe ohne Beleg ist auf dieser Werkbank teurer als
+// keine.
+function groupRow(group, ref, pageCount) {
+  const tr = el('tr', 'grouprow');
+  const td = el('td');
+  td.colSpan = 6;
+  const head = el('div', 'grouprow__head');
+  head.append(el('span', 'grouprow__name', ref.database || 'unknown database'));
+  head.append(el('span', 'grouprow__where', ref.platform || 'unknown platform'));
+  const sums = el('div', 'grouprow__sums');
+  if (group) {
+    sums.append(el('span', 'grouprow__sum',
+      `${num(group.total)} connections`));
+    for (const s of STATE_ORDER) {
+      const seg = el('span', `grouprow__sum grouprow__sum--${s}`);
+      seg.append(el('b', null, num(group[s])), el('span', null, STATE_WORD[s].toLowerCase()));
+      sums.append(seg);
+    }
+    if (pageCount < group.total) {
+      sums.append(el('span', 'grouprow__sum', `${num(pageCount)} on this page`));
+    }
+  } else {
+    sums.append(el('span', 'grouprow__sum',
+      `${num(pageCount)} on this page — no group total was measured`));
+  }
+  head.append(sums);
+  td.append(head);
+  tr.append(td);
+  return tr;
+}
+
 // Aufzeichnungsmodus: dieselbe Tabelle, lokal gefiltert. Vertretbar, weil
 // eine Aufzeichnung per Definition klein ist -- die Live-Sicht, die gegen
 // 5.594 Datensaetze laufen muss, geht ueber den Server.
@@ -565,7 +736,7 @@ function renderConnectionsLocal() {
   renderStateChips(counts);
   document.getElementById('connections-count').textContent =
     `${rows.length} of ${edges.length} connections (recorded run)`;
-  document.getElementById('nav-count-connections').textContent = String(edges.length);
+  setNavCount('nav-count-connections', edges.length, 'connections in this recording');
   renderActiveFilters();
   document.getElementById('connections-pager').innerHTML = '';
 
@@ -742,6 +913,17 @@ function syncControls() {
   document.getElementById('filter-q').value = f.q;
   document.getElementById('filter-judged').checked = f.judged;
   document.getElementById('filter-abstained').checked = f.abstained;
+  document.getElementById('filter-grouped').checked = f.grouped;
+  // Solange gruppiert wird, bestimmt die Gruppe die Reihenfolge. Die
+  // Sortier-Auswahl wird deshalb GESPERRT und sagt warum -- ein
+  // Bedienelement, das sichtbar nichts tut, ist eine Luege ueber die
+  // Ansicht (dieselbe Regel wie bei den gesperrten Facetten).
+  const sortSel = document.getElementById('filter-sort');
+  sortSel.disabled = f.grouped;
+  sortSel.title = f.grouped
+    ? 'Grouping sets the order: platform · database, then verdict.'
+      + ' Uncheck “Group by” to sort freely.'
+    : '';
 
   // "eigener" Zeitraum: die Auswahlliste steht auf `custom`, das Zahlenfeld
   // traegt den Wert. Ein Wert, der zufaellig 7/30/90 ist, waehlt den
@@ -1071,6 +1253,8 @@ async function renderRuns() {
     if (state.mode === 'live') data = await getJson('/api/runs');
   } catch { /* leere Liste ist unten ein eigener, benannter Zustand */ }
 
+  setNavCount('nav-count-runs', data.runs.length, 'run artifacts on disk');
+
   if (!data.runs.length) {
     body.append(blankRow(6, state.mode === 'live' ? {
       what: 'No run artifact on disk yet.',
@@ -1135,6 +1319,10 @@ async function renderEvidence() {
     if (needle) items = items.filter((i) => (i.text + i.label).toLowerCase().includes(needle));
   }
   countEl.textContent = `${items.length} pieces of evidence`;
+  // Die Zahl in der Seitenleiste gilt fuer die UNGEFILTERTE Menge -- eine
+  // Suche darf die Navigation nicht umschreiben, sonst behauptet sie eine
+  // andere Gesamtmenge, als es gibt.
+  if (!q) setNavCount('nav-count-evidence', items.length, 'pieces of evidence in this run');
   if (!items.length) {
     const searching = !!q;
     blankInto(host, searching ? {
@@ -1220,15 +1408,28 @@ function replayRecordedLog() {
 // --- Kopfzeile, Uhr, Thema, Navigation ---------------------------------
 
 function renderModeBadge(info) {
+  // Der Systemzustand steht seit dem Referenz-Umbau unten in der
+  // Seitenleiste, nicht mehr als Abzeichen in der Kopfzeile. Der volle
+  // Satz ("buttons write to ...") wandert in den title -- die Spalte ist
+  // 210px breit, ein Satz waere dort abgeschnitten und damit unwahr.
   const badge = document.getElementById('mode-badge');
   badge.dataset.mode = info.mode;
-  badge.textContent = info.mode === 'live'
+  badge.textContent = info.mode === 'live' ? 'live — buttons write' : 'recording';
+  badge.title = info.mode === 'live'
     ? `Live — buttons write to ${info.gms}`
     : 'Recording — replaying a stored run, buttons disabled';
-  document.getElementById('instance-label').textContent = info.mode === 'live'
-    ? `catalog: ${info.gms}` : 'catalog: recorded run';
+  const instance = document.getElementById('instance-label');
+  instance.textContent = info.mode === 'live'
+    ? String(info.gms).replace(/^https?:\/\//, '') : 'recorded run';
+  instance.title = info.mode === 'live' ? info.gms : 'recorded run, no live instance';
+  // Was ein Lauf messen WUERDE -- nicht, was `--focus` nennt. Bis heute
+  // stand hier "4 observed source tables", waehrend 513 Kanten auf dem
+  // Schirm waren und der Knopf tatsaechlich nur vier gemessen hat. Die
+  // Statusleiste hat den Defekt also mitgeteilt, ohne dass ihn jemand
+  // lesen konnte.
   document.getElementById('status-instance').textContent = info.mode === 'live'
-    ? `${info.gms} · ${(info.focuses || []).length} observed source tables`
+    ? `${info.gms} · a check measures ${num(info.scope_focuses)} source tables`
+      + (info.scope_edges != null ? ` / ${num(info.scope_edges)} connections` : '')
     : 'recorded run';
 
   const offset = document.getElementById('time-offset');
@@ -1276,6 +1477,7 @@ function showView(name) {
 
 export function render() {
   renderOverview();
+  renderRunScope();
   if (state.view === 'connections') renderConnections();
   if (state.view === 'evidence') renderEvidence();
   renderDetail();
@@ -1339,9 +1541,71 @@ function watchJudgements() {
   }, 2500);
 }
 
+// --- Was "Run a check" messen wird, VOR dem Druecken --------------------
+//
+// Der Defekt, gegen den das hier steht (07.08., gemessen): der Knopf lief
+// ueber die vier Labor-Fokusse, waehrend 513 Kanten auf dem Schirm
+// standen. Ein Druck -- und der ganze Demo-Katalog war weg. Der Server
+// misst jetzt den SICHTBAREN Umfang (`ui/serve.py::scope_focuses`), und
+// dieser Satz sagt vorher, was das heisst.
+function renderRunScope() {
+  const host = document.getElementById('run-check-scope');
+  if (!host) return;
+  const l = state.ledger;
+  if (state.mode !== 'live') {
+    host.textContent = 'recording — measures nothing';
+    return;
+  }
+  if (!l) {
+    host.textContent = 'nothing measured yet';
+    return;
+  }
+  const edges = (l.edges || []).length;
+  const sources = (l.focuses || [l.focus]).filter(Boolean).length;
+  const secs = l.run_seconds != null ? l.run_seconds : l.demo_ledger_seconds;
+  host.textContent = `re-measures ${num(edges)} connections · ${num(sources)} source tables`
+    + (secs != null ? ` · took ${secs}s last time` : '');
+}
+
+// Der Fortschritt eines laufenden Registerlaufs. Ein voller Lauf ueber
+// den sichtbaren Umfang dauert Sekunden (gemessen: 21,75s ueber 330
+// Quelltabellen) -- die Alternative waere gewesen, den Umfang heimlich
+// zu verkleinern, und genau das war der Defekt.
+let progressPoll = null;
+
+function stopRunProgress() {
+  if (progressPoll) { clearInterval(progressPoll); progressPoll = null; }
+  document.getElementById('run-progress').hidden = true;
+}
+
+function watchRunProgress() {
+  if (progressPoll) return;
+  const box = document.getElementById('run-progress');
+  const fill = document.getElementById('run-progress-fill');
+  const text = document.getElementById('run-progress-text');
+  box.hidden = false;
+  fill.style.width = '0';
+  text.textContent = 'measuring…';
+  progressPoll = setInterval(async () => {
+    let p;
+    try { p = await getJson('/api/ledger/progress'); } catch { return; }
+    if (!p.running && !p.total) return;
+    const pct = p.total ? Math.round((p.done / p.total) * 100) : 0;
+    fill.style.width = `${pct}%`;
+    text.textContent = p.running
+      ? `measuring ${num(p.done)} of ${num(p.total)} source tables (${pct}%)`
+      : `done — ${num(p.total)} source tables, ${p.seconds != null ? `${p.seconds}s` : 'duration not recorded'}`;
+    if (!p.running) { clearInterval(progressPoll); progressPoll = null; }
+  }, 600);
+}
+
 async function runAction(name, btn) {
   if (state.mode !== 'live') return;
   if (btn) btn.disabled = true;
+  // Jede Aktion endet in einem Registerlauf (die fuenf schreibenden
+  // ueber `full_run`, "Run a check" direkt) -- der Balken gehoert also an
+  // jede von ihnen, nicht nur an die Hauptaktion.
+  watchRunProgress();
   try {
     const r = await fetch(`/api/action/${name}`, {
       method: 'POST',
@@ -1356,12 +1620,19 @@ async function runAction(name, btn) {
     // NACH einem Knopfdruck wird wirklich neu gemessen -- die Seite
     // behauptet "every verdict is re-measured afterwards", also muss
     // genau hier der echte Lauf stehen und nicht der Zwischenstand.
-    await refresh({ measure: true });
+    //
+    // AUSSER bei "run-ledger": diese Aktion IST der Lauf. Ein zweiter
+    // `/api/ledger` danach hat den vollen Lauf ein zweites Mal bezahlt --
+    // bei vier Fokussen unauffaellig, beim sichtbaren Umfang sind es
+    // zweimal 21,75s und zweimal 1476 API-Aufrufe fuer dasselbe Ergebnis.
+    // `/api/current` liefert genau den Lauf, der eben entstanden ist.
+    await refresh({ measure: name !== 'run-ledger' });
     await pumpLog();
     renderModeBadge(await fetchModeInfo());
     if (state.judge && state.judge.running) watchJudgements();
   } finally {
     if (btn) btn.disabled = false;
+    stopRunProgress();
   }
 }
 
@@ -1459,10 +1730,12 @@ document.getElementById('filter-idle-custom').addEventListener('input', (ev) => 
     renderConnections();
   }, 250);
 });
-for (const [id, key] of [['filter-judged', 'judged'], ['filter-abstained', 'abstained']]) {
+for (const [id, key] of [['filter-judged', 'judged'], ['filter-abstained', 'abstained'],
+                          ['filter-grouped', 'grouped']]) {
   document.getElementById(id).addEventListener('change', (ev) => {
     state.filters[key] = ev.target.checked;
     state.filters.start = 0;
+    syncControls();
     renderConnections();
   });
 }
@@ -1538,6 +1811,14 @@ async function boot() {
   const live = info.mode === 'live';
   document.querySelectorAll('#controls button').forEach((b) => { b.disabled = !live; });
   document.getElementById('run-check').disabled = !live;
+  // Solange nichts gezaehlt ist, steht an jedem Punkt ein Gedankenstrich
+  // MIT Grund -- nie eine 0, die wie eine Messung aussieht.
+  for (const [id, what] of [['nav-count-connections', 'checked connections'],
+                            ['nav-count-catalog', 'datasets in the catalog'],
+                            ['nav-count-runs', 'run artifacts on disk'],
+                            ['nav-count-evidence', 'pieces of evidence in this run']]) {
+    setNavCount(id, null, what);
+  }
 
   await refresh();
   if (live) {
@@ -1549,8 +1830,19 @@ async function boot() {
     try {
       const cat = await getJson('/api/catalog?q=*&start=0&count=1');
       state.catalogTotal = cat.total;
-      document.getElementById('nav-count-catalog').textContent = num(cat.total);
+      setNavCount('nav-count-catalog', cat.total, 'datasets in the catalog');
     } catch { /* der Bereich holt es beim Oeffnen selbst */ }
+    // Die beiden Beleg-Zahlen im Hintergrund nachziehen, damit an JEDEM
+    // Navigationspunkt eine Zahl steht (Referenz) -- ohne den Start zu
+    // verzoegern. Scheitert der Abruf, bleibt der Gedankenstrich mit
+    // seinem Grund stehen: eine gescheiterte Abfrage ist keine Null.
+    getJson('/api/runs')
+      .then((r) => setNavCount('nav-count-runs', (r.runs || []).length, 'run artifacts on disk'))
+      .catch(() => {});
+    getJson('/api/evidence')
+      .then((e) => setNavCount('nav-count-evidence', (e.items || []).length,
+                                'pieces of evidence in this run'))
+      .catch(() => {});
   } else {
     replayRecordedLog();
   }
