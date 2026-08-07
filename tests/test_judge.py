@@ -622,6 +622,20 @@ def test_a_missing_binary_becomes_a_transport_error_not_an_uncaught_oserror():
     assert "nicht startbar" in str(e.value)
 
 
+def test_genuinely_empty_stdout_with_exit_0_is_a_named_transport_error_not_a_crash():
+    """Review-Nachtrag (Fix-Runde 1): bisher nur per Code-Inspektion
+    belegt, nicht per Test. Leerer stdout bei exit 0 ist ein Umschlag, der
+    kein JSON ist (`json.loads("")` wirft `JSONDecodeError`) -- derselbe
+    benannte Fehlweg wie kaputtes JSON, keine Sonderbehandlung noetig,
+    aber ein eigener Test, damit das nicht wieder Behauptung bleibt."""
+    def runner(cmd, **kw):
+        return FakeProc(0, "")
+
+    with pytest.raises(JudgeTransportError) as e:
+        claude_cli_transport(runner=runner)("hallo")
+    assert "Umschlag nicht lesbar" in str(e.value)
+
+
 def test_an_envelope_without_a_readable_result_field_yields_an_empty_string_not_a_crash():
     """Ein Umschlag, der zwar gueltiges JSON ist, aber kein `result`-Feld
     traegt, ist kein Transport-Fehlschlag (der Prozess hat geantwortet,

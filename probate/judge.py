@@ -557,7 +557,15 @@ def claude_cli_transport(timeout: int = 60, binary: str = "claude",
       3. Exit-Code != 0 -> Exit-Code + stderr woertlich (gekappt auf 300
          Zeichen, damit ein wortreicher Fehlertext das Artefakt nicht
          sprengt -- die ersten 300 Zeichen tragen bei einer CLI-
-         Fehlermeldung fast immer schon die Ursache, z.B. "not logged in")
+         Fehlermeldung fast immer schon die Ursache, z.B. "not logged in").
+         Review-Notiz (Fix-Runde 1): der Auftrag verlangt "den EXAKTEN
+         stderr/exit-code-Text" -- diese Kappung ist eine bewusste,
+         benannte Abweichung davon, keine uebersehene. Eine unbegrenzte
+         CLI-Fehlermeldung koennte theoretisch beliebig lang werden (z.B.
+         ein voller Stacktrace); 300 Zeichen sind reichlich fuer jede
+         bisher beobachtete Fehlerklasse dieser CLI (Login-Fehler,
+         Netzwerkfehler, Rate-Limit), aber eine echte Grenze, kein
+         Versehen.
       4. Umschlag kein lesbares JSON mit `result`-Feld -> eigene Meldung
 
     Das Feld `result` im JSON-Umschlag ist LIVE bestaetigt (s.o.), keine

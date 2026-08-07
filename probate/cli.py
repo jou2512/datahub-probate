@@ -129,6 +129,10 @@ def main() -> int:
                     help="Beobachtungszeitpunkt in ms; Vorgabe ist jetzt. Nur eine SICHT, "
                          "veraendert keine Daten -- traegt den Knopf 'Zeit vorspulen'")
     lg.add_argument("--out", default="harness/runs/ledger.json")
+    lg.add_argument("--judge", action="store_true",
+                    help="Modell-Urteil ueber auffaellige Kanten (einziger Modellaufruf im Projekt)")
+    lg.add_argument("--judge-limit", dest="judge_limit", type=int, default=20,
+                    help="Obergrenze der Kanten, die dem Modell vorgelegt werden")
 
     args = p.parse_args()
 
@@ -293,15 +297,29 @@ def main() -> int:
         import time
         gms = Gms(args.gms, token=args.token)
         now_ms = args.now_ms if args.now_ms is not None else int(time.time() * 1000)
+        # --judge ist die einzige Stelle im Projekt, die claude_cli_transport
+        # erzeugt -- ohne den Schalter bleibt judge_transport None und
+        # ledger_run() laesst den Urteils-Zweig komplett aus (s. ledger.run()
+        # Docstring: "AUS, solange judge_transport None bleibt").
+        transport = None
+        if args.judge:
+            from probate.judge import claude_cli_transport
+            transport = claude_cli_transport()
         # ledger_run() wirft GmsError bei jedem fehlgeschlagenen Fetch, BEVOR
         # hier je ein write_text passiert -- ein Fehlschlag mitten im Lauf
         # hinterlaesst also gar kein Artefakt statt eines unvollstaendigen,
         # das Vollstaendigkeit behaupten wuerde (global-constraints.md).
-        out = ledger_run(gms, args.focus, now_ms, lineage_count=args.lineage_count)
+        out = ledger_run(gms, args.focus, now_ms, lineage_count=args.lineage_count,
+                         judge_transport=transport, judge_limit=args.judge_limit)
         out["gms"] = args.gms
         Path(args.out).parent.mkdir(parents=True, exist_ok=True)
         Path(args.out).write_text(json.dumps(out, indent=2), encoding="utf-8")
-        print(json.dumps({k: v for k, v in out.items() if k != "edges"}, indent=2, ensure_ascii=False))
+        # "judgements" ist wie "edges" eine Liste pro Kante -- fuer die
+        # Konsole zaehlt die Zusammenfassung (judged_edges/judged_with_model/
+        # judged_fallback/judge_seconds_total stehen bereits flach in `out`),
+        # die Details liegen in der geschriebenen Datei.
+        summary = {k: v for k, v in out.items() if k not in ("edges", "judgements")}
+        print(json.dumps(summary, indent=2, ensure_ascii=False))
         if out["coverage_thin"]:
             print("\n  ACHTUNG duenne Abdeckung: "
                   f"{out['coverage_buckets_seen']} Zeitfenster insgesamt. "

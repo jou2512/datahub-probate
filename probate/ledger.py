@@ -466,7 +466,8 @@ class _Counting:
         return self.inner.get_aspect(entity_type, urn, aspect)
 
 
-def run(gms, focus: str, now_ms: int, lineage_count: int = 200) -> dict:
+def run(gms, focus: str, now_ms: int, lineage_count: int = 200,
+        judge_transport=None, judge_limit: int = 20) -> dict:
     """Ein vollstaendiger Abgleich fuer ein Fokus-Dataset.
 
     Reihenfolge ist Absicht: erst beide Quellen holen, dann fuer JEDES
@@ -487,6 +488,27 @@ def run(gms, focus: str, now_ms: int, lineage_count: int = 200) -> dict:
     Artefakt. Eine Teil-Klassifikation, die Vollstaendigkeit behauptet,
     waere genau die Behauptung ohne Beleg, gegen die dieses Projekt
     antritt.
+
+    Task 10, zweite Fix-Runde: das Modell-Urteil (`judge.py`) ist AUS,
+    solange `judge_transport` `None` bleibt -- der Vorgabe-Wert. Zweite
+    Abweichung vom Brief-Entwurf (der eine `or judge_limit == 0`-Bedingung
+    vorsah, die den Urteils-Zweig auch OHNE Transport ausgeloest haette):
+    ein Lauf ohne `--judge` soll die bestehende Artefakt-Form exakt
+    unveraendert lassen, nicht mit leeren `judged_*`-Feldern aufgeblaeht
+    werden, die niemand angefordert hat -- bestehende Konsumenten (Tests,
+    `audit_claims.py`) lesen sonst Schluessel, die vorher nie da waren.
+    `judge_transport is not None` ist das einzige Signal, ob der Zweig
+    laeuft; `judge_limit` bleibt reine Obergrenze, kein Schalter.
+
+    Ein Fehlschlag beim Urteilen EINER Kante darf den Lauf nicht abbrechen
+    (Auftragsvorgabe) -- das haelt bereits `judge_edge`/`judge_ledger`
+    selbst: jeder Transport-Fehlschlag faellt PRO KANTE auf den
+    deterministischen Befund zurueck (`fallback_reason`), nichts davon
+    wird hier erneut abgefangen oder wiederholt. Was hier NICHT abgefangen
+    wird, ist ein fehlgeschlagener `gather_context`-Aufruf (GMS-Fetch) --
+    das ist dieselbe Klasse Fehler wie oben (`GmsError` propagiert), keine
+    Modell-Frage: eine gescheiterte Katalog-Abfrage ist auch im Urteils-
+    Zweig keine Abwesenheit.
     """
     counting = _Counting(gms)
     declared = fetch_declared_edges(counting, focus, count=lineage_count)
@@ -507,7 +529,7 @@ def run(gms, focus: str, now_ms: int, lineage_count: int = 200) -> dict:
     buckets_seen = sum(c.buckets_seen for c in coverage_by_urn.values())
     spans = [c.days_span for c in coverage_by_urn.values() if c.days_span is not None]
 
-    return {
+    out = {
         "focus": focus,
         "gms": getattr(gms, "base", ""),
         "seeded": True,  # der Beispielkatalog liefert keine echte Warehouse-Nutzung
@@ -524,3 +546,28 @@ def run(gms, focus: str, now_ms: int, lineage_count: int = 200) -> dict:
         "queries_seen": queries_seen,
         "edges": [v.to_json(now_ms) for v in verdicts],
     }
+
+    if judge_transport is not None:
+        # Spaeter Import (nicht am Modulkopf): `judge.py` importiert
+        # bereits von `ledger.py` (Edge/EdgeVerdict/Coverage/Timeline) --
+        # ein Import am Kopf dieser Datei waere ein echter Kreis. Der
+        # Import hier drin bleibt EINMALIG pro `run()`-Aufruf mit
+        # aktivem Urteil, nicht pro Kante.
+        import time as _t
+
+        from probate.judge import judge_ledger
+
+        t0 = _t.perf_counter()
+        judgements = judge_ledger(counting, out, judge_transport, limit=judge_limit)
+        out["judgements"] = judgements
+        out["judged_edges"] = len(judgements)
+        out["judged_with_model"] = sum(1 for j in judgements if j["used_model"])
+        out["judged_fallback"] = sum(1 for j in judgements if not j["used_model"])
+        out["judge_seconds_total"] = round(_t.perf_counter() - t0, 2)
+        # `counting.calls` waechst waehrend `judge_ledger` weiter (jeder
+        # `gather_context`-Aufruf laeuft ueber denselben Zaehler) -- diese
+        # Zeile MUSS nach `judge_ledger` stehen, sonst zaehlt `api_calls`
+        # die Kontext-Abfragen des Urteils nicht mit.
+        out["api_calls"] = counting.calls
+
+    return out
