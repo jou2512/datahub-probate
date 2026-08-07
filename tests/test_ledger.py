@@ -1,3 +1,8 @@
+import json
+
+import pytest
+
+from probate.gms import GmsError
 from probate.ledger import STATES, Bucket, Coverage, Edge, Timeline, coverage_from_buckets
 
 
@@ -321,13 +326,21 @@ from probate.ledger import fetch_cooccurrence, fetch_declared_edges, fetch_usage
 
 class FakeGms:
     """Handgeschrieben, kein Mock-Rahmenwerk -- gleiches Muster wie
-    tests/test_writeback.py."""
+    tests/test_writeback.py.
 
-    def __init__(self, graphql_by_call=None, aspects=None):
+    `send_by_call` bedient `_send()` -- den Weg, den `fetch_usage` jetzt
+    nimmt (rohe Zeitreihen-Ablage statt `usageStats`-Aggregation, siehe
+    `probate/ledger.py`). `graphql_by_call` bleibt fuer Lineage/Ko-
+    Okkurrenz unveraendert, das sind weiterhin echte GraphQL-Aufrufe."""
+
+    def __init__(self, graphql_by_call=None, aspects=None, send_by_call=None, base="urn:test:gms-base"):
         self.graphql_by_call = list(graphql_by_call or [])
         self.aspects = aspects or {}
+        self.send_by_call = list(send_by_call or [])
         self.queries_sent = []
+        self.sends_sent = []
         self.graphql_call_count = 0
+        self.base = base
 
     def graphql(self, query, variables=None):
         self.queries_sent.append((query, variables))
@@ -337,31 +350,103 @@ class FakeGms:
     def get_aspect(self, entity_type, urn, aspect):
         return self.aspects.get((entity_type, urn, aspect))
 
+    def _send(self, method, url, payload):
+        self.sends_sent.append((method, url, payload))
+        return self.send_by_call.pop(0)
+
+
+def _raw_usage_send(entries, status=200):
+    """Baut eine `(status, body)`-Antwort im Format von
+    `getTimeseriesAspectValues`, wie sie `fetch_usage` jetzt liest
+    (siehe live-vermessene Form in `probate/ledger.py`s Kommentar).
+
+    `entries`: Liste von `(bucket_ms, total_sql_queries, unique_user_count)`
+    -- `total_sql_queries`/`unique_user_count` duerfen `None` sein, um den
+    Null-Metrik-Fall nachzubilden (der reale Aspekt-JSON-String traegt dann
+    ein `null`, exakt wie `json.dumps` es fuer `None` erzeugt)."""
+    values = []
+    for bucket_ms, total, unique in entries:
+        aspect_value = {
+            "timestampMillis": bucket_ms,
+            "totalSqlQueries": total,
+            "uniqueUserCount": unique,
+        }
+        values.append({"aspect": {"value": json.dumps(aspect_value)}})
+    return (status, {"value": {"values": values}})
+
+
+_USAGE_URN = "urn:li:dataset:(urn:li:dataPlatform:postgres,test.x,PROD)"  # muss die
+# Allowlist aus gms.py::_validate_urn erfuellen -- "urn:x" tut das nicht
+# (kein drittes ":"-Segment) und faellt sonst VOR jedem `_send`-Aufruf durch.
+
 
 def test_fetch_usage_turns_buckets_into_bucket_objects():
-    g = FakeGms([{"dataset": {"usageStats": {"buckets": [
-        {"bucket": 10 * DAY, "metrics": {"totalSqlQueries": 5, "uniqueUserCount": 2}},
-        {"bucket": 20 * DAY, "metrics": {"totalSqlQueries": 0, "uniqueUserCount": 0}},
-    ]}}}])
-    got = fetch_usage(g, "urn:x")
+    g = FakeGms(send_by_call=[_raw_usage_send([(10 * DAY, 5, 2), (20 * DAY, 0, 0)])])
+    got = fetch_usage(g, _USAGE_URN)
     assert got == (Bucket(10 * DAY, 5, 2), Bucket(20 * DAY, 0, 0))
 
 
-def test_fetch_usage_returns_empty_tuple_when_the_catalog_has_no_stats():
-    """Der Beispielkatalog liefert live `buckets: []`. Leer heisst hier
+def test_fetch_usage_returns_empty_tuple_when_the_raw_store_has_no_values():
+    """Kein geschriebener Bucket im Fenster. Leer heisst hier
     'nicht gemessen' -- und genau so kommt es bei Coverage an."""
-    g = FakeGms([{"dataset": {"usageStats": None}}])
-    assert fetch_usage(g, "urn:x") == ()
-    assert coverage_from_buckets(fetch_usage(FakeGms([{"dataset": None}]), "urn:x")).has_window is False
+    g = FakeGms(send_by_call=[_raw_usage_send([])])
+    assert fetch_usage(g, _USAGE_URN) == ()
+    assert coverage_from_buckets(fetch_usage(
+        FakeGms(send_by_call=[_raw_usage_send([])]), _USAGE_URN)).has_window is False
+
+
+def test_fetch_usage_treats_a_missing_values_key_the_same_as_an_empty_list():
+    """`body["value"]` kann fehlen, wenn die Rohablage fuer diese URN noch
+    nie geschrieben hat -- kein Fehlerfall, dieselbe leere Antwort."""
+    g = FakeGms(send_by_call=[(200, {"value": {}})])
+    assert fetch_usage(g, _USAGE_URN) == ()
 
 
 def test_fetch_usage_treats_a_null_metric_as_zero_traffic_not_as_a_missing_bucket():
     """Ein Bucket mit null Verkehr ist ein Beleg, dass hingesehen wurde.
     Er darf nicht wegfallen, sonst wird aus `dead` ein `unknown`."""
-    g = FakeGms([{"dataset": {"usageStats": {"buckets": [
-        {"bucket": 10 * DAY, "metrics": {"totalSqlQueries": None, "uniqueUserCount": None}},
-    ]}}}])
-    assert fetch_usage(g, "urn:x") == (Bucket(10 * DAY, 0, 0),)
+    g = FakeGms(send_by_call=[_raw_usage_send([(10 * DAY, None, None)])])
+    assert fetch_usage(g, _USAGE_URN) == (Bucket(10 * DAY, 0, 0),)
+
+
+def test_fetch_usage_sends_the_mandatory_limit_field():
+    """Falle 14 (UEBERGABE.md): `getTimeseriesAspectValues` OHNE `limit`
+    liefert HTTP 500 `NullPointerException: "limit" is null`."""
+    g = FakeGms(send_by_call=[_raw_usage_send([])])
+    fetch_usage(g, _USAGE_URN)
+    _method, url, payload = g.sends_sent[0]
+    assert "getTimeseriesAspectValues" in url
+    assert payload["limit"] > 0
+
+
+def test_fetch_usage_raises_instead_of_returning_empty_on_a_failed_fetch():
+    """Requirement: ein fehlgeschlagener Fetch wirft GmsError. Eine leere
+    Rueckgabe waere ununterscheidbar von 'wir haben hingesehen, nichts da'."""
+    g = FakeGms(send_by_call=[(500, "kaputt")])
+    with pytest.raises(GmsError):
+        fetch_usage(g, _USAGE_URN)
+
+
+def test_fetch_usage_raises_instead_of_silently_truncating_past_the_limit():
+    """Pagination-Requirement: mehr Buckets als das Limit duerfen nicht
+    rundgeschnitten werden -- das waere ein falsches `dead`/`unknown`
+    statt eines sichtbaren Fehlers."""
+    from probate.ledger import USAGE_TIMESERIES_LIMIT
+
+    entries = [(i * DAY, 1, 1) for i in range(USAGE_TIMESERIES_LIMIT)]
+    g = FakeGms(send_by_call=[_raw_usage_send(entries)])
+    with pytest.raises(GmsError):
+        fetch_usage(g, _USAGE_URN)
+
+
+def test_fetch_usage_validates_the_urn_before_building_the_url():
+    """`_validate_urn` (Finding C4, Pfad-Traversal-Allowlist) wird explizit
+    wiederholt, weil diese Funktion `gms._send`/`gms.base` direkt benutzt,
+    an der oeffentlichen, gehaerteten `Gms`-Methode vorbei."""
+    g = FakeGms(send_by_call=[])
+    with pytest.raises(GmsError):
+        fetch_usage(g, "urn:li:dataset:../../etc/passwd")
+    assert g.sends_sent == []  # gar nicht erst gesendet
 
 
 def test_fetch_declared_edges_passes_the_count_limit_into_the_query():
@@ -436,12 +521,15 @@ def test_usage_evidence_fetches_buckets_exactly_once():
     """IMPORTANT 3 (Review Fix-Runde 1): Coverage und Timeline duerfen
     strukturell nicht aus zwei getrennten `fetch_usage`-Aufrufen stammen
     -- sonst koennte eine Race den Divergenz-Zweig in classify_edges
-    ausloesen, ohne dass die Daten wirklich widerspruechlich sind."""
-    g = FakeGms([{"dataset": {"usageStats": {"buckets": [
-        {"bucket": 10 * DAY, "metrics": {"totalSqlQueries": 5, "uniqueUserCount": 2}},
-    ]}}}])
-    cov, tl = usage_evidence(g, "urn:x")
-    assert g.graphql_call_count == 1
+    ausloesen, ohne dass die Daten wirklich widerspruechlich sind.
+
+    `fetch_usage` geht seit dem Ledger-Fix ueber `_send` (Rohablage), nicht
+    mehr ueber `graphql` (Aggregation) -- der EIN-Fetch-Vertrag wird jetzt
+    gegen `sends_sent` statt `graphql_call_count` geprueft."""
+    g = FakeGms(send_by_call=[_raw_usage_send([(10 * DAY, 5, 2)])])
+    cov, tl = usage_evidence(g, _USAGE_URN)
+    assert len(g.sends_sent) == 1
+    assert g.graphql_call_count == 0
     assert cov.buckets_seen == 1
     assert tl.buckets == (Bucket(10 * DAY, 5, 2),)
 
@@ -456,23 +544,31 @@ from probate.ledger import run
 def _gms_for_run():
     """Fokus urn:x: deklariert d1 (mit Verkehr -> confirmed) und d2
     (Buckets, aber kein Verkehr -> dead); gemessen zusaetzlich o
-    (-> missing)."""
+    (-> missing).
+
+    `run()` ruft `usage_evidence` (-> `fetch_usage` -> `_send`, jetzt mit
+    `_validate_urn`) fuer `sorted(declared | set(cooccurred))` ==
+    ["urn:li:dataset:d1", "urn:li:dataset:d2", "urn:li:dataset:o"] --
+    dieselbe alphabetische Reihenfolge wie zuvor mit den kuerzeren
+    Platzhaltern, nur URN-foermig (die Allowlist aus gms.py::_validate_urn
+    verlangt ein drittes ":"-Segment; "urn:d1" hat keins). `send_by_call`
+    steht in genau dieser Reihenfolge, seit `fetch_usage` die Rohablage
+    statt der Aggregation liest."""
     return FakeGms(
         graphql_by_call=[
             {"dataset": {"lineage": {"relationships": [
-                {"entity": {"urn": "urn:d1"}}, {"entity": {"urn": "urn:d2"}}]}}},
+                {"entity": {"urn": "urn:li:dataset:d1"}}, {"entity": {"urn": "urn:li:dataset:d2"}}]}}},
             {"searchAcrossEntities": {"total": 1, "searchResults": [
                 {"entity": {"urn": "urn:li:query:q1"}}]}},
-            {"dataset": {"usageStats": {"buckets": [
-                {"bucket": 40 * DAY, "metrics": {"totalSqlQueries": 3, "uniqueUserCount": 1}}]}}},
-            {"dataset": {"usageStats": {"buckets": [
-                {"bucket": 40 * DAY, "metrics": {"totalSqlQueries": 0, "uniqueUserCount": 0}}]}}},
-            {"dataset": {"usageStats": {"buckets": [
-                {"bucket": 40 * DAY, "metrics": {"totalSqlQueries": 7, "uniqueUserCount": 1}}]}}},
+        ],
+        send_by_call=[
+            _raw_usage_send([(40 * DAY, 3, 1)]),  # urn:li:dataset:d1
+            _raw_usage_send([(40 * DAY, 0, 0)]),  # urn:li:dataset:d2
+            _raw_usage_send([(40 * DAY, 7, 1)]),  # urn:li:dataset:o
         ],
         aspects={("query", "urn:li:query:q1", "querysubjects"): {
-            "value": {"subjects": [{"entity": "urn:x"}, {"entity": "urn:d1"},
-                                   {"entity": "urn:o"}]}}},
+            "value": {"subjects": [{"entity": "urn:x"}, {"entity": "urn:li:dataset:d1"},
+                                   {"entity": "urn:li:dataset:o"}]}}},
     )
 
 
@@ -514,5 +610,5 @@ def test_run_threads_queries_seen_from_cooccurrence_total_not_page_length():
     (ein 2-Tupel aus dict und int ist nicht hashbar). Dieser Test haelt
     fest, dass queries_seen korrekt der zweite Rueckgabewert ist, nicht 0."""
     out = run(_gms_for_run(), focus="urn:x", now_ms=50 * DAY)
-    d1_edge = next(e for e in out["edges"] if e["downstream"] == "urn:d1")
+    d1_edge = next(e for e in out["edges"] if e["downstream"] == "urn:li:dataset:d1")
     assert d1_edge["state"] == "confirmed"

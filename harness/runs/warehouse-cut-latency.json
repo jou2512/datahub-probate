@@ -1,0 +1,37 @@
+{
+  "generated_at": "2026-08-07T02:09:08.907548+00:00",
+  "gms_url": "http://localhost:28080",
+  "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)",
+  "purge_route": "POST /entities?action=delete (volle Zeitreihen-Loeschung, wie ui/serve.py cut-warehouse)",
+  "usage_read_route": "POST /aspects?action=getTimeseriesAspectValues (Rohablage, seit dem Ledger-Fix in probate/ledger.py::fetch_usage)",
+  "before_state": "confirmed",
+  "purged_timeseries_rows": 3,
+  "purge_wall_clock_ms": 1786068528264,
+  "attempts": [
+    {
+      "attempt": 1,
+      "elapsed_s": 0.086,
+      "state": "confirmed"
+    },
+    {
+      "attempt": 2,
+      "elapsed_s": 0.696,
+      "state": "confirmed"
+    },
+    {
+      "attempt": 3,
+      "elapsed_s": 1.309,
+      "state": "unknown"
+    }
+  ],
+  "after_state": "unknown",
+  "correct_classification_reached": true,
+  "elapsed_seconds_purge_to_correct_classification": 1.309,
+  "restore": {
+    "reseed_ran": true,
+    "reseed_exit_code": 0,
+    "reseed_ok": true,
+    "seedlab_verdicts_exit_code": 0,
+    "four_states_green_after_restore": true
+  }
+}

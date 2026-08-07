@@ -19,8 +19,16 @@ niemand anfassen muss.
 
 from __future__ import annotations
 
+import json
+import time as _time
 from dataclasses import dataclass
 
+from probate.gms import GmsError, _validate_urn  # der einzige VALIDIERTE Weg
+# nach draussen (probate/gms.py Docstring) -- ausserhalb des erlaubten
+# Datei-Umfangs dieser Aufgabe, deshalb hier importiert statt dort ergaenzt.
+# `_send`/`.base` werden unten direkt benutzt (wie `harness/seed_lineage_lab.py
+# ::_raw_usage_values` es vormacht), weil `probate/gms.py` weder die Route
+# "rohe Zeitreihen-Werte lesen" noch eine oeffentliche Methode dafuer anbietet.
 from probate.targets import _QUERY_SEARCH_Q as COOCCURRENCE_Q  # eine Wahrheit;
 # targets.py bleibt unveraendert, der String wird nicht ein zweites Mal getippt.
 
@@ -303,24 +311,65 @@ def classify_edges(
 
 # --- Beschaffung ---------------------------------------------------------
 #
-# Gemessenes Rezept (UEBERGABE Sec.4/5, live gegen v1.5.0.6 verifiziert):
-# usageStats(range: MONTH) liefert Buckets UND Aggregat. Wir nehmen die
-# Buckets -- das Aggregat waere genau die Summierung, die "nichts gemessen"
-# und "nichts passiert" ununterscheidbar macht. Falle 13 (`range: ALL` mit
-# gesetztem `startTimeMillis` liefert falsche/null Aggregationen) betrifft
-# diese Abfrage nicht direkt (kein `startTimeMillis`, `range: MONTH`), aber
-# aus demselben Grund wird hier bewusst KEIN `startTimeMillis` gesetzt.
-USAGE_Q = """
-query($urn: String!) {
-  dataset(urn: $urn) {
-    usageStats(range: MONTH) {
-      buckets { bucket metrics { totalSqlQueries uniqueUserCount } }
-      aggregations { totalSqlQueries uniqueUserCount }
-    }
-    statsSummary { queryCountLast30Days uniqueUserCountLast30Days }
-  }
-}
-"""
+# Ledger-Fix (07.08., ersetzt die fruehere `usageStats(range: MONTH)`-
+# GraphQL-Aggregation): DIESE Aggregation ist ElasticSearch-gestuetzt und
+# hinkt nach. GEMESSEN, nicht theoretisiert: die UI-Spur mass live >100s
+# Verzug NACH einem Purge der Nutzungs-Zeitreihe (Rohablage zu diesem
+# Zeitpunkt bereits 0 Zeilen), eine fruehere Spur mass >75s auf derselben
+# API (UEBERGABE.md Falle 19, `harness/seed_lineage_lab.py::seed_usage`
+# Kommentar: D/E/F blieben nach ueber 75s/15x Polling `null`, obwohl die
+# Rohablage beim allerersten Versuch bereits korrekt war). Fuer den
+# "Warehouse trennen"-Knopf -- die dritte, demo-tragende Transition der
+# 40-Sekunden-Sequenz, MUSS live auf Kamera sichtbar werden -- ist eine
+# Minute Verzug ein Blocker: der Schreibvorgang ist korrekt, die
+# Klassifikation liest nur eine veraltete Sicht. Ein Werkzeug, dessen
+# These "wir behaupten nur, was wir gemessen haben" ist, darf ohnehin nicht
+# aus einer Ansicht urteilen, die eine Minute hinter der Primaerablage liegt.
+#
+# Deshalb liest `fetch_usage` jetzt die ROHE Zeitreihen-Ablage direkt
+# (`POST {gms.base}/aspects?action=getTimeseriesAspectValues`) statt der
+# Aggregation -- exakt die Route, die `harness/seed_lineage_lab.py::
+# _raw_usage_values` bereits fuer die Seed-Verifikation nutzt (dort zuerst
+# geloest: Rueckluse nach Purge+Rewrite gegen die Aggregation war live
+# unzuverlaessig, gegen die Rohablage sofort korrekt). `get_aspect` entfaellt
+# (Falle 18, UEBERGABE.md): fuer Zeitreihen-Aspekte liefert es IMMER `None`,
+# live bestaetigt sowohl mit vorhandenen als auch mit fehlenden Daten -- als
+# Rueckluse-Werkzeug fuer diesen Aspekttyp ist es blind.
+#
+# `probate/gms.py` bleibt unveraendert (ausserhalb des Datei-Umfangs dieser
+# Aufgabe) und bietet weder diese Route noch rohe Zeitreihen-Werte als
+# oeffentliche Methode -- `gms._send`/`gms.base` werden deshalb wie in
+# `seed_lineage_lab.py` direkt benutzt, und `_validate_urn` (Finding C4,
+# Pfad-Traversal-Allowlist aus gms.py) wird VOR der Interpolation explizit
+# wiederholt, damit die Umgehung der oeffentlichen, gehaerteten Methoden
+# nicht lautlos passiert.
+#
+# Fenster (bewusst NICHT die volle Historie): `classify_edges` urteilt
+# "im gepruften Fenster nie gemessen" -> `dead`. Eine Kante mit Verkehr vor
+# >100 Tagen und seither nur Null-Buckets soll `dead` bleiben, nicht durch
+# pure Alt-Summierung wieder wie "Verkehr gemessen" aussehen. Live vermessen
+# (07.08., seedlab-Kante `dead_upstream`, acht geschriebene Buckets, davon
+# zwei mit echtem Verkehr vor 117/124 Tagen): ein ungefiltertes
+# `startTimeMillis=0` auf der Rohablage liefert ALLE acht Buckets, Summe 52
+# -- das haette diese `dead`-Kante der Vier-Zustaende-Probe zu `unknown`
+# kollabieren lassen (kein Datenfehler, ein Fenster-Fehler dieser Funktion).
+# Die vorherige `usageStats(range: MONTH)` lieferte dagegen live exakt 31
+# Tages-Buckets (heute minus 30 Tage 00:00 UTC bis heute 00:00 UTC), alle
+# mit `totalSqlQueries: 0` fuer dieselbe Kante -- diese Fenster-Semantik
+# reproduziert `USAGE_WINDOW_DAYS` unten: ein straffes 30-Tage-Fenster ab
+# dem exakten Wall-Clock-`jetzt` (ohne Tages-Rundung wie GraphQL sie intern
+# macht) haette den aeltesten Tages-Bucket je nach Tageszeit des Laufs knapp
+# abgeschnitten (live geprueft: 30 Tage exakt -> 3 Treffer, 31 Tage -> 4
+# Treffer fuer dieselbe Kante) -- deshalb 32 Tage (30 + 2 Tage Puffer gegen
+# genau diesen Tageszeit-Rand), weit unterhalb der 117/124-Tage-Marke, die
+# NICHT wieder hereinkommen darf.
+_DAY_MS_USAGE = _DAY_MS  # dieselbe Konstante, hier nur lokal referenziert
+USAGE_WINDOW_DAYS = 32
+USAGE_TIMESERIES_LIMIT = 500  # siehe Docstring von fetch_usage: taeglich
+# hoechstens ~34 moegliche Buckets im Fenster, 500 ist eine grosszuegige
+# Sicherheitsmarge OBERHALB jeder erwarteten Zahl -- kein Versuch, jede
+# denkbare Granularitaet abzudecken, sondern ein Bound, dessen Ueberschreiten
+# ein Fehler ist statt eines stillen Rundschnitts (siehe unten).
 
 # Wie targets._LINEAGE_Q, aber mit `count` als Variable: Falle 12 --
 # get_lineage liefert nachweislich >100'000 Zeichen ohne Pagination-Vorgabe.
@@ -336,28 +385,71 @@ query($urn: String!, $count: Int!) {
 
 
 def fetch_usage(gms, urn: str) -> tuple[Bucket, ...]:
-    """Rohe Zeitfenster, nicht summiert.
+    """Rohe Zeitfenster aus der PRIMAERABLAGE, nicht summiert -- und NICHT
+    aus der `usageStats`-GraphQL-Aggregation. Siehe der lange Kommentar
+    ueber `USAGE_WINDOW_DAYS` oben fuer das WARUM (gemessene Verzugszahlen,
+    >100s/>75s) und das Fenster-Argument (warum nicht die volle Historie).
 
-    Ein Bucket mit `totalSqlQueries: null` ist ein Bucket mit null
-    Verkehr, kein fehlender Bucket -- er belegt, dass hingesehen wurde.
-    Wer ihn wegfiltert, macht aus `dead` ein `unknown`.
+    Route: `POST {gms.base}/aspects?action=getTimeseriesAspectValues` mit
+    `limit` (Falle 14, UEBERGABE.md: Pflichtfeld, sonst HTTP 500
+    `NullPointerException: "limit" is null`). Fenster: die letzten
+    `USAGE_WINDOW_DAYS` Tage ab dem tatsaechlichen Wall-Clock-`jetzt` dieses
+    Aufrufs (kein `now_ms`-Parameter -- Vertrag/Signatur bleibt
+    unveraendert, siehe `usage_evidence`).
 
-    Kein `range_`-Parameter mehr (Review Fix-Runde 1, IMPORTANT 4): `USAGE_Q`
-    hat `range: MONTH` fest im Query-String stehen, ein frueherer
-    `range_="ALL"`-Parameter wurde nie eingesetzt und haette still
-    MONTH-Daten geliefert -- eine Falle-4-Klasse (erfundene/wirkungslose
-    Felder werden verworfen, nicht abgelehnt). Wer einen anderen Bereich
-    braucht, baut eine eigene Abfrage statt eines stummen Parameters.
+    Limit/Pagination: kommen `>= USAGE_TIMESERIES_LIMIT` Werte zurueck, ist
+    das ein Signal fuer mehr Historie/Granularitaet als erwartet -- diese
+    Funktion wirft dann `GmsError` statt die Liste still auf das Limit
+    abzuschneiden. Ein stilles Abschneiden waere ein falsches `dead`/
+    `unknown` durch Trunkierung, exakt dieselbe Fehlerklasse wie ein zu
+    enges Fenster, nur unauffaelliger.
+
+    Ein Bucket mit `totalSqlQueries: null` ist ein Bucket mit null Verkehr,
+    kein fehlender Bucket -- er belegt, dass hingesehen wurde. Wer ihn
+    wegfiltert, macht aus `dead` ein `unknown`. (Bislang nur an der
+    Aggregation beobachtet; die Rohablage schrieb in jedem bisherigen Test
+    stets konkrete Zahlen -- der Null-Schutz bleibt trotzdem, dieselbe
+    defensive Regel wie zuvor, `int(x or 0)`.)
+
+    Ein Fehlschlag (HTTP != 200, keine JSON-Antwort) wirft `GmsError` und
+    propagiert -- keine Abwesenheit von Daten wird durch einen stillen
+    Fehlschlag vorgetaeuscht (verification.md: "eine gescheiterte Abfrage
+    ist keine Abwesenheit").
     """
-    data = gms.graphql(USAGE_Q, {"urn": urn})
-    stats = (data.get("dataset") or {}).get("usageStats") or {}
+    _validate_urn(urn)
+    now_ms = int(_time.time() * 1000)
+    payload = {
+        "urn": urn,
+        "entity": "dataset",
+        "aspect": "datasetUsageStatistics",
+        "startTimeMillis": now_ms - USAGE_WINDOW_DAYS * _DAY_MS_USAGE,
+        # +1 Tag Puffer am oberen Ende: ein "heute" geschriebener Bucket
+        # koennte, je nach Ingestion-Zeitpunkt relativ zu `now_ms`, sonst
+        # knapp ausserhalb des Fensters liegen.
+        "endTimeMillis": now_ms + _DAY_MS_USAGE,
+        "limit": USAGE_TIMESERIES_LIMIT,
+    }
+    status, body = gms._send(
+        "POST", f"{gms.base}/aspects?action=getTimeseriesAspectValues", payload)
+    if status != 200 or not isinstance(body, dict):
+        raise GmsError(f"getTimeseriesAspectValues HTTP {status}: {str(body)[:200]}")
+
+    values = ((body.get("value") or {}).get("values")) or []
+    if len(values) >= USAGE_TIMESERIES_LIMIT:
+        raise GmsError(
+            f"getTimeseriesAspectValues fuer {urn}: {len(values)} Werte >= "
+            f"Limit {USAGE_TIMESERIES_LIMIT} -- moegliche Trunkierung, wird "
+            "nicht stillschweigend als vollstaendig behandelt."
+        )
+
     out = []
-    for b in stats.get("buckets") or []:
-        m = b.get("metrics") or {}
+    for v in values:
+        raw = (v.get("aspect") or {}).get("value")
+        parsed = json.loads(raw) if isinstance(raw, str) else (raw or {})
         out.append(Bucket(
-            bucket_ms=int(b.get("bucket") or 0),
-            total_sql_queries=int(m.get("totalSqlQueries") or 0),
-            unique_user_count=int(m.get("uniqueUserCount") or 0),
+            bucket_ms=int(parsed.get("timestampMillis") or 0),
+            total_sql_queries=int(parsed.get("totalSqlQueries") or 0),
+            unique_user_count=int(parsed.get("uniqueUserCount") or 0),
         ))
     return tuple(out)
 
@@ -457,6 +549,15 @@ class _Counting:
         self.inner = inner
         self.calls = 0
 
+    @property
+    def base(self):
+        # `fetch_usage` braucht `gms.base` fuer die Rohablage-URL und
+        # bekommt hier die `_Counting`-Huelle statt des echten `Gms`-
+        # Objekts durchgereicht (`run()` uebergibt `counting`, nicht
+        # `gms`) -- ohne Weiterleitung waere `gms.base` in fetch_usage
+        # ein AttributeError, sobald run() misst statt direkt zu rufen.
+        return self.inner.base
+
     def graphql(self, query, variables=None):
         self.calls += 1
         return self.inner.graphql(query, variables)
@@ -464,6 +565,14 @@ class _Counting:
     def get_aspect(self, entity_type, urn, aspect):
         self.calls += 1
         return self.inner.get_aspect(entity_type, urn, aspect)
+
+    def _send(self, method, url, payload):
+        # `fetch_usage` geht jetzt ueber `_send` statt `graphql` (Ledger-
+        # Fix: rohe Zeitreihen-Ablage statt Aggregation) -- ohne diese
+        # Weiterleitung wuerden die drei Nutzungs-Aufrufe pro `run()` aus
+        # `api_calls` verschwinden, obwohl sie echte GMS-Aufrufe sind.
+        self.calls += 1
+        return self.inner._send(method, url, payload)
 
 
 def run(gms, focus: str, now_ms: int, lineage_count: int = 200,
