@@ -121,5 +121,39 @@
   "transitions_usage_rows_cut_and_restored": 3,
   "transitions_usage_timeseries_identical_after_restore": true,
   "transitions_settle_seconds_minimum": 15.0,
-  "transitions_states_reached": "confirmed,missing,confirmed,dead,unknown,confirmed,unknown"
+  "transitions_states_reached": "confirmed,missing,confirmed,dead,unknown,confirmed,unknown",
+
+  "demo_catalog_datasets": 610,
+  "demo_catalog_edges_planned": 509,
+  "demo_catalog_queries": 301,
+  "demo_catalog_focuses": 326,
+  "demo_catalog_usage_buckets": 1153,
+  "demo_catalog_platforms": 4,
+  "demo_catalog_databases": 5,
+  "demo_catalog_readback_complete": true,
+
+  "demo_ledger_edges_total": 513,
+  "demo_ledger_edges_confirmed": 266,
+  "demo_ledger_edges_dead": 73,
+  "demo_ledger_edges_missing": 29,
+  "demo_ledger_edges_unknown": 145,
+  "demo_ledger_focuses": 330,
+  "demo_ledger_focuses_demo_catalog": 326,
+  "demo_ledger_focuses_seedlab": 4,
+  "demo_ledger_platforms": 4,
+  "demo_ledger_databases": 6,
+  "demo_ledger_tables": 618,
+  "demo_ledger_api_calls": 1476,
+
+  "manifest_edges": 509,
+  "manifest_edges_matched": 509,
+  "manifest_edges_mismatched": 0,
+  "manifest_edges_absent": 0,
+  "manifest_all_matched": true,
+
+  "console_edges_total": 513,
+  "console_connections_total": 513,
+  "console_focus_mismatch": false,
+  "console_recorded_from": "harness/runs/demo-katalog-ledger.json",
+  "console_catalog_total": 6205
 }

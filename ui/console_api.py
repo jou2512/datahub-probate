@@ -256,9 +256,15 @@ def catalog_total(gms, q: str = "*") -> int:
 # Speicher zu fuehren, die ein Neustart verschluckt.
 
 _RUN_DIR = Path("harness/runs")
-_RUN_FILES = ("ledger.json", "seedlab-verdicts.json", "judge-seedlab-matrix.json",
+_RUN_FILES = ("demo-katalog-ledger.json", "ledger.json", "seedlab-verdicts.json",
+              "judge-seedlab-matrix.json",
               "ledger-vor-ereignis.json", "ledger-nach-ereignis.json",
               "full-vs-delta.json", "correct-roundtrip.json", "campaign.json")
+# demo-katalog-ledger.json (2026-08-07): der Lauf ueber den Demo-Katalog
+# in Unternehmensgroesse (harness/run_demo_ledger.py) -- mehrere hundert
+# Kanten ueber vier Plattformen und fuenf Datenbanken. Er steht bewusst
+# ZUERST: die Liste wird nach Zeitstempel sortiert, aber wer sie liest,
+# soll den Lauf, der die Konsole traegt, nicht suchen muessen.
 
 
 def _summarise_run(path: Path) -> dict | None:

@@ -1,0 +1,116 @@
+{
+  "seeded": true,
+  "seeded_statement": "Kuenstlich eingespielte Demonstrationsdaten (harness/seed_demo_catalog.py), keine echte Warehouse-Nutzung. Alle Datenbanken beginnen mit 'probate_demo_'; jede Tabellenbeschreibung traegt den Offenlegungs-Praefix.",
+  "generated_at": "2026-08-07T16:35:04.801121+00:00",
+  "gms_url": "http://localhost:28080",
+  "scale": "full",
+  "plan_seed": 20260807,
+  "demo_catalog_datasets": 610,
+  "demo_catalog_edges_planned": 509,
+  "demo_catalog_queries": 301,
+  "demo_catalog_focuses": 326,
+  "demo_catalog_usage_buckets": 1153,
+  "demo_catalog_platforms": 4,
+  "demo_catalog_databases": 5,
+  "demo_catalog_seed_seconds": 76.33,
+  "demo_catalog_readback_complete": true,
+  "summary": {
+    "datasets": 610,
+    "edges": 509,
+    "declared_edges": 481,
+    "queries": 301,
+    "focuses": 326,
+    "usage_buckets": 1153,
+    "datasets_with_usage": 251,
+    "datasets_with_owner": 411,
+    "datasets_with_terms": 151,
+    "platforms": {
+      "postgres": 83,
+      "kafka": 83,
+      "snowflake": 308,
+      "bigquery": 136
+    },
+    "databases": {
+      "probate_demo_finance": 146,
+      "probate_demo_marketing": 136,
+      "probate_demo_ops": 122,
+      "probate_demo_product": 124,
+      "probate_demo_hr": 82
+    },
+    "expected_states": {
+      "confirmed": 265,
+      "unknown": 144,
+      "missing": 28,
+      "dead": 72
+    },
+    "expected_state_share": {
+      "confirmed": 0.521,
+      "dead": 0.141,
+      "missing": 0.055,
+      "unknown": 0.283
+    }
+  },
+  "steps": [
+    {
+      "what": "Domaenen",
+      "seconds": 0.05,
+      "detail": "5 Domaenen"
+    },
+    {
+      "what": "Glossarbegriffe",
+      "seconds": 0.06,
+      "detail": "6 Begriffe"
+    },
+    {
+      "what": "Tabellen (datasetProperties)",
+      "seconds": 29.96,
+      "detail": "610 Tabellen"
+    },
+    {
+      "what": "Governance (domain/owner/glossary)",
+      "seconds": 16.87,
+      "detail": "610 Tabellen mit Domaene/Besitzer/Glossar"
+    },
+    {
+      "what": "Deklarierte Kanten (upstreamLineage)",
+      "seconds": 4.01,
+      "detail": "279 Ziele, 481 Kanten"
+    },
+    {
+      "what": "Query-Entitaeten",
+      "seconds": 4.29,
+      "detail": "301 Query-Entitaeten"
+    },
+    {
+      "what": "Nutzungs-Historie gewiped",
+      "seconds": 3.74,
+      "detail": "0 Alt-Zeilen entfernt"
+    },
+    {
+      "what": "Nutzungsfenster (SDK-Emitter, gebuendelt)",
+      "seconds": 17.34,
+      "detail": "1153 Nutzungsfenster"
+    }
+  ],
+  "graph_index": {
+    "graph_index_sample": 40,
+    "graph_index_seconds": 1.1,
+    "graph_index_complete": true
+  },
+  "verify": {
+    "datasets_expected": 610,
+    "datasets_read_back": 610,
+    "datasets_missing": [],
+    "lineage_targets_expected": 279,
+    "lineage_targets_read_back": 279,
+    "lineage_missing": [],
+    "queries_expected": 301,
+    "queries_read_back": 301,
+    "queries_missing": [],
+    "usage_buckets_expected": 1153,
+    "usage_buckets_read_back": 1153,
+    "usage_missing": [],
+    "all_read_back": true
+  },
+  "manifest": "examples/demo-catalog-manifest.json"
+}

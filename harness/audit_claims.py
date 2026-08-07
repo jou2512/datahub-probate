@@ -56,7 +56,24 @@ RUN_FILES = (
     "full-vs-delta.json",
     "mcp-probe.json",
     "demo-transitions.json",
+    "demo-katalog-claims.json",
 )
+# demo-katalog-claims.json (aufgenommen 2026-08-07): die zitierfaehige
+# Abschrift des Demo-Katalog-Laufs (harness/run_demo_ledger.py). NICHT
+# aufgenommen ist das eigentliche Lauf-Artefakt demo-katalog-ledger.json,
+# und das ist Absicht: die Werkbank liest dort `edges_total`,
+# `edges_dead`, ... unter genau diesen Namen, und `ledger.json` traegt
+# dieselben Namen mit anderen Werten (ein Fokus, eine Kante). Beide sind
+# wahr -- sie reden ueber verschiedene Laeufe. Der Merge unten kennt
+# diesen Unterschied nicht und braeche mit ConflictingClaim ab, zu Recht.
+# Statt eine der beiden Wahrheiten umzubenennen (die Werkbank haengt an
+# der einen, claims.json an der anderen), schreibt der Lauf eine zweite
+# Datei mit durchgehend praefigierten Namen -- dieselben gemessenen
+# Zahlen, nur kollisionsfrei. Zeitmessungen (Sekunden, Millisekunden)
+# stehen bewusst NUR im Artefakt und NICHT in claims.json: sie haengen an
+# Maschine und Tageslast, und eine Zahl, die bei jedem Lauf anders ist,
+# gehoert in den Beleg, nicht in eine Behauptung, die ein Gate gruen
+# halten muss (dieselbe Begruendung wie bei demo-transitions.json).
 # demo-transitions.json (aufgenommen 2026-08-07): der Uebergangs-Nachweis
 # aus harness/demo_transitions.py. seedlab-verdicts.json belegt, dass die
 # vier Zustaende AUFTRETEN; diese Datei belegt, dass eine Kante ihren
