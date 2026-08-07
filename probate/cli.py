@@ -10,6 +10,7 @@ import hashlib
 
 from probate.campaign import assign, autofill, create_campaign, ensure_owner, verify
 from probate.gms import Gms
+from probate.ledger import run as ledger_run
 from probate.parity import compare_schemas, verdict as build_verdict
 from probate.ruleset import Rule, evaluate, test_results_aspect
 from probate.succession import succeed
@@ -117,6 +118,17 @@ def main() -> int:
     r = sub.add_parser("revert", help="alle journalisierten Schreibvorgaenge zuruecknehmen")
     r.add_argument("--gms", default=DEFAULT_GMS)
     r.add_argument("--token", default=None, help="Personal Access Token; sonst DATAHUB_TOKEN aus der Umgebung")
+
+    lg = sub.add_parser("ledger", help="Kanten-Register: deklarierte Lineage gegen gemessene Nutzung")
+    lg.add_argument("--focus", required=True, help="Dataset-URN, dessen Kanten geprueft werden")
+    lg.add_argument("--gms", default=DEFAULT_GMS)
+    lg.add_argument("--token", default=None, help="Personal Access Token; sonst DATAHUB_TOKEN aus der Umgebung")
+    lg.add_argument("--lineage-count", dest="lineage_count", type=int, default=200,
+                    help="Obergrenze der Lineage-Abfrage (Falle 12: >100'000 Zeichen ohne Vorgabe)")
+    lg.add_argument("--now-ms", dest="now_ms", type=int, default=None,
+                    help="Beobachtungszeitpunkt in ms; Vorgabe ist jetzt. Nur eine SICHT, "
+                         "veraendert keine Daten -- traegt den Knopf 'Zeit vorspulen'")
+    lg.add_argument("--out", default="harness/runs/ledger.json")
 
     args = p.parse_args()
 
@@ -275,6 +287,25 @@ def main() -> int:
     if args.cmd == "revert":
         n = Writeback(Gms(args.gms, token=args.token), dry_run=False).revert_all()
         print(f"{n} Schreibvorgaenge zurueckgenommen")
+        return 0
+
+    if args.cmd == "ledger":
+        import time
+        gms = Gms(args.gms, token=args.token)
+        now_ms = args.now_ms if args.now_ms is not None else int(time.time() * 1000)
+        # ledger_run() wirft GmsError bei jedem fehlgeschlagenen Fetch, BEVOR
+        # hier je ein write_text passiert -- ein Fehlschlag mitten im Lauf
+        # hinterlaesst also gar kein Artefakt statt eines unvollstaendigen,
+        # das Vollstaendigkeit behaupten wuerde (global-constraints.md).
+        out = ledger_run(gms, args.focus, now_ms, lineage_count=args.lineage_count)
+        out["gms"] = args.gms
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(json.dumps(out, indent=2), encoding="utf-8")
+        print(json.dumps({k: v for k, v in out.items() if k != "edges"}, indent=2, ensure_ascii=False))
+        if out["coverage_thin"]:
+            print("\n  ACHTUNG duenne Abdeckung: "
+                  f"{out['coverage_buckets_seen']} Zeitfenster insgesamt. "
+                  f"{out['edges_unknown']} Kante(n) sind 'unknown', NICHT 'dead'.")
         return 0
 
     print(CAMPAIGN_STATE.read_text(encoding="utf-8"))

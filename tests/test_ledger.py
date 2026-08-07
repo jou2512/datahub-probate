@@ -444,3 +444,75 @@ def test_usage_evidence_fetches_buckets_exactly_once():
     assert g.graphql_call_count == 1
     assert cov.buckets_seen == 1
     assert tl.buckets == (Bucket(10 * DAY, 5, 2),)
+
+
+# --- Task 6: run() + Lauf-Artefakt --------------------------------------
+
+import json as _json_task6
+
+from probate.ledger import run
+
+
+def _gms_for_run():
+    """Fokus urn:x: deklariert d1 (mit Verkehr -> confirmed) und d2
+    (Buckets, aber kein Verkehr -> dead); gemessen zusaetzlich o
+    (-> missing)."""
+    return FakeGms(
+        graphql_by_call=[
+            {"dataset": {"lineage": {"relationships": [
+                {"entity": {"urn": "urn:d1"}}, {"entity": {"urn": "urn:d2"}}]}}},
+            {"searchAcrossEntities": {"total": 1, "searchResults": [
+                {"entity": {"urn": "urn:li:query:q1"}}]}},
+            {"dataset": {"usageStats": {"buckets": [
+                {"bucket": 40 * DAY, "metrics": {"totalSqlQueries": 3, "uniqueUserCount": 1}}]}}},
+            {"dataset": {"usageStats": {"buckets": [
+                {"bucket": 40 * DAY, "metrics": {"totalSqlQueries": 0, "uniqueUserCount": 0}}]}}},
+            {"dataset": {"usageStats": {"buckets": [
+                {"bucket": 40 * DAY, "metrics": {"totalSqlQueries": 7, "uniqueUserCount": 1}}]}}},
+        ],
+        aspects={("query", "urn:li:query:q1", "querysubjects"): {
+            "value": {"subjects": [{"entity": "urn:x"}, {"entity": "urn:d1"},
+                                   {"entity": "urn:o"}]}}},
+    )
+
+
+def test_run_counts_every_state_into_flat_top_level_keys():
+    """Flach und ganzzahlig, weil audit_claims per Schluesselnamen
+    vergleicht -- verschachtelt waere die Zahl nicht pruefbar."""
+    out = run(_gms_for_run(), focus="urn:x", now_ms=50 * DAY)
+    assert out["edges_total"] == 3
+    assert out["edges_confirmed"] == 1
+    assert out["edges_dead"] == 1
+    assert out["edges_missing"] == 1
+    assert out["edges_unknown"] == 0
+
+
+def test_run_reports_coverage_above_the_result_not_inside_it():
+    out = run(_gms_for_run(), focus="urn:x", now_ms=50 * DAY)
+    assert out["coverage_buckets_seen"] == 3
+    assert "coverage_thin" in out
+
+
+def test_run_marks_the_data_as_seeded_because_the_sample_catalog_has_none():
+    out = run(_gms_for_run(), focus="urn:x", now_ms=50 * DAY)
+    assert out["seeded"] is True
+
+
+def test_run_counts_api_calls_so_the_load_test_has_a_baseline():
+    out = run(_gms_for_run(), focus="urn:x", now_ms=50 * DAY)
+    assert out["api_calls"] == 6  # 1 lineage + 1 search + 1 aspect + 3 usage
+
+
+def test_run_output_is_json_serialisable_without_a_custom_encoder():
+    _json_task6.dumps(run(_gms_for_run(), focus="urn:x", now_ms=50 * DAY))
+
+
+def test_run_threads_queries_seen_from_cooccurrence_total_not_page_length():
+    """Waere `cooccurred` (der Tupel-Rueckgabewert von fetch_cooccurrence)
+    versehentlich unentpackt an classify_edges durchgereicht worden, waere
+    dieser Lauf schon an `set(cooccurred)` mit TypeError gescheitert
+    (ein 2-Tupel aus dict und int ist nicht hashbar). Dieser Test haelt
+    fest, dass queries_seen korrekt der zweite Rueckgabewert ist, nicht 0."""
+    out = run(_gms_for_run(), focus="urn:x", now_ms=50 * DAY)
+    d1_edge = next(e for e in out["edges"] if e["downstream"] == "urn:d1")
+    assert d1_edge["state"] == "confirmed"

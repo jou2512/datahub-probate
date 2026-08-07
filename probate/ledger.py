@@ -439,3 +439,88 @@ def usage_evidence(gms, urn: str) -> tuple[Coverage, Timeline]:
     """
     buckets = fetch_usage(gms, urn)
     return coverage_from_buckets(buckets), Timeline(buckets)
+
+
+# --- Task 6: run() + Lauf-Artefakt --------------------------------------
+
+COVERAGE_THIN_BELOW_BUCKETS = 7
+
+
+class _Counting:
+    """Zaehlt die API-Aufrufe, ohne gms.py anzufassen.
+
+    Der Lasttest braucht die Zahl, und sie gehoert ins Lauf-Artefakt --
+    eine Behauptung ueber Aufrufzahlen ohne Zaehler waere geschaetzt.
+    """
+
+    def __init__(self, inner):
+        self.inner = inner
+        self.calls = 0
+
+    def graphql(self, query, variables=None):
+        self.calls += 1
+        return self.inner.graphql(query, variables)
+
+    def get_aspect(self, entity_type, urn, aspect):
+        self.calls += 1
+        return self.inner.get_aspect(entity_type, urn, aspect)
+
+
+def run(gms, focus: str, now_ms: int, lineage_count: int = 200) -> dict:
+    """Ein vollstaendiger Abgleich fuer ein Fokus-Dataset.
+
+    Reihenfolge ist Absicht: erst beide Quellen holen, dann fuer JEDES
+    beteiligte Ziel die Abdeckung bestimmen (per `usage_evidence`, EIN
+    Fetch), DANN klassifizieren. Wer waehrend der Klassifikation
+    nachlaedt, klassifiziert Kanten mit unterschiedlich alter Datenlage.
+
+    Abweichung vom urspruenglichen Brief-Entwurf (aktueller Code gewinnt,
+    s. Task-Auftrag): `fetch_cooccurrence` liefert seit Fix-Runde 1 ein
+    Tupel `(map, total)`, kein blosses Mapping mehr. Der Brief-Entwurf
+    reichte das Tupel unentpackt an `set(cooccurred)` durch -- das waere
+    sofort mit `TypeError: unhashable type: 'dict'` gescheitert, noch vor
+    jeder Netzwerk-Antwort. Hier wird entpackt, und `total` wird als
+    `queries_seen` an `classify_edges` durchgereicht (Query-Quellen-Gate).
+
+    Ein fehlgeschlagener Fetch wirft `GmsError` und laesst diese Funktion
+    OHNE Rueckgabewert enden -- der Aufrufer (CLI) schreibt dann kein
+    Artefakt. Eine Teil-Klassifikation, die Vollstaendigkeit behauptet,
+    waere genau die Behauptung ohne Beleg, gegen die dieses Projekt
+    antritt.
+    """
+    counting = _Counting(gms)
+    declared = fetch_declared_edges(counting, focus, count=lineage_count)
+    cooccurred, queries_seen = fetch_cooccurrence(counting, focus)
+
+    coverage_by_urn: dict[str, Coverage] = {}
+    timeline_by_urn: dict[str, Timeline] = {}
+    for target in sorted(declared | set(cooccurred)):
+        cov, tl = usage_evidence(counting, target)
+        coverage_by_urn[target] = cov
+        timeline_by_urn[target] = tl
+
+    verdicts = classify_edges(
+        focus, declared, cooccurred, coverage_by_urn, timeline_by_urn, now_ms,
+        queries_seen=queries_seen,
+    )
+    counts = {s: sum(1 for v in verdicts if v.state == s) for s in STATES}
+    buckets_seen = sum(c.buckets_seen for c in coverage_by_urn.values())
+    spans = [c.days_span for c in coverage_by_urn.values() if c.days_span is not None]
+
+    return {
+        "focus": focus,
+        "gms": getattr(gms, "base", ""),
+        "seeded": True,  # der Beispielkatalog liefert keine echte Warehouse-Nutzung
+        "generated_at_ms": now_ms,
+        "edges_total": len(verdicts),
+        "edges_confirmed": counts["confirmed"],
+        "edges_dead": counts["dead"],
+        "edges_missing": counts["missing"],
+        "edges_unknown": counts["unknown"],
+        "coverage_buckets_seen": buckets_seen,
+        "coverage_days_span": max(spans) if spans else 0,
+        "coverage_thin": buckets_seen < COVERAGE_THIN_BELOW_BUCKETS,
+        "api_calls": counting.calls,
+        "queries_seen": queries_seen,
+        "edges": [v.to_json(now_ms) for v in verdicts],
+    }
