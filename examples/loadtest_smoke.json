@@ -1,0 +1,11 @@
+{
+  "seeded": false,
+  "note": "read-only Live-Check (nur coarse_pass) gegen die bestehende Instanz -- kein Schreiben, kein Cleanup noetig",
+  "scale": "s",
+  "loadtest_smoke_coarse_seconds": 1.189,
+  "loadtest_smoke_coarse_peak_mb": 0.63,
+  "loadtest_smoke_coarse_api_calls": 50,
+  "loadtest_smoke_coarse_response_chars": 4650,
+  "loadtest_smoke_coarse_suspicious": 50,
+  "loadtest_smoke_coarse_broke": false
+}

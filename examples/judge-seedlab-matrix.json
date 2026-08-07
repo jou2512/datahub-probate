@@ -1,0 +1,104 @@
+{
+  "seeded": true,
+  "seeded_statement": "Alle vier Fokusse sind die kuenstlich eingespielten Seedlab-Datensaetze (harness/seed_lineage_lab.py), keine echte Warehouse-Nutzung.",
+  "run_at_iso": "2026-08-07T01:42:57Z",
+  "gms": "http://localhost:28080",
+  "judge_limit": 5,
+  "focuses": [
+    {
+      "expected_state_per_manifest": "confirmed",
+      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
+      "edges_total": 1,
+      "edges": [
+        {
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)",
+          "state": "confirmed"
+        }
+      ],
+      "judged_edges": 0,
+      "judged_with_model": 0,
+      "judged_fallback": 0,
+      "judge_seconds_total": 0.0,
+      "judgements": []
+    },
+    {
+      "expected_state_per_manifest": "dead",
+      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+      "edges_total": 1,
+      "edges": [
+        {
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_downstream,PROD)",
+          "state": "dead"
+        }
+      ],
+      "judged_edges": 1,
+      "judged_with_model": 0,
+      "judged_fallback": 1,
+      "judge_seconds_total": 17.84,
+      "judgements": [
+        {
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_downstream,PROD)",
+          "important": false,
+          "reason": "deterministischer Befund: dead",
+          "quote": "",
+          "source_field": "",
+          "used_model": false,
+          "fallback_reason": "kein Zitat geliefert"
+        }
+      ]
+    },
+    {
+      "expected_state_per_manifest": "missing",
+      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
+      "edges_total": 1,
+      "edges": [
+        {
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)",
+          "state": "missing"
+        }
+      ],
+      "judged_edges": 1,
+      "judged_with_model": 1,
+      "judged_fallback": 0,
+      "judge_seconds_total": 19.94,
+      "judgements": [
+        {
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)",
+          "important": true,
+          "reason": "The downstream dataset is a business-critical metric feeding executive reporting, so a missing lineage edge to it merits human verification despite weak co-occurrence evidence.",
+          "quote": "Grundlage fuer Marketing-Budgetentscheidungen sowie Teil des monatlichen Reportings an die Geschaeftsleitung",
+          "source_field": "description",
+          "used_model": true,
+          "fallback_reason": ""
+        }
+      ]
+    },
+    {
+      "expected_state_per_manifest": "unknown",
+      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)",
+      "edges_total": 1,
+      "edges": [
+        {
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_downstream,PROD)",
+          "state": "unknown"
+        }
+      ],
+      "judged_edges": 1,
+      "judged_with_model": 1,
+      "judged_fallback": 0,
+      "judge_seconds_total": 23.12,
+      "judgements": [
+        {
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_downstream,PROD)",
+          "important": true,
+          "reason": "The upstream is described as an intermediate table of a deduplication script while the downstream is a temporary staging table for a migration test, so a lineage link between two unrelated temporary/throwaway artifacts warrants human verification.",
+          "quote": "Zwischentabelle eines Deduplizierungs-Skripts, haelt das Zwischenergebnis eines internen Bereinigungsschritts.",
+          "source_field": "description",
+          "used_model": true,
+          "fallback_reason": ""
+        }
+      ]
+    }
+  ],
+  "any_edge_judged_with_model": true
+}

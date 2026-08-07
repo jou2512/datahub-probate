@@ -1,0 +1,64 @@
+{
+  "seeded": true,
+  "seeded_statement": "Laeuft gegen den geseedeten Beispielkatalog (namespace probate_seedlab, harness/seed_lineage_lab.py) -- kein neues Entity angelegt, nur bestehende Aspekte geschrieben und vollstaendig zurueckgerollt.",
+  "gms_url": "http://localhost:28080",
+  "manifest": "examples\\seedlab-manifest.json",
+  "generated_at": "2026-08-07T01:56:22.083630+00:00",
+  "enrich_doc": {
+    "target": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)",
+    "upstream": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
+    "true_original": null,
+    "applied": true,
+    "after_write": {
+      "value": {
+        "description": "probate: observed usage from urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD) in 1 measured query, last covered 2026-08-07 (source: DataHub usage statistics, seeded data)."
+      }
+    },
+    "after_revert": null,
+    "revert_restored_exactly": true,
+    "description_mentions_probate": true,
+    "description_mentions_seeded": true,
+    "description_did_not_overwrite_because_there_was_nothing_to_overwrite": true
+  },
+  "remove_edge": {
+    "target": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_downstream,PROD)",
+    "removed_upstream": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+    "true_original": {
+      "value": {
+        "upstreams": [
+          {
+            "auditStamp": {
+              "actor": "urn:li:corpuser:datahub",
+              "time": 1754300000000
+            },
+            "type": "TRANSFORMED",
+            "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)"
+          }
+        ]
+      }
+    },
+    "after_write": {
+      "value": {
+        "upstreams": []
+      }
+    },
+    "after_revert": {
+      "value": {
+        "upstreams": [
+          {
+            "auditStamp": {
+              "actor": "urn:li:corpuser:datahub",
+              "time": 1754300000000
+            },
+            "type": "TRANSFORMED",
+            "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)"
+          }
+        ]
+      }
+    },
+    "revert_restored_exactly": true,
+    "upstream_absent_after_remove": true
+  },
+  "revert_count": 2,
+  "all_reverted_exactly": true
+}

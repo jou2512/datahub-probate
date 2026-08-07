@@ -1,0 +1,24 @@
+{
+  "measured_at": "2026-08-07T01:24:30Z",
+  "binary": "claude",
+  "command_shape": [
+    "claude",
+    "-p",
+    "<prompt>",
+    "--output-format",
+    "json",
+    "--system-prompt",
+    "<siehe judge.py:_JUDGE_SYSTEM_PROMPT>"
+  ],
+  "timeout_s": 60,
+  "note": "--system-prompt ist Pflicht: ohne ihn laedt die CLI in diesem Repo-Ordner automatisch CLAUDE.md/AGENTS.md und antwortet als Coding-Agent statt als reiner JSON-Antworter (gemessen, s. judge.py Modul-Kommentar 'Task 10: der echte Transport').",
+  "transport_call_ok": true,
+  "transport_error": null,
+  "transport_duration_s": 30.68,
+  "raw_reply_len_chars": 235,
+  "judged_with_model": false,
+  "fallback_reason": "Zitat zu kurz, kein Beleg",
+  "important": false,
+  "source_field": "",
+  "quote_matched": ""
+}

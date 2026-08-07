@@ -1,0 +1,31 @@
+{
+  "seeded": true,
+  "namespace": "probate_load",
+  "scale": "s",
+  "generate": {
+    "seeded": true,
+    "namespace": "probate_load",
+    "scale": "s",
+    "loadtest_s_datasets": 50,
+    "loadtest_s_queries": 1000,
+    "loadtest_s_seed_seconds": 29.76,
+    "loadtest_s_seed_api_calls": 7
+  },
+  "cleanup": {
+    "scale": "s",
+    "cleanup_leftover": 0,
+    "cleanup_errors": [],
+    "cleanup_verified": true
+  },
+  "sample_written_before_cleanup": {
+    "dataset_properties_present": true,
+    "upstream_lineage_present": true,
+    "query_subjects_present": true
+  },
+  "sample_absent_after_cleanup": {
+    "dataset_properties_absent": true,
+    "upstream_lineage_absent": true,
+    "query_subjects_absent": true
+  },
+  "loadtest_s_smoke_total_seconds": 107.05
+}
