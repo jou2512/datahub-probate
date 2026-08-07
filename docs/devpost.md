@@ -155,20 +155,36 @@ Python 3.11 throughout, pinned via `uv` (a bare `python` on the build machine re
 - `harness/audit_claims.py` — re-derives every number in the prose from the run artifacts; exit 1
   on drift.
 
-**One transport, and we say why it is not the MCP server.** The design called for two: raw GraphQL
-for dead edges, the DataHub MCP server's `get_dataset_queries` for co-occurrence. The shipped code
-has one. `grep -rn -i mcp probate/*.py` returns nothing; co-occurrence is fetched with the same raw
-`searchAcrossEntities` path as everything else (`probate/ledger.py`, `probate/targets.py`).
+**We read DataHub over both interfaces, and we published what each one costs.** The same
+reconciliation runs over raw GraphQL and over DataHub's own MCP server
+(`--cooccurrence-source graphql|mcp`, `get_dataset_queries`, pinned to
+`mcp-server-datahub==0.6.0`). Across all four lab states the two paths produce **identical
+verdicts** — same map, same totals, every edge field matching; the only difference is the
+wall-clock window bounds that two runs at different times necessarily have. The transport does not
+change the finding, which is exactly what a transport should do and is not something we could have
+claimed without running both.
 
-The MCP server was evaluated and dropped on three measured grounds: it has **no time windows** (the
-timestamp fields in `gql/queries.gql` are commented out, so a dead-edge window cannot be
-expressed), it registers **zero mutation tools** at the pinned version 0.4.0, so nothing could be
-written back through it, and it costs **~54 s of telemetry per tool call**, which over a load run
-is the difference between a night and a week.
+Cost, from the artifact rather than from an adjective: an end-to-end run is 0.075 s over GraphQL
+and 9.661 s over MCP — but roughly 9.4 s of that is **session start**, and the MCP read is one tool
+call where GraphQL needs 1+N. We are deliberately not compressing this into "MCP is 130× slower";
+that headline would be almost entirely session start, and manufacturing a misleading ratio is the
+failure this whole project argues against. Telemetry overhead, measured with the flag off and on:
+0.315 s per call.
 
-So: **this submission does not use the Agent Context Kit.** We are saying it plainly, in the README
-and here, because it is a real gap against what a reviewer may expect, and because "we could
-integrate it" would be a promise rather than a result.
+**Where the MCP server stops, and it is a precise limit.** In 0.6.0's `queries.gql` the entire
+`created` block is commented out, and `lastModified.time` with it, so query entities come back with
+**no timestamp at all** — and there is no tool for usage buckets. Co-occurrence over MCP: yes. An
+age judgement — `dead` versus `confirmed`, "dead since N days" — no. That is why GraphQL stays the
+default. (Both of these are true at once and belong together: the field *does* exist in GMS and
+comes back over GraphQL; the MCP server simply does not ask for it.)
+
+**Three of our own claims about the MCP server were wrong, and we corrected them by re-measuring.**
+They stood in our README until 2026-08-07. "`@latest` resolves to 0.4.0" — today it resolves to
+0.6.0, with and without a pin; not reproducible. "Registers zero mutation tools" — it registers 6
+by default and 18 with `TOOLS_IS_MUTATION_ENABLED=true`, so 12 mutation tools. "~54 s of telemetry
+per call" — 0.315 s. These were claims about the organisers' own product in the one document whose
+thesis is that claims carry evidence. Refuting them ourselves was cheaper than having a juror do
+it, and we would rather show a submission that visibly corrects itself than one that never had to.
 
 **Load behaviour was designed two-stage before it was measured**, and then measured: a coarse pass
 over the aggregates (one API call per table, independent of query volume), then a detail pass only
@@ -355,13 +371,19 @@ edges: 0` and `loadtest_m_cleanup_verified: false` are both in the audited set. 
 limitation was faster than making the number go away, and it is the only version of the claim we
 can actually defend.
 
+**Our own claims decay, and only re-measuring catches it.** The three MCP figures above were
+measured, written down, and correct on 2 August. Five days later two were false and one was
+unreproducible — the package version had moved under us. Nothing in our process would have caught
+that, because the numbers had evidence attached and looked exactly like knowledge. What caught it
+was going back and running the probe again. An audited claim proves *a measurement happened*, not
+that it is still true, and that distinction now has a date attached in our own repository.
+
 ## What's next
 
-- **The MCP server, if and only if the three blockers move.** Wiring `get_dataset_queries` is not
-  waiting on our effort — it is waiting on time-window support, mutation tools at a pinned version,
-  and a telemetry cost per call that a load run can absorb. Until then, integrating it would make
-  the tool slower and less capable, which is why it is a *next* item with conditions attached
-  rather than a to-do.
+- **Timestamps on the MCP path.** Co-occurrence already runs over the MCP server; the age judgement
+  cannot, because `queries.gql` comments out `created` and `lastModified.time`. Uncommenting them
+  would let the whole pipeline run on the Agent Context Kit. This is a small, specific, evidenced
+  change to someone else's repository — the most useful thing we found to contribute upstream.
 - **A real warehouse connection.** The entire measurement chain has only ever run against a local
   instance and data we seeded ourselves.
 - **A real change marker, to replace the 2 % proxy.** The full-vs-delta ratio is measured, but the
@@ -378,7 +400,9 @@ can actually defend.
 ## Built with
 
 Python 3.11 (pinned through `uv`) · DataHub OSS quickstart stack, GMS over REST/OpenAPI v3 and
-GraphQL · `acryl-datahub` · `acryl-datahub-actions` for the continuous watcher · Apache Kafka ·
+GraphQL · **DataHub MCP server (Agent Context Kit), pinned `mcp-server-datahub==0.6.0`**, as the
+second co-occurrence transport · `acryl-datahub` · `acryl-datahub-actions` for the continuous
+watcher · Apache Kafka ·
 Claude, invoked through the `claude -p` CLI as an injected transport behind a `str -> str`
 interface · plain HTML/CSS/JavaScript for the workbench, no framework · `pytest` · Apache 2.0.
 
@@ -424,7 +448,13 @@ all-clear.
   null`, `buckets: []`. Every number above was measured against data we wrote ourselves, and every
   artifact says so.
 - **No real warehouse connection has ever been tested.**
-- **The MCP server is not used.** See "How we built it".
+- **The MCP server serves co-occurrence, never the age judgement.** `queries.gql` in 0.6.0 returns
+  query entities without a timestamp and offers no usage-bucket tool, so `dead` versus `confirmed`
+  can only be decided over raw GraphQL. Half the pipeline can run on the Agent Context Kit; the
+  half that carries the dates cannot.
+- **The MCP cost figures are a small sample against a local single node** — four to six calls, one
+  machine. The session-start figure says little about an agent that keeps its session open, and the
+  end-to-end ratio is not a throughput claim.
 - **Row counts at retirement are typed in by a human.** Deliberate — an invented count would be
   worse — but the single most consequential number in the retirement flow is typed, not measured.
 - **Co-occurrence is undirected.** `QuerySubject` has no direction field, so a `missing` edge

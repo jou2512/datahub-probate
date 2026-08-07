@@ -112,6 +112,11 @@ uv run --python 3.11 probate ledger \
 # ... with the model judging which deviations matter (the only model call in the project)
 uv run --python 3.11 probate ledger --focus '<dataset-urn>' --judge --judge-limit 5
 
+# ... reading co-occurrence through DataHub's own MCP server instead of raw GraphQL.
+# Same verdict either way — that is the point. Default is graphql; see "The MCP server" below
+# for what each costs and why the age judgement stays on GraphQL.
+uv run --python 3.11 probate ledger --focus '<dataset-urn>' --cooccurrence-source mcp
+
 # The workbench: serves ui/ and proxies writes through the single write path
 uv run --python 3.11 python -m ui.serve --gms http://localhost:28080 --focus '<dataset-urn>'
 # then open http://localhost:8899
@@ -361,12 +366,14 @@ by `audit_claims.py`, and they are the softest figures in this document:
 
 **About the measurements:**
 
-- **This submission does not use the Agent Context Kit.** The DataHub MCP server is not called
-  anywhere in the shipped code. We planned to use it for co-occurrence and dropped it for the three
-  measured reasons in the Architecture section — no time windows, no mutation tools at the pinned
-  version, ~54 s of telemetry per call. We are stating this rather than leaving it to be found:
-  it is a real gap against what a reviewer may expect, and "we could integrate it" would be a
-  promise, not a result.
+- **The MCP server serves co-occurrence, never the age judgement.** `--cooccurrence-source mcp`
+  works and agrees with GraphQL edge for edge, but `queries.gql` in 0.6.0 returns query entities
+  with no timestamp and offers no usage-bucket tool, so `dead` versus `confirmed` can only be
+  decided over raw GraphQL. Half the pipeline can run on the Agent Context Kit; the half that
+  carries the dates cannot.
+- **The MCP cost figures are a small sample against a local single node.** Four to six calls, one
+  machine. The session-start figure in particular says little about an agent that keeps the session
+  open, and the end-to-end ratio should not be read as a throughput claim.
 - **The workbench does not show the model's judgement.** The design calls for the edge ledger to
   expand to timeline *and* model assessment. Only the timeline is rendered (`ui/werkbank.js`); the
   quote, the reason and the fallback marker exist in the ledger output and in
@@ -455,27 +462,63 @@ Not a build item; a clean side finding for an upstream contribution.
 | `ui/` | the workbench: live mode through the proxy, recorded mode without an instance |
 | `harness/audit_claims.py` | re-derives every number in this README from the run artifacts; exit 1 on drift |
 
-### One transport, and why it is not the MCP server
+### The MCP server: used, and measured
 
-**Both paths — dead edges and missing edges — go through raw GraphQL against GMS.** The design
-originally called for two transports, with co-occurrence coming from the DataHub MCP server's
-`get_dataset_queries`. It does not. `grep -rn -i mcp probate/*.py` returns nothing; co-occurrence
-is fetched with `searchAcrossEntities` in `probate/ledger.py` and `probate/targets.py`, the same
-way as everything else. An earlier version of this paragraph described the plan instead of the
-code, which in a document whose thesis is "claims carry evidence" is the worst possible place to
-get it wrong.
+**We read DataHub over both interfaces.** `probate ledger --cooccurrence-source mcp` reads the
+co-occurrence through DataHub's own MCP server (`get_dataset_queries`, pinned to
+`mcp-server-datahub==0.6.0`); the default, `--cooccurrence-source graphql`, reads it over raw
+GraphQL. The usage windows that carry the dead/confirmed judgement are served by raw GraphQL in
+both cases, for the reason below.
 
-The MCP server was evaluated and then not used, for three measured reasons:
+**Both paths produce the same verdict, and that is the interesting result.** Run against the same
+catalog state across all four lab states, the map and the totals are identical
+(`mcp_maps_identical_all_four_states`, `mcp_totals_identical_all_four_states`,
+`end_to_end_verdicts_identical`, over `mcp_focuses_compared` = 4 focuses). Every edge field
+matches. The only difference is `coverage.window_*`, which is wall-clock from two runs at different
+times and is disclosed as such in the artifact. **The transport does not change the finding** —
+which is what you want from a transport, and is not something we could have asserted without
+running both.
 
-| Reason | Measurement |
+What it costs is in [`mcp-probe.json`](harness/runs/mcp-probe.json) rather than in an adjective:
+
+| | GraphQL | MCP (0.6.0) |
+|---|---|---|
+| one end-to-end `ledger` run | 0.075 s | 9.661 s |
+| API calls for it | 4 | 3 |
+| session start (cold / warm) | — | 13.76 s / 9.4 s |
+| the four probe reads themselves | 0.121 s over 6 GMS calls | 1.893 s over 4 tool calls |
+| telemetry per call (off → on) | — | 0.086 s → 0.401 s, overhead **0.315 s** |
+
+**What dominates is the session start, not the call.** Of the 9.661 s end-to-end MCP run, roughly
+9.4 s is bringing the session up. For a one-shot reconciliation GraphQL is faster by orders of
+magnitude. For an agent that holds the session open, the per-call picture is different and much
+narrower — and the MCP read is **one tool call** where GraphQL needs 1+N. We are deliberately not
+reducing this to a single ratio: a headline like "MCP is 130× slower" would be almost entirely
+session start, and would be the exact kind of number this project exists to argue against.
+
+**Where the MCP server stops.** In 0.6.0's `queries.gql` the whole `created` block is commented
+out, and inside `lastModified` the `time` line as well. A query entity therefore comes back with
+**no timestamp at all**, and there is no tool for dataset usage buckets. So co-occurrence over MCP:
+yes. An *age* judgement over MCP — `dead` versus `confirmed`, "dead since N days" — no. That is why
+GraphQL remains the default: a measured limit of the server, not an opinion about it.
+
+Two statements that look contradictory and are both true, so they belong side by side: a query
+entity *does* carry `queryproperties.value.created.time` when read over **GraphQL**
+([`query-timestamp-probe.json`](harness/runs/query-timestamp-probe.json)). The field exists in GMS.
+The MCP server simply does not ask for it.
+
+**Three things we believed, published, and then disproved by re-measuring.** They were in this
+README until 2026-08-07:
+
+| We wrote | Re-measured (0.6.0, `mcp-probe.json`) |
 |---|---|
-| **No time windows.** Dead-edge classification needs an N-day window; `get_dataset_queries` cannot express one — its timestamp fields are commented out in `gql/queries.gql`. | read in the server source |
-| **No mutation tools at the pinned version.** `mcp-server-datahub@latest` resolves to 0.4.0 and registers zero mutation tools, so nothing could be written back through it. | tool list counted after pinning |
-| **~54 s of telemetry per tool call.** Over a load run that is the difference between a night and a week. | measured per call |
+| "`@latest` resolves to 0.4.0" | resolves to **0.6.0**, with *and* without an interpreter pin. Not reproducible. What does hold: 0.5.0+ requires Python ≥ 3.11 where 0.4.0 needed ≥ 3.10, so an unpinned run can land on a smaller tool set |
+| "registers zero mutation tools" | **6 tools by default, 18 with `TOOLS_IS_MUTATION_ENABLED=true`** — 12 mutation tools (`tool_count_default`, `tool_count_with_mutations`, `mutation_tool_count`) |
+| "~54 s of telemetry per tool call" | **0.315 s** (`telemetry_overhead_seconds`) |
 
-So the honest architectural statement is: this is a single-transport tool, and the second
-transport was dropped on evidence, not on preference. The consequence is stated in the
-limitations below — **this submission does not use the Agent Context Kit.**
+We are naming these rather than quietly deleting them. They were claims about the organisers' own
+product, in the one document whose thesis is that claims carry evidence — refuting them ourselves
+is cheaper than having a juror do it, and the correction is part of the record.
 
 ## License
 

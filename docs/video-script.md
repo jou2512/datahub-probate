@@ -205,9 +205,42 @@ to M on an identical sample and is on the record as unexplained.)*
 
 ---
 
-### Optional insert · Full run vs. daily delta — only if the cut runs short
+### Optional insert A · The MCP server — highest priority of the two inserts
 
-**Decision: this is NOT in the base cut.** The measurement is strong — 74.87× at S, 17.11× at M,
+**If exactly one insert fits, it is this one.** Seven simulated jurors asked "where is the Agent
+Context Kit". Fifteen seconds that answer it with a measurement outrank any other fifteen seconds
+available. It is *not* in the base cut only because the cut has no slack — not because it ranks
+below anything.
+
+**Where to find the room if Joel wants it in the base cut:** the propose/correct/revert shot at
+2:08–2:29 runs 21 s and compresses to about 14 s by cutting the dry-run demonstration and keeping
+`propose` → `correct --confirm` → `revert`. That is the cheapest 7 s in the script.
+
+**On screen [E]** Terminal, run the same ledger twice, once per transport:
+
+```
+uv run --python 3.11 probate ledger --focus '<urn>' --cooccurrence-source graphql
+uv run --python 3.11 probate ledger --focus '<urn>' --cooccurrence-source mcp
+```
+
+Put the two verdict blocks side by side. Then cut to `harness/runs/mcp-probe.json`.
+
+**Spoken**
+> And we do not only read this over GraphQL. The same reconciliation, once through DataHub's own
+> MCP server — same verdict, every edge. What it costs and where it stops is a file in the repo:
+> nine seconds of session start, one call instead of N, and no timestamps on query entities, which
+> is why the age judgement stays on GraphQL. We did not assert that. We measured it and shipped the
+> measurement.
+
+**Two things not to say.** Do not say "MCP is 130× slower" — that is session start, not throughput.
+And do not claim the age judgement works over MCP; it does not, and the file says why.
+
+---
+
+### Optional insert B · Full run vs. daily delta — only if the cut runs short
+
+**Decision: this is NOT in the base cut, and it ranks below insert A.** The measurement is strong —
+74.87× at S, 17.11× at M,
 and a 1.377 s delta pass over a 500-table catalog (`full-vs-delta.json`, all audited keys). But the
 ratio is meaningless without its definition: the "daily delta" is the newest **2 %** of the plan
 list, a proxy for "changed since the last marker", because the fixtures carry no write timestamp.
