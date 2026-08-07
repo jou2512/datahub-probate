@@ -8,10 +8,10 @@ WARUM diese Datei existiert: `harness/judge_probe.py` prueft den
 Transport gegen SYNTHETISCHEN Kontext (fest hartkodiert, reich an
 Metadaten) -- das beantwortet "funktioniert der Transport", nicht "sieht
 das Urteil im ECHTEN Seedlab je etwas Zitierbares". Ein einzelner Live-
-Lauf gegen `dead_upstream` (Task-10-Fix-Runde-1-Bericht) fiel zurueck,
-WEIL `dead_upstream`/`unknown_upstream` im Seedlab absichtlich SPARSAM
-angereichert sind (verwaiste Pipeline, Scratch-Tabelle) -- waehrend
-`confirmed_upstream`/`missing_upstream` absichtlich REICH sind (Owner +
+Lauf gegen `store_revenue_weekly_east` (Task-10-Fix-Runde-1-Bericht) fiel
+zurueck, WEIL `store_revenue_weekly_east`/`customer_dedup_stage` im Seedlab
+absichtlich SPARSAM angereichert sind (verwaiste Pipeline, Scratch-Tabelle)
+-- waehrend `gl_journal_entries_daily`/`checkout_events_raw` REICH sind (Owner +
 Domain + Glossar + Beschreibung). `judge_ledger` urteilt aber NUR ueber
 abweichende Zustaende (`dead`/`missing`/`unknown`) -- `confirmed` ist per
 Design ausgeschlossen. Der `missing`-Fokus ist deshalb der einzige der
@@ -44,10 +44,10 @@ DEFAULT_OUT = Path("harness/runs/judge-seedlab-matrix.json")
 # `examples/seedlab-manifest.json` uebernommen, nicht ein zweites Mal frei
 # getippt (dieselbe Vorsicht wie in `harness/record_ledger.py`).
 FOCUSES = [
-    ("confirmed", "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)"),
-    ("dead", "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)"),
-    ("missing", "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)"),
-    ("unknown", "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)"),
+    ("confirmed", "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.gl_journal_entries_daily,PROD)"),
+    ("dead", "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_revenue_weekly_east,PROD)"),
+    ("missing", "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.checkout_events_raw,PROD)"),
+    ("unknown", "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_dedup_stage,PROD)"),
 ]
 
 

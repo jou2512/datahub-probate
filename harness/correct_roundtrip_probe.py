@@ -15,9 +15,9 @@ Zielt bewusst NICHT auf ein Dataset ohne bestehenden Aspekt: dort ist
 Mergen ein No-op, und genau das hatte Fund CRITICAL 1 (fineGrainedLineages
 wird bei jedem Schreibvorgang geloescht) beim ersten Live-Lauf unsichtbar
 gemacht. Dieses Skript nimmt stattdessen `probate_seedlab.
-confirmed_downstream` (B, aus `examples/seedlab-manifest.json`, Paar
+finance_income_statement_consolidated` (B, aus `examples/seedlab-manifest.json`, Paar
 "confirmed") -- B traegt bereits eine deklarierte Kante von
-`confirmed_upstream` (A) -- und schreibt zusaetzlich eine
+`gl_journal_entries_daily` (A) -- und schreibt zusaetzlich eine
 fineGrainedLineages-Spalten-Lineage dazu, BEVOR es ueber den echten
 Produktweg (`correct.apply_proposal`) eine neue Kante eintraegt. Beide
 Schreibvorgaenge laufen durch dasselbe `Writeback`-Journal und werden
@@ -80,8 +80,8 @@ def run(gms, manifest_path: Path = MANIFEST_PATH, out_path: Path | None = None) 
 
     confirmed_pair = _pair_from_manifest(manifest_path, "confirmed")
     dead_pair = _pair_from_manifest(manifest_path, "dead")
-    target = confirmed_pair["downstream_urn"]              # B: confirmed_downstream
-    existing_upstream = confirmed_pair["upstream_urn"]      # A: confirmed_upstream
+    target = confirmed_pair["downstream_urn"]              # B: finance_income_statement_consolidated
+    existing_upstream = confirmed_pair["upstream_urn"]      # A: gl_journal_entries_daily
     new_upstream = dead_pair["upstream_urn"]                # ein DRITTES Dataset, unbeteiligt an B
 
     if JOURNAL_PATH.exists():

@@ -35,9 +35,12 @@ Was müsste passieren, damit es falsch war: wenn ein echter Katalog Präfixe die
 trägt, die tatsächlich urteilsrelevant sind. Unwahrscheinlich — der Präfix existiert nur,
 weil wir seeden.
 
-### 2. `dead_upstream` wird NICHT angereichert, um die Zahl zu verbessern
+### 2. Der `dead`-Fokus wird NICHT angereichert, um die Zahl zu verbessern
 
-Naheliegend wäre, die karge Beschreibung von `dead_upstream` aufzufüllen, damit auch dort
+Naheliegend wäre, die karge Beschreibung des `dead`-Fokus aufzufüllen (damals
+`dead_upstream`, seit dem Umbenenn-Entscheid vom selben Tag
+`store_revenue_weekly_east` — siehe `2026-08-07-seedlab-namen-ohne-etikett.md`),
+damit auch dort
 ein Urteil zustande kommt und die Einreichung „4 von 4" zeigt.
 
 **Nicht gemacht.** Der Rückfallgrund lautet „Zitat zu kurz, kein Beleg" — das ist die

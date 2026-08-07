@@ -50,10 +50,10 @@ from probate.ledger import STATES, run as ledger_run
 # mit dem Manifest ist ein Test (test_focuses_list_matches_the_four_
 # seedlab_pairs), kein blosses Vertrauen in diese Liste.
 FOCUSES = [
-    "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
-    "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
-    "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
-    "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)",
+    "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.gl_journal_entries_daily,PROD)",
+    "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_revenue_weekly_east,PROD)",
+    "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.checkout_events_raw,PROD)",
+    "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_dedup_stage,PROD)",
 ]
 
 DEFAULT_OUT = Path("ui/recorded/ledger.json")

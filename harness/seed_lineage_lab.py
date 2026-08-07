@@ -44,6 +44,11 @@ Kanten-Zustaende selbst entstehen unveraendert aus Lineage + Nutzung +
 Query-Subjects (siehe EDGE_STATE_OF_PAIR/USAGE_PLAN unten) -- Gegenprobe
 ueber `harness/seedlab_verdicts.py` ist nach jeder Aenderung Pflicht.
 
+NACHTRAG Fix-Runde 4 (2026-08-07): dieselbe Regel gilt seither fuer die
+TABELLENNAMEN und die Query-IDs, nicht nur fuer die Beschreibungen. Beide
+nannten den Ziel-Zustand woertlich und standen in der Werkbank direkt
+neben dem Urteil. Begruendung und Namensregel: Kommentar bei `NAMES`.
+
 Idempotent: alle Nicht-Zeitreihen-Aspekte (Dataset, upstreamLineage, Query)
 haben feste URNs/IDs und werden bei jedem Lauf einfach ueberschrieben, nicht
 dupliziert (v3-REST-Semantik: gleiche URN + gleicher Aspekt = Ersetzen).
@@ -173,15 +178,39 @@ def ds_urn(name: str) -> str:
 
 # --- die acht Datasets, gruppiert nach Ziel-Zustand ihrer Kante ---------
 
+# Entscheid 2026-08-07 (Fix-Runde 4): die Tabellennamen selbst trugen bis
+# hierher den Ziel-Kanten-Zustand im Klartext (`confirmed_upstream`,
+# `dead_upstream`, ...). Das ist derselbe Fehler, den die Fix-Runden 1-3
+# aus den BESCHREIBUNGEN entfernt haben -- nur eine Ebene hoeher und
+# sichtbarer: die Werkbank zeigt die URN direkt neben dem Urteil, ein
+# Pruefer liest also woertlich "probate_seedlab.dead_upstream ->
+# probate_seedlab.dead_downstream -- Zustand: dead". Der staerkste Beleg
+# des Projekts (alle vier Zustaende in einem echten Lauf) sah damit
+# zirkulaer aus, weil der Name die Antwort ansagt.
+#
+# Regel fuer jeden Namen hier, gleichrangig mit der Beschreibungs-Regel
+# weiter unten: ein Tabellenname sagt, WAS in der Tabelle steht -- nie,
+# wie die Kante darueber ausfaellt. Verboten sind insbesondere
+# `dead`/`stale`/`unused`/`orphan`/`confirmed`/`missing`/`unknown` sowie
+# `test`/`demo` (letztere, weil sie eine Tabelle als Wegwerf-Artefakt
+# markieren und damit auf duenne Nutzung deuten). Die acht Namen bilden
+# zusammen den Katalog EINES Unternehmens -- Handel mit Filialen und
+# Online-Checkout -- damit die Menge wie ein echter Katalog liest und
+# nicht wie acht Fixtures.
+#
+# Der Namespace `probate_seedlab` bleibt unveraendert sichtbar: er ist
+# die ehrliche Markierung "hier wurde geseedet" (Regel UEBERGABE.md SS7.3)
+# und trennt das Labor von echten Warehouse-Namen. Nur der Tabellenteil
+# ist geaendert.
 NAMES: dict[str, str] = {
-    "A": "confirmed_upstream",
-    "B": "confirmed_downstream",
-    "C": "dead_upstream",
-    "D": "dead_downstream",
-    "E": "missing_upstream",
-    "F": "missing_downstream",
-    "G": "unknown_upstream",
-    "H": "unknown_downstream",
+    "A": "gl_journal_entries_daily",
+    "B": "finance_income_statement_consolidated",
+    "C": "store_revenue_weekly_east",
+    "D": "store_sales_ranking_east",
+    "E": "checkout_events_raw",
+    "F": "customer_lifetime_value_by_segment",
+    "G": "customer_dedup_stage",
+    "H": "crm_migration_staging",
 }
 URNS: dict[str, str] = {k: ds_urn(v) for k, v in NAMES.items()}
 
@@ -221,8 +250,8 @@ URNS: dict[str, str] = {k: ds_urn(v) for k, v in NAMES.items()}
 # Business-Relevanz zusaetzlich ENTKOPPELT von der 2-vs-2-Vierergruppe:
 # A/B (confirmed) hoch, C/D (dead) mittel (D sprachlich leicht abgeschwaecht
 # gegenueber F -- "Orientierungsgroesse" statt "Entscheidungsgrundlage",
-# ohne neue HOW/Pflege-Signale), F (missing_downstream) hoch, E
-# (missing_upstream) bewusst MITTEL/trivial (rohes, unverarbeitetes Log)
+# ohne neue HOW/Pflege-Signale), F (Ziel des missing-Paars) hoch, E
+# (Quelle des missing-Paars) bewusst MITTEL/trivial (rohes, unverarbeitetes Log)
 # statt "mehrere Teams haengen dran" -- sonst waere "hohe Business-
 # Relevanz" selbst wieder ein Hinweis auf "confirmed oder missing". G/H
 # (unknown) bleiben trivial, aber ohne jede Nutzungs-Aussage.
@@ -624,15 +653,21 @@ def seed_lineage(gms: Gms) -> None:
 
 
 def seed_queries(gms: Gms) -> None:
+    # Die Query-IDs tragen denselben Zwang wie die Tabellennamen (siehe
+    # Kommentar bei NAMES): sie hiessen bis 2026-08-07 `…-confirmed` und
+    # `…-missing`, und weil `probate/ledger.py` die Query-URN als BELEG in
+    # jedes Kanten-Urteil schreibt (`evidence.query_urns`), stand das
+    # Zustandswort woertlich neben dem Urteil, das es erst herleiten soll.
+    # Jetzt benannt nach dem Vorgang, den die Query ausfuehrt.
     plans = [
         (
-            "probate-seedlab-confirmed",
-            "INSERT INTO probate_seedlab.confirmed_downstream SELECT * FROM probate_seedlab.confirmed_upstream",
+            "probate-seedlab-gl-consolidation",
+            f"INSERT INTO {NAMESPACE}.{NAMES['B']} SELECT * FROM {NAMESPACE}.{NAMES['A']}",
             ("A", "B"),
         ),
         (
-            "probate-seedlab-missing",
-            "INSERT INTO probate_seedlab.missing_downstream SELECT * FROM probate_seedlab.missing_upstream",
+            "probate-seedlab-clv-build",
+            f"INSERT INTO {NAMESPACE}.{NAMES['F']} SELECT * FROM {NAMESPACE}.{NAMES['E']}",
             ("E", "F"),
         ),
     ]
@@ -953,6 +988,17 @@ def write_manifest(cooccurrence: dict[str, int]) -> None:
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "gms_url": GMS_DEFAULT,
         "namespace": NAMESPACE,
+        "naming_note": (
+            "Die Tabellennamen tragen bewusst KEINEN Hinweis auf den erwarteten "
+            "Kanten-Zustand. 'expected_edge_state' unten ist die Test-Erwartung "
+            "dieses Labors und wird nirgends in der Oberflaeche angezeigt -- sie "
+            "existiert, damit harness/seedlab_verdicts.py das gemessene Urteil "
+            "dagegen halten kann. Wuerde der Name den Zustand ansagen "
+            "('dead_upstream -> dead_downstream: dead'), waere der Vier-Zustaende-"
+            "Beleg zirkulaer. Die acht Namen bilden stattdessen den Katalog eines "
+            "Handelsunternehmens (Hauptbuch/Abschluss, Filialumsatz/Ranking, "
+            "Checkout-Events/Customer-Lifetime-Value, zwei Zwischentabellen)."
+        ),
         "edges": entries,
         "cooccurrence_search_results": cooccurrence,
     }

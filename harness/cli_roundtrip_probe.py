@@ -13,8 +13,8 @@ genau den Argumenten, die ein Mensch am Terminal eintippen wuerde (siehe
 kein Direktimport von `correct.py`.
 
 Nimmt das 'missing'-Paar aus `examples/seedlab-manifest.json`
-(missing_upstream -> missing_downstream): keine deklarierte Kante, aber
-eine Ko-Okkurrenz-Query existiert laut Manifest bereits. `ledger` klassifi-
+(checkout_events_raw -> customer_lifetime_value_by_segment): keine
+deklarierte Kante, aber eine Ko-Okkurrenz-Query existiert laut Manifest bereits. `ledger` klassifi-
 ziert das Paar deshalb als 'missing', `propose` baut daraus einen
 add_edge-Vorschlag, und `correct --confirm` traegt die Kante wirklich ein.
 

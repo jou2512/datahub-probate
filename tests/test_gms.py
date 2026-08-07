@@ -257,7 +257,7 @@ def test_upsert_rejects_a_record_with_a_non_string_urn_before_any_transport_call
 # Plattform-Datensatznamen verlangt; es gibt im aktuellen Repo nur keinen
 # Beleg dafuer, der als zweites Beispiel dienen koennte.
 LEGIT_SEEDLAB_URNS = [
-    "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
+    "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.gl_journal_entries_daily,PROD)",
     "urn:li:dataset:(urn:li:dataPlatform:snowflake,analytics.customer_ltv_report_v3,PROD)",
     "urn:li:query:probate_load-s-000000",
     "urn:li:versionSet:(probate-probe,dataset)",

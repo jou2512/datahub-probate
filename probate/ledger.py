@@ -393,7 +393,7 @@ def classify_edges(
 # "im gepruften Fenster nie gemessen" -> `dead`. Eine Kante mit Verkehr vor
 # >100 Tagen und seither nur Null-Buckets soll `dead` bleiben, nicht durch
 # pure Alt-Summierung wieder wie "Verkehr gemessen" aussehen. Live vermessen
-# (07.08., seedlab-Kante `dead_upstream`, acht geschriebene Buckets, davon
+# (07.08., seedlab-Kante `store_revenue_weekly_east`, acht Buckets, davon
 # zwei mit echtem Verkehr vor 117/124 Tagen): ein ungefiltertes
 # `startTimeMillis=0` auf der Rohablage liefert ALLE acht Buckets, Summe 52
 # -- das haette diese `dead`-Kante der Vier-Zustaende-Probe zu `unknown`

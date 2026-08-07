@@ -76,7 +76,7 @@ a real trap: `--system-prompt` is required, or the CLI loads this repo's own
 
 **`correct-roundtrip.json`** — command: `probate correct` writing a new
 upstream edge (with `probate.evidence` / `probate.direction` properties) onto
-`probate_seedlab.confirmed_downstream`, then `probate revert` undoing it.
+`probate_seedlab.finance_income_statement_consolidated`, then `probate revert` undoing it.
 Generated `2026-08-07T01:35:25Z`, target has an existing declared upstream
 edge and a `fineGrainedLineages` (column-level lineage) block already present
 before the write:

@@ -54,22 +54,68 @@ UI_DIR = Path(__file__).parent
 # do_action() aufruft, schrieb dadurch in die ECHTE Beweis-/Rueckweg-Datei.
 # Gemessen (Controller): 100 zusaetzliche Zeilen im Arbeitsbaum, 84 davon
 # Fixture-Muell mit der Nonsense-URN "urn:focus" auf dem REALEN Dataset
-# probate_seedlab.confirmed_downstream -- ein `probate revert` haette das
+# probate_seedlab.finance_income_statement_consolidated -- ein `probate revert` haette das
 # in den Live-Katalog zurueckgeschrieben. Jetzt ein Modul-Attribut, das
 # Tests per `monkeypatch.setattr(ui.serve, "JOURNAL_PATH", ...)` auf
 # `tmp_path` umbiegen -- nie auf die echte Datei.
 JOURNAL_PATH = "harness/runs/journal.jsonl"
 
-# Zweite Kante des Sechs-Knoepfe-Demos. Der Brief-Entwurf nennt eine
-# Snowflake-Platzhalter-URN; live gegen 28080 gibt es die nicht (geprueft
-# 07.08.). Diese URN dagegen existiert wirklich im geseedeten Katalog
-# (examples/seedlab-manifest.json, Namespace probate_seedlab) UND traegt
-# schon eine datasetUsageStatistics-Aspekt (curl gegen 28080, 07.08.:
-# usage-status 200) -- ohne die kann "Kante eintragen" nie "dead" zeigen
-# und "Warehouse trennen" nie etwas zu loeschen finden.
-# [hier haette Joel vielleicht anders gewollt -- die konkrete URN-Wahl war
-# nicht spezifiziert, nur "eine zweite Kante mit Nutzungsdaten"]
-DEMO_PARTNER = "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)"
+# --- Alle Tabellennamen kommen aus dem Manifest, KEINER steht hier -----
+#
+# `examples/seedlab-manifest.json` ist die einzige Wahrheit darueber, wie
+# die geseedeten Tabellen heissen (`harness/seed_lineage_lab.py` schreibt
+# es). Waehrend genau dieser Aufgabe hat eine parallele Bahn sie von
+# `confirmed_upstream` auf `gl_journal_entries_daily` umbenannt und musste
+# dafuer diese Konstante von Hand nachziehen -- der Beweis, dass ein
+# Tabellenname im Quelltext hier eine Zeitbombe ist. Jetzt: Datei lesen,
+# nicht tippen. Ist sie nicht lesbar, bleiben die Ziele LEER und jede
+# Aktion verweigert laut (`_validate_action_urn`) -- kein Literal als
+# "Rueckfall", das genau die Verwechslung erzeugt, gegen die dieses
+# Projekt antritt.
+MANIFEST_PATH = Path("examples/seedlab-manifest.json")
+
+
+def load_manifest_targets(path=None) -> dict:
+    """`focuses` + die beiden Demo-Ziele aus dem Seedlab-Manifest.
+
+    * `focuses` -- die vier Upstream-URNs, je einer pro Zustand. Damit
+      deckt ein blosser Start ALLE VIER Zustaende ab; mit genau einem
+      Fokus zeigte das Register bisher genau EINE Kante -- der Grund,
+      warum der Live-Modus als Demo unbrauchbar war (ein Juror sah
+      entweder vier Zustaende ohne Knoepfe oder Knoepfe mit einer Kante).
+    * `demo_focus` -- die Kante, auf die die Knoepfe schreiben: der
+      Upstream des `unknown`-Paares. Er traegt selbst keine Nutzungsdaten
+      und ist mit dem Demo-Partner noch nicht verbunden, also lassen sich
+      an ihm alle drei Uebergaenge zeigen, ohne einen bestehenden Befund
+      zu ueberschreiben.
+    * `demo_partner` -- der Downstream des `confirmed`-Paares. Er traegt
+      als einziger eine echte `datasetUsageStatistics`-Zeitreihe; ohne
+      die kann "Kante eintragen" nie `dead` zeigen und "Warehouse
+      trennen" nie etwas zu loeschen finden.
+    """
+    data = json.loads(Path(path or MANIFEST_PATH).read_text(encoding="utf-8"))
+    edges = data.get("edges") or []
+    by_state = {e.get("expected_edge_state"): e for e in edges}
+    return {
+        "focuses": [e["upstream_urn"] for e in edges if e.get("upstream_urn")],
+        "demo_focus": (by_state.get("unknown") or edges[0])["upstream_urn"],
+        "demo_partner": (by_state.get("confirmed") or edges[0])["downstream_urn"],
+        "seeded_statement": data.get("seeded_statement", ""),
+    }
+
+
+try:
+    _MANIFEST = load_manifest_targets()
+except Exception as _exc:  # pragma: no cover -- nur ausserhalb des Repos erreichbar
+    print(f"werkbank: manifest nicht lesbar ({_exc}) -- aktionen bleiben gesperrt",
+          file=sys.stderr)
+    _MANIFEST = {"focuses": [], "demo_focus": "", "demo_partner": "",
+                 "seeded_statement": ""}
+
+DEMO_PARTNER = _MANIFEST["demo_partner"]
+DEMO_FOCUS = _MANIFEST["demo_focus"]
+MANIFEST_FOCUSES = _MANIFEST["focuses"]
+SEEDED_STATEMENT = _MANIFEST["seeded_statement"]
 
 
 def route(method: str, path: str, query: dict) -> tuple[str, dict]:
@@ -78,6 +124,12 @@ def route(method: str, path: str, query: dict) -> tuple[str, dict]:
         return "mode", {}
     if path == "/api/ledger" and method == "GET":
         return "ledger", {}
+    if path == "/api/judgements" and method == "GET":
+        # Getrennt vom Register, weil die Modell-Urteile MINUTEN spaeter
+        # fertig sind als der deterministische Befund (live gemessen:
+        # 17.8-23.1s pro Kante). Sie an /api/ledger zu haengen hiesse, den
+        # billigen, sicheren Befund hinter dem teuren zurueckzuhalten.
+        return "judgements", {}
     if path == "/api/log" and method == "GET":
         return "log", {"since": int((query.get("since") or ["0"])[0])}
     if path == "/api/view/reset" and method == "POST":
@@ -130,7 +182,7 @@ def _validate_action_urn(urn: str) -> None:
         raise ValueError(f"aktion verweigert: urn traegt verbotene zeichen: {urn[:80]!r}")
 
 
-def do_action(name: str, gms, focus: str, note) -> dict:
+def do_action(name: str, gms, focus: str, note, full_run=None) -> dict:
     """Die sechs Knoepfe. Jeder veraendert eine der beiden Wahrheitsquellen
     -- ausser 'fast-forward', der nur die Sicht verschiebt.
 
@@ -139,10 +191,10 @@ def do_action(name: str, gms, focus: str, note) -> dict:
     Rueckwaertsgang muss zur Sperrzeit noch stimmen.
     """
     with _ACTION_LOCK:
-        return _do_action_locked(name, gms, focus, note)
+        return _do_action_locked(name, gms, focus, note, full_run)
 
 
-def _do_action_locked(name: str, gms, focus: str, note) -> dict:
+def _do_action_locked(name: str, gms, focus: str, note, full_run=None) -> dict:
     global _view_offset_days
 
     _validate_action_urn(focus)  # Punkt 3 -- vor JEDEM gms-Kontakt, jede Aktion.
@@ -283,8 +335,16 @@ def _do_action_locked(name: str, gms, focus: str, note) -> dict:
         return {"now_ms_offset_days": _view_offset_days, "expect": "aged"}
 
     if name == "run-ledger":
-        from probate.ledger import run as ledger_run
-        out = ledger_run(gms, focus, now_ms + _view_offset_days * 86_400_000)
+        # `full_run` ist der Lauf ueber ALLE beobachteten Fokusse (der
+        # Server reicht ihn herein). Ohne ihn -- z.B. in einem Test, der
+        # do_action() direkt aufruft -- bleibt der Ein-Fokus-Lauf, damit
+        # diese Funktion ohne Server-Kontext lauffaehig bleibt.
+        now = now_ms + _view_offset_days * 86_400_000
+        if full_run is not None:
+            out = full_run(now)
+        else:
+            from probate.ledger import run as ledger_run
+            out = ledger_run(gms, focus, now)
         note(f"full check: {out['edges_total']} edges, {out['api_calls']} API calls",
              out["edges_total"])
         return out
@@ -309,6 +369,138 @@ def reset_view_offset(note) -> dict:
         _view_offset_days = 0
     note("observation window reset to now (view only)", 0)
     return {"now_ms_offset_days": 0}
+
+
+# --- Modell-Urteile, im Hintergrund, mit gemessenen Kosten ---------------
+#
+# WARUM im Hintergrund und nicht im /api/ledger-Aufruf: der
+# deterministische Befund steht in ~1s, ein Modellaufruf dauerte live
+# 17.8-23.1s (harness/runs/judge-seedlab-matrix.json). Drei abweichende
+# Kanten sind also gut eine Minute. Wer das an die Register-Antwort
+# haengt, laesst einen Juror eine Minute auf einen leeren Bildschirm
+# schauen -- und versteckt genau das, was die Spec sehen will: dass hier
+# gerechnet und nicht abgespielt wird. So waechst stattdessen das
+# Protokoll waehrend der Rechnung, Zeile fuer Zeile, mit Sekunden und
+# Kosten pro Aufruf.
+#
+# WARUM ein Zustand pro Prozess und keine Warteschlange: es gibt genau
+# einen Bildschirm und einen Menschen davor. Ein zweiter Lauf, waehrend
+# der erste rechnet, wird abgelehnt statt eingereiht -- zwei parallele
+# Urteilslaeufe ueber dieselbe Kante wuerden sich gegenseitig
+# ueberschreiben, und welcher gewinnt, waere Zufall.
+_JUDGE_LOCK = threading.Lock()
+_JUDGE_LIMIT = 5
+
+_judge_state: dict = {
+    "running": False, "expected": 0, "done": 0,
+    "calls": 0, "seconds": 0.0, "cost_usd": 0.0, "cost_measured": True,
+    "judgements": {}, "error": "", "started_ms": None, "finished_ms": None,
+}
+
+
+def judge_snapshot() -> dict:
+    """Der aktuelle Stand als JSON-taugliche Kopie. `judgements` ist eine
+    Liste, keine Map -- die Reihenfolge, in der die Urteile eintrafen, ist
+    selbst eine Aussage (welche Kante das Modell zuerst beschaeftigt hat)."""
+    with _JUDGE_LOCK:
+        return {
+            "running": _judge_state["running"],
+            "expected": _judge_state["expected"],
+            "done": _judge_state["done"],
+            "calls": _judge_state["calls"],
+            "seconds": round(_judge_state["seconds"], 2),
+            "cost_usd": (round(_judge_state["cost_usd"], 6)
+                          if _judge_state["cost_measured"] else None),
+            "error": _judge_state["error"],
+            "started_ms": _judge_state["started_ms"],
+            "finished_ms": _judge_state["finished_ms"],
+            "judgements": list(_judge_state["judgements"].values()),
+        }
+
+
+def _short(urn: str) -> str:
+    """Nur fuer Protokollzeilen: der TABELLENNAME, ohne Namensraum und
+    ohne URN-Huelle. Der Namensraum wiederholt sich in jeder Zeile
+    identisch und drueckte die Protokollspalte in den Umbruch (im Browser
+    gesehen, 07.08.). Die volle URN steht im Register, nichts geht
+    verloren."""
+    m = re.search(r",([^,]+),[A-Za-z]+\)$", urn or "")
+    full = m.group(1) if m else (urn or "")
+    return full.rsplit(".", 1)[-1] if "." in full else full
+
+
+def start_judging(gms, ledger: dict, note, transport_factory=None) -> bool:
+    """Startet den Urteilslauf, falls keiner laeuft. Rueckgabe: gestartet
+    ja/nein -- ein `False` ist kein Fehler, sondern die Weigerung, zwei
+    Laeufe uebereinanderzulegen."""
+    from ui.judging import deviating_rows
+
+    rows = deviating_rows(ledger, _JUDGE_LIMIT)
+    with _JUDGE_LOCK:
+        if _judge_state["running"]:
+            return False
+        _judge_state.update({
+            "running": True, "expected": len(rows), "done": 0,
+            "calls": 0, "seconds": 0.0, "cost_usd": 0.0, "cost_measured": True,
+            "judgements": {}, "error": "",
+            "started_ms": int(time.time() * 1000), "finished_ms": None,
+        })
+
+    if not rows:
+        with _JUDGE_LOCK:
+            _judge_state["running"] = False
+            _judge_state["finished_ms"] = int(time.time() * 1000)
+        note("no deviating edges — the model is not called for confirmed edges", 0)
+        return True
+
+    note(f"model queue: {len(rows)} deviating edge(s) — confirmed edges are not sent", len(rows))
+
+    def worker():
+        from ui.judging import judge_edges_metered
+
+        def on_result(judgement: dict, meter: dict) -> None:
+            row = {**judgement,
+                   "seconds": meter.get("seconds"),
+                   "cost_usd": meter.get("cost_usd"),
+                   "transport_ok": bool(meter.get("ok")),
+                   "transport_error": meter.get("error", "")}
+            with _JUDGE_LOCK:
+                _judge_state["judgements"][judgement["edge"]] = row
+                _judge_state["done"] += 1
+                _judge_state["calls"] += 1
+                _judge_state["seconds"] += meter.get("seconds") or 0.0
+                if isinstance(meter.get("cost_usd"), (int, float)):
+                    _judge_state["cost_usd"] += meter["cost_usd"]
+                else:
+                    _judge_state["cost_measured"] = False
+            up, _, down = judgement["edge"].partition("->")
+            cost = meter.get("cost_usd")
+            money = f"${cost:.4f}" if isinstance(cost, (int, float)) else "cost not reported"
+            outcome = ("cited a quote, judged important" if judgement.get("used_model") and judgement.get("important")
+                       else "cited a quote, judged not important" if judgement.get("used_model")
+                       else f"abstained ({judgement.get('fallback_reason') or 'no reason given'})")
+            note(f"model call {_short(up)} -> {_short(down)}: {outcome} "
+                 f"— {meter.get('seconds')}s, {money}", meter.get("cost_usd"))
+
+        try:
+            judge_edges_metered(gms, ledger, on_result, limit=_JUDGE_LIMIT,
+                                transport_factory=transport_factory)
+        except Exception as exc:  # der Thread darf nicht stumm sterben
+            with _JUDGE_LOCK:
+                _judge_state["error"] = f"{type(exc).__name__}: {exc}"[:200]
+            note(f"model run stopped: {type(exc).__name__}", None)
+        finally:
+            with _JUDGE_LOCK:
+                _judge_state["running"] = False
+                _judge_state["finished_ms"] = int(time.time() * 1000)
+                total = _judge_state["cost_usd"] if _judge_state["cost_measured"] else None
+                calls = _judge_state["calls"]
+                secs = round(_judge_state["seconds"], 2)
+            money = f"${total:.4f}" if total is not None else "cost not reported"
+            note(f"model run done: {calls} call(s), {secs}s, {money}", calls)
+
+    threading.Thread(target=worker, name="werkbank-judge", daemon=True).start()
+    return True
 
 
 # --- Security-Checkliste Punkt 7: nie ohne validiertes Ziel schreiben -----
@@ -364,9 +556,45 @@ def build_handler(gms_url: str, focus: str, log: list):
 
     _validate_gms_target(gms_url)  # Punkt 7 -- an der einen Stelle, die JEDE Instanz durchlaeuft.
 
+    # Ein Fokus oder viele -- der Rest des Servers kennt nur noch die
+    # Liste. `--focus <urn>` (ein String) bleibt gueltig, weil genau so
+    # jeder bestehende Aufruf und jeder Test diese Funktion betritt.
+    focus_list = [focus] if isinstance(focus, str) else list(focus)
+    focus_list = [f for f in focus_list if f]
+
     def note(text: str, number=None) -> None:
         """Jede Protokollzeile traegt eine Zahl, kein Gefuehl."""
         log.append({"t": int(time.time() * 1000), "text": text, "n": number})
+
+    def run_full_ledger(gms, now_ms: int) -> dict:
+        """Ein Lauf pro Fokus, zu EINEM Register zusammengelegt.
+
+        Die Zusammenlege-Regel wird NICHT hier ein zweites Mal
+        geschrieben: `harness.record_ledger.combine_runs` ist bereits die
+        Stelle, die vier Einzel-Laeufe zu einem Register macht (mit
+        Neuzaehlung der Zustands-Summen und der bewussten Entscheidung,
+        `coverage_days_span` als Spanne statt als Summe zu fuehren), und
+        sie hat eigene Tests. Zwei Zusammenlege-Regeln waeren zwei
+        Wahrheiten -- und die Aufzeichnung saehe anders aus als der
+        Live-Modus, obwohl beide dieselben Daten zeigen sollen.
+
+        Die einzige Korrektur danach: `recording`/`seeded` beschreiben die
+        HERKUNFT. `combine_runs` setzt beide fest auf True, weil es fuer
+        die Aufzeichnung geschrieben wurde. Live ist der Lauf gerade
+        entstanden -- `recording: False`. `seeded` bleibt True, denn die
+        Daten sind wirklich eingespielt (`seeded_statement` im Manifest).
+        """
+        from harness.record_ledger import combine_runs
+        from probate.ledger import run as ledger_run
+
+        runs = [ledger_run(gms, f, now_ms) for f in focus_list]
+        out = combine_runs(runs)
+        out["recording"] = False
+        out["live"] = True
+        out["seeded_statement"] = SEEDED_STATEMENT
+        out["demo_focus"] = DEMO_FOCUS
+        out["demo_partner"] = DEMO_PARTNER
+        return out
 
     class H(SimpleHTTPRequestHandler):
         def __init__(self, *a, **kw):
@@ -484,26 +712,39 @@ def build_handler(gms_url: str, focus: str, log: list):
                     # Opus-Review-Nachtrag (MINOR 9): `view_offset_days` mit
                     # ausliefern, damit werkbank.js die Sicht-Verschiebung
                     # sichtbar machen kann statt sie unsichtbar zu lassen.
-                    return self._json({"mode": "live", "gms": gms_url, "focus": focus,
+                    return self._json({"mode": "live", "gms": gms_url,
+                                        "focus": focus_list[0] if focus_list else "",
+                                        "focuses": focus_list,
+                                        "demo_focus": DEMO_FOCUS,
+                                        "demo_partner": DEMO_PARTNER,
+                                        "seeded_statement": SEEDED_STATEMENT,
                                         "view_offset_days": _view_offset_days})
                 if kind == "log":
                     return self._json({"entries": log[args["since"]:], "cursor": len(log)})
+                if kind == "judgements":
+                    return self._json(judge_snapshot())
                 if kind == "ledger":
-                    # Erst hier importiert, nicht auf Modul-/Handler-Ebene:
-                    # probate.ledger.run() ist Task 17 und existiert zum
-                    # Zeitpunkt von Task 18 noch nicht (Lanes laufen
-                    # parallel). Ein spaeter Import laesst /api/mode,
-                    # /api/log und die statische Auslieferung schon jetzt
-                    # funktionieren, statt den ganzen Server an einer
-                    # Funktion scheitern zu lassen, die dieser Task nicht
-                    # baut.
-                    from probate.ledger import run as ledger_run
-                    out = ledger_run(gms, focus, int(time.time() * 1000))
-                    note(f"full check: {out['edges_total']} edges", out["edges_total"])
+                    out = run_full_ledger(gms, int(time.time() * 1000)
+                                           + _view_offset_days * 86_400_000)
+                    note(f"full check: {out['edges_total']} edge(s) over "
+                         f"{len(focus_list)} focus dataset(s), {out['api_calls']} API calls",
+                         out["edges_total"])
+                    # Der teure Teil laeuft DANACH, im Hintergrund -- der
+                    # Befund geht sofort raus (s. Kommentar bei start_judging).
+                    start_judging(gms, out, note)
                     return self._json(out)
                 if kind == "action":
                     self._read_json_body()
-                    result = do_action(args["name"], gms, focus, note)
+                    # Die Knoepfe schreiben immer auf DIESELBE Kante
+                    # (`DEMO_FOCUS` -> `DEMO_PARTNER`, beide aus dem
+                    # Manifest). Vorher war es `--focus`, und `--focus` ist
+                    # jetzt die LISTE der beobachteten Datensaetze -- eine
+                    # Aktion "auf alle vier" waere keine Demo, sondern vier
+                    # gleichzeitige Schreibvorgaenge ohne sichtbaren Bezug.
+                    result = do_action(args["name"], gms, DEMO_FOCUS, note,
+                                        full_run=lambda now: run_full_ledger(gms, now))
+                    if args["name"] == "run-ledger":
+                        start_judging(gms, result, note)
                     return self._json(result)
                 return None
             except ApiError as e:
@@ -548,15 +789,32 @@ def main(argv=None) -> int:
     )
     parser.add_argument("--gms", default="http://localhost:28080",
                          help="GMS-Basis-URL (Standard: http://localhost:28080)")
-    parser.add_argument("--focus", default="",
-                         help="URN der im Fokus stehenden Tabelle")
+    # WIEDERHOLBAR, und ohne Angabe die vier Seedlab-Fokusse aus dem
+    # Manifest. Der Vorgabe-Wert war frueher der LEERE String: ein blosser
+    # Start beobachtete damit nichts, und ein Start mit genau einem
+    # `--focus` zeigte genau eine Kante -- also entweder vier Zustaende
+    # ohne Knoepfe (Aufzeichnung) oder Knoepfe mit einer Kante (Live).
+    # Beides ist keine Demo. Jetzt: `python -m ui.serve` reicht.
+    parser.add_argument("--focus", action="append", default=None, metavar="URN",
+                         help="URN einer beobachteten Tabelle; mehrfach angebbar. "
+                              "Ohne Angabe: die vier Fokusse aus "
+                              "examples/seedlab-manifest.json")
     parser.add_argument("--port", type=int, default=PORT_DEFAULT)
     args = parser.parse_args(argv)
 
+    focuses = args.focus or MANIFEST_FOCUSES
+    if not focuses:
+        raise SystemExit(
+            "werkbank: kein Fokus -- weder --focus noch ein lesbares "
+            f"{MANIFEST_PATH}. Ein Register ueber nichts waere eine leere Behauptung."
+        )
+
     log: list = []
-    handler_cls = build_handler(args.gms, args.focus, log)  # validiert --gms (Punkt 7)
+    handler_cls = build_handler(args.gms, focuses, log)  # validiert --gms (Punkt 7)
     server = ThreadingHTTPServer(("127.0.0.1", args.port), handler_cls)
     print(f"werkbank live: http://127.0.0.1:{args.port} -- gms {args.gms}")
+    print(f"  {len(focuses)} focus dataset(s): " + ", ".join(_short(f) for f in focuses))
+    print(f"  buttons write on: {_short(DEMO_FOCUS)} -> {_short(DEMO_PARTNER)}")
     try:
         server.serve_forever()
     except KeyboardInterrupt:

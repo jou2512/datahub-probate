@@ -73,14 +73,14 @@ def urn(name: str) -> str:
     return f"urn:li:dataset:({PLATFORM},{NS}.{name},PROD)"
 
 
-# Die vier Fokus-Datasets des Labors. `missing_upstream` ist der Fall, den
+# Die vier Fokus-Datasets des Labors. `checkout_events_raw` ist der Fall, den
 # die Ko-Okkurrenz ueberhaupt erst findet (keine deklarierte Kante, aber
 # eine gemeinsame Query) -- wenn ein Weg IHN nicht sieht, taugt er nicht.
 FOCUSES = [
-    ("confirmed", urn("confirmed_upstream")),
-    ("dead", urn("dead_upstream")),
-    ("missing", urn("missing_upstream")),
-    ("unknown", urn("unknown_upstream")),
+    ("confirmed", urn("gl_journal_entries_daily")),
+    ("dead", urn("store_revenue_weekly_east")),
+    ("missing", urn("checkout_events_raw")),
+    ("unknown", urn("customer_dedup_stage")),
 ]
 
 
@@ -390,7 +390,7 @@ def main() -> int:
         # gefunden" heisst hier "gefragt und nichts da", nicht "nicht
         # geprueft" -- die Rohantwort steht als Beleg mit im Artefakt.
         sample = session.call_tool(
-            "get_dataset_queries", {"urn": urn("missing_upstream"), "count": 200})
+            "get_dataset_queries", {"urn": urn("checkout_events_raw"), "count": 200})
         flat = json.dumps(sample)
         time_keys = sorted({
             k for k in ("time", "created", "createdAt", "lastModified",
@@ -437,7 +437,7 @@ def main() -> int:
     result["graphql_gms_calls_total"] = sum(c["graphql"]["gms_calls"] for c in comparisons)
 
     # --- Schritt 7: der ganze Lauf, beide Wege ----------------------------
-    e2e = _end_to_end(args.gms, args.version, args.token, urn("missing_upstream"))
+    e2e = _end_to_end(args.gms, args.version, args.token, urn("checkout_events_raw"))
     result["end_to_end"] = e2e
     result["end_to_end_verdicts_identical"] = bool(
         e2e["verdict_counts_identical"] and e2e["edge_diffs_are_wall_clock_only"])
@@ -448,7 +448,7 @@ def main() -> int:
 
     # --- Schritt 8: Telemetrie-Kosten -------------------------------------
     result["telemetry"] = _telemetry_cost(
-        args.gms, args.version, args.token, urn("missing_upstream"))
+        args.gms, args.version, args.token, urn("checkout_events_raw"))
     tel_off = result["telemetry"]["telemetrie_aus"]["median_seconds"]
     tel_on = result["telemetry"]["telemetrie_an"]["median_seconds"]
     result["telemetry_median_seconds_off"] = tel_off

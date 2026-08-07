@@ -1,13 +1,13 @@
 """Live-Beleg der dritten, demo-tragenden Transition: "Warehouse trennen".
 
 Misst die Sekunden zwischen dem Purge der Nutzungs-Zeitreihe auf dem
-seedlab-Zieldataset `confirmed_downstream` (`DEMO_PARTNER` in `ui/serve.py`,
+seedlab-Zieldataset `finance_income_statement_consolidated` (`DEMO_PARTNER` in `ui/serve.py`,
 derselbe Weg wie der "cut-warehouse"-Knopf: volle Zeitreihen-Loeschung ueber
 `POST /entities?action=delete`, NICHT eine Aggregat-Schnappschuss-Loeschung
 via `gms.delete_aspect()` -- die entfernt bei Zeitreihen-Aspekten nur die
 "aktuellste" Zeile, siehe `harness/seed_lineage_lab.py`s eigener Kommentar
 dazu) und dem Moment, in dem `probate/ledger.py::classify_edges` die Kante
-`confirmed_upstream -> confirmed_downstream` danach korrekt als `unknown`
+`gl_journal_entries_daily -> finance_income_statement_consolidated` danach korrekt als `unknown`
 klassifiziert (NICHT `dead` -- kein Verkehr gesehen ist etwas anderes als
 kein Fenster ueberhaupt, das ist die Kernregel des Moduls).
 
@@ -56,12 +56,12 @@ from probate.ledger import (  # noqa: E402
 )
 
 GMS_URL = "http://localhost:28080"
-UPSTREAM = "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)"
+UPSTREAM = "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.gl_journal_entries_daily,PROD)"
 # == DEMO_PARTNER in ui/serve.py -- dasselbe Ziel, das der "cut-warehouse"-
 # Knopf trifft, aus demselben live gemessenen Grund (Kommentar dort): die
 # Abdeckung der Kante haengt an `usage_evidence(downstream)`, nicht am
 # Upstream, dessen eigene Nutzung nie in DIESE Kante einfliesst.
-DOWNSTREAM = "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)"
+DOWNSTREAM = "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.finance_income_statement_consolidated,PROD)"
 FAR_FUTURE_MS = 4_102_444_800_000  # 2100-01-01 UTC, deckt jeden plausiblen Bucket ab
 OUT_PATH = REPO_ROOT / "harness" / "runs" / "warehouse-cut-latency.json"
 POLL_BUDGET = 30

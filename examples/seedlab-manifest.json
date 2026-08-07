@@ -1,13 +1,14 @@
 {
   "seeded": true,
   "seeded_statement": "Dies sind kuenstlich eingespielte Demonstrationsdaten (harness/seed_lineage_lab.py), keine echte Warehouse-Nutzung. Namespace probate_seedlab, Plattform postgres.",
-  "generated_at": "2026-08-07T02:36:56.966121+00:00",
+  "generated_at": "2026-08-07T11:18:04.061784+00:00",
   "gms_url": "http://localhost:28080",
   "namespace": "probate_seedlab",
+  "naming_note": "Die Tabellennamen tragen bewusst KEINEN Hinweis auf den erwarteten Kanten-Zustand. 'expected_edge_state' unten ist die Test-Erwartung dieses Labors und wird nirgends in der Oberflaeche angezeigt -- sie existiert, damit harness/seedlab_verdicts.py das gemessene Urteil dagegen halten kann. Wuerde der Name den Zustand ansagen ('dead_upstream -> dead_downstream: dead'), waere der Vier-Zustaende-Beleg zirkulaer. Die acht Namen bilden stattdessen den Katalog eines Handelsunternehmens (Hauptbuch/Abschluss, Filialumsatz/Ranking, Checkout-Events/Customer-Lifetime-Value, zwei Zwischentabellen).",
   "edges": [
     {
-      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
-      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)",
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.gl_journal_entries_daily,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.finance_income_statement_consolidated,PROD)",
       "declared_lineage": true,
       "cooccurrence_query": true,
       "usage_buckets_upstream": 3,
@@ -16,8 +17,8 @@
       "represents": "Kante deklariert + Ko-Okkurrenz-Query + frische Nutzung beidseitig"
     },
     {
-      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
-      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_downstream,PROD)",
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_revenue_weekly_east,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_sales_ranking_east,PROD)",
       "declared_lineage": true,
       "cooccurrence_query": false,
       "usage_buckets_upstream": 8,
@@ -26,8 +27,8 @@
       "represents": "Kante deklariert, Nutzung gemessen, letzter Verkehr ~117 Tage zurueck, danach Null"
     },
     {
-      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
-      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)",
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.checkout_events_raw,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_lifetime_value_by_segment,PROD)",
       "declared_lineage": false,
       "cooccurrence_query": true,
       "usage_buckets_upstream": 3,
@@ -36,8 +37,8 @@
       "represents": "Ko-Okkurrenz-Query + frische Nutzung, aber KEINE deklarierte Kante"
     },
     {
-      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)",
-      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_downstream,PROD)",
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_dedup_stage,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.crm_migration_staging,PROD)",
       "declared_lineage": true,
       "cooccurrence_query": false,
       "usage_buckets_upstream": 0,
@@ -47,7 +48,7 @@
     }
   ],
   "cooccurrence_search_results": {
-    "A(+B)": 1,
-    "E(+F)": 1
+    "A(+B)": 0,
+    "E(+F)": 0
   }
 }

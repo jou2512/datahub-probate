@@ -59,11 +59,11 @@ Nachtrag (Review, Fix-Runde 1): drei weitere Haertungen in
 Zwei getrennte Beweise in einem Lauf, weil beide denselben
 Journal-Mechanismus nutzen:
 
-1. `enrich_doc` auf `confirmed_downstream` (Manifest-Paar "confirmed"):
+1. `enrich_doc` auf `finance_income_statement_consolidated` (Manifest-Paar "confirmed"):
    `editableDatasetProperties` existiert dort noch nicht (`None`) --
    deckt den Fall "vorher kein Aspekt" live ab.
-2. `remove_edge` auf `dead_downstream` (Manifest-Paar "dead"): nimmt die
-   ECHTE, bereits deklarierte Kante von `dead_upstream` weg -- kein
+2. `remove_edge` auf `store_sales_ranking_east` (Manifest-Paar "dead"): nimmt die
+   ECHTE, bereits deklarierte Kante von `store_revenue_weekly_east` weg -- kein
    Wegwerf-Test-Edge, sondern die tatsaechliche Demo-Kante, revertiert
    danach exakt zurueck.
 
@@ -104,10 +104,10 @@ def run(gms, manifest_path: Path = MANIFEST_PATH, out_path: Path | None = None) 
 
     confirmed_pair = _pair_from_manifest(manifest_path, "confirmed")
     dead_pair = _pair_from_manifest(manifest_path, "dead")
-    enrich_target = confirmed_pair["downstream_urn"]        # confirmed_downstream
-    enrich_upstream = confirmed_pair["upstream_urn"]         # confirmed_upstream
-    remove_target = dead_pair["downstream_urn"]               # dead_downstream
-    remove_upstream = dead_pair["upstream_urn"]                # dead_upstream
+    enrich_target = confirmed_pair["downstream_urn"]        # finance_income_statement_consolidated
+    enrich_upstream = confirmed_pair["upstream_urn"]         # gl_journal_entries_daily
+    remove_target = dead_pair["downstream_urn"]               # store_sales_ranking_east
+    remove_upstream = dead_pair["upstream_urn"]                # store_revenue_weekly_east
 
     if JOURNAL_PATH.exists():
         JOURNAL_PATH.unlink()

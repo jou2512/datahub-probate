@@ -20,7 +20,7 @@ from ui.serve import ACTIONS, DEMO_PARTNER, PORT_DEFAULT, build_handler, do_acti
 # vorher in die ECHTE harness/runs/journal.jsonl (kein Injektionspunkt).
 # 100 zusaetzliche Zeilen im Arbeitsbaum, 84 Fixture-Muell mit der
 # Nonsense-URN "urn:focus" auf dem REALEN Dataset
-# probate_seedlab.confirmed_downstream -- `probate revert` haette das in
+# probate_seedlab.finance_income_statement_consolidated -- `probate revert` haette das in
 # den Live-Katalog zurueckgeschrieben. Diese Datei darf die echte Datei
 # NIE beruehren, egal welcher Test do_action() aufruft -- autouse, jeder
 # Test bekommt einen frischen tmp_path.
