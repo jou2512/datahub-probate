@@ -1,0 +1,36 @@
+{
+  "seeded": true,
+  "wrote": {
+    "upstreams": [
+      {
+        "dataset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_probe.up,PROD)",
+        "type": "TRANSFORMED",
+        "auditStamp": {
+          "time": 0,
+          "actor": "urn:li:corpuser:__datahub_system"
+        },
+        "properties": {
+          "probate.dead_since": "2026-04-11"
+        }
+      }
+    ]
+  },
+  "read_back": {
+    "value": {
+      "upstreams": [
+        {
+          "auditStamp": {
+            "actor": "urn:li:corpuser:__datahub_system",
+            "time": 0
+          },
+          "type": "TRANSFORMED",
+          "dataset": "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_probe.up,PROD)",
+          "properties": {
+            "probate.dead_since": "2026-04-11"
+          }
+        }
+      ]
+    }
+  },
+  "properties_survived": true
+}
