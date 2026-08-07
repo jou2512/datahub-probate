@@ -98,3 +98,13 @@ def test_the_ui_never_sums_buckets_into_a_single_number_for_the_state():
     passiert' dieselbe Null -- in der Oberflaeche genauso wie im Code."""
     js = JS.read_text(encoding="utf-8")
     assert "buckets_seen" in js
+
+
+def test_the_live_badge_uses_the_measured_gms_value_not_a_hardcoded_one():
+    """Opus-Review-Nachtrag (MINOR 9): 'Live — buttons write to
+    localhost:28080' stand vorher woertlich im Code, obwohl /api/mode den
+    echten gms-Wert schon zurueckgibt -- eine unbelegte Behauptung im
+    einen Produkt, das genau das nicht tun soll."""
+    js = JS.read_text(encoding="utf-8")
+    assert "localhost:28080" not in js
+    assert "info.gms" in js or "body.gms" in js

@@ -28,21 +28,31 @@ function stateHelpNode(state) {
   return src ? src.cloneNode(true) : null;
 }
 
-async function detectMode() {
-  // Kein Server = Aufzeichnung. Der sichere Rueckfall, nie stillschweigend live.
+// Opus-Review-Nachtrag (IMPORTANT 6): X-Probate ist jetzt fuer JEDE
+// Methode unter /api/* Pflicht, nicht nur POST -- eine "einfache"
+// Cross-Origin-GET (<img src>/<script src>) traegt den Header nie und
+// wird serverseitig abgewiesen, bevor sie GMS erreicht. Jeder Fetch
+// gegen /api/* in dieser Datei traegt ihn deshalb mit.
+const API_HEADERS = { 'X-Probate': '1' };
+
+async function fetchModeInfo() {
+  // Kein Server = Aufzeichnung. Der sichere Rueckfall, nie stillschweigend
+  // live. Liefert das VOLLE Objekt (nicht nur den Modus-String), damit
+  // der echte `gms`-Wert und `view_offset_days` ohne zweiten Fetch
+  // weiterverwendet werden koennen (Opus-Review-Nachtrag, MINOR 9).
   try {
-    const r = await fetch('/api/mode', { cache: 'no-store' });
-    if (!r.ok) return 'recording';
+    const r = await fetch('/api/mode', { cache: 'no-store', headers: API_HEADERS });
+    if (!r.ok) return { mode: 'recording' };
     const body = await r.json();
-    return body.mode === 'live' ? 'live' : 'recording';
+    return body.mode === 'live' ? body : { mode: 'recording' };
   } catch {
-    return 'recording';
+    return { mode: 'recording' };
   }
 }
 
 async function loadLedger(mode) {
   const url = mode === 'live' ? '/api/ledger' : './recorded/ledger.json';
-  const r = await fetch(url, { cache: 'no-store' });
+  const r = await fetch(url, { cache: 'no-store', headers: mode === 'live' ? API_HEADERS : {} });
   return r.json();
 }
 
@@ -296,7 +306,7 @@ function appendLogLine(t, text) {
 
 let logCursor = 0;
 async function pumpLog() {
-  const r = await fetch(`/api/log?since=${logCursor}`, { cache: 'no-store' });
+  const r = await fetch(`/api/log?since=${logCursor}`, { cache: 'no-store', headers: API_HEADERS });
   if (!r.ok) return;
   const { entries, cursor } = await r.json();
   logCursor = cursor;
@@ -304,6 +314,47 @@ async function pumpLog() {
     appendLogLine(e.t, e.n != null ? `${e.text} (${e.n})` : e.text);
   }
 }
+
+// Opus-Review-Nachtrag (IMPORTANT 5): "Zeit vorspulen" akkumuliert
+// serverseitig fuer die gesamte Prozesslaufzeit, unsichtbar, bis dieser
+// Block existierte -- 13 Druecke = 420 Tage, jede spaetere Messung
+// verzerrt. `renderModeBadge` zeigt den Versatz an Ort und Stelle
+// (neben dem Live/Aufzeichnung-Abzeichen, keine neue Flaeche) und
+// aktiviert einen Reset-Regler, sobald er ungleich null ist. Kein
+// siebter/sechster Knopf -- die Spec bindet genau sechs Aktions-Knoepfe,
+// das hier ist eine Sicherheitsfunktion daneben.
+function renderModeBadge(info) {
+  const badge = document.getElementById('mode-badge');
+  badge.dataset.mode = info.mode;
+  badge.textContent = info.mode === 'live'
+    ? `Live — buttons write to ${info.gms}`
+    : 'Recording — replaying a stored run, buttons disabled';
+
+  const offset = document.getElementById('time-offset');
+  if (!offset) return;
+  if (info.mode !== 'live') {
+    offset.hidden = true;
+    return;
+  }
+  const days = info.view_offset_days || 0;
+  offset.hidden = false;
+  offset.querySelector('.time-offset__value').textContent =
+    days > 0 ? `View: +${days} day(s)` : 'View: now';
+  offset.querySelector('.time-offset__reset').disabled = days === 0;
+}
+
+async function resetViewOffset() {
+  await fetch('/api/view/reset', {
+    method: 'POST',
+    headers: { 'Content-Type': 'application/json', ...API_HEADERS },
+    body: '{}',
+  });
+  renderModeBadge(await fetchModeInfo());
+  await pumpLog();
+}
+
+document.getElementById('time-offset-reset')
+  ?.addEventListener('click', () => { resetViewOffset(); });
 
 document.getElementById('controls').addEventListener('click', async (ev) => {
   const btn = ev.target.closest('button[data-action]');
@@ -317,7 +368,7 @@ document.getElementById('controls').addEventListener('click', async (ev) => {
   try {
     const r = await fetch(`/api/action/${btn.dataset.action}`, {
       method: 'POST',
-      headers: { 'Content-Type': 'application/json', 'X-Probate': '1' },
+      headers: { 'Content-Type': 'application/json', ...API_HEADERS },
       body: '{}',
     });
     if (!r.ok) {
@@ -327,6 +378,7 @@ document.getElementById('controls').addEventListener('click', async (ev) => {
     }
     render(await loadLedger('live'));
     await pumpLog();
+    renderModeBadge(await fetchModeInfo());  // Zeit-Versatz kann sich geaendert haben (fast-forward)
   } finally {
     btn.disabled = false;
   }
@@ -335,19 +387,15 @@ document.getElementById('controls').addEventListener('click', async (ev) => {
 setInterval(() => { if (document.body.dataset.mode === 'live') pumpLog(); }, 1500);
 
 async function boot() {
-  const mode = await detectMode();
-  document.body.dataset.mode = mode;
-  const badge = document.getElementById('mode-badge');
-  badge.dataset.mode = mode;
-  badge.textContent = mode === 'live'
-    ? 'Live — buttons write to localhost:28080'
-    : 'Recording — replaying a stored run, buttons disabled';
+  const info = await fetchModeInfo();
+  document.body.dataset.mode = info.mode;
+  renderModeBadge(info);
   document.querySelectorAll('#controls button')
-    .forEach((b) => { b.disabled = mode !== 'live'; });
+    .forEach((b) => { b.disabled = info.mode !== 'live'; });
 
-  const ledger = await loadLedger(mode);
+  const ledger = await loadLedger(info.mode);
   render(ledger);
-  if (mode === 'live') await pumpLog();
+  if (info.mode === 'live') await pumpLog();
 }
 
 boot();

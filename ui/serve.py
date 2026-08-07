@@ -37,6 +37,7 @@ import re
 import sys
 import threading
 import time
+from socket import timeout as _SocketTimeout
 from http.server import SimpleHTTPRequestHandler, ThreadingHTTPServer
 from pathlib import Path
 from urllib.parse import parse_qs, urlparse
@@ -47,6 +48,17 @@ ACTIONS = ("seed-query", "add-edge", "remove-edge",
            "cut-warehouse", "fast-forward", "run-ledger")
 
 UI_DIR = Path(__file__).parent
+
+# Opus-Review-Nachtrag (CRITICAL 1): vorher ein String-Literal direkt im
+# Writeback()-Aufruf unten -- kein Injektionspunkt, jeder Test, der
+# do_action() aufruft, schrieb dadurch in die ECHTE Beweis-/Rueckweg-Datei.
+# Gemessen (Controller): 100 zusaetzliche Zeilen im Arbeitsbaum, 84 davon
+# Fixture-Muell mit der Nonsense-URN "urn:focus" auf dem REALEN Dataset
+# probate_seedlab.confirmed_downstream -- ein `probate revert` haette das
+# in den Live-Katalog zurueckgeschrieben. Jetzt ein Modul-Attribut, das
+# Tests per `monkeypatch.setattr(ui.serve, "JOURNAL_PATH", ...)` auf
+# `tmp_path` umbiegen -- nie auf die echte Datei.
+JOURNAL_PATH = "harness/runs/journal.jsonl"
 
 # Zweite Kante des Sechs-Knoepfe-Demos. Der Brief-Entwurf nennt eine
 # Snowflake-Platzhalter-URN; live gegen 28080 gibt es die nicht (geprueft
@@ -68,9 +80,18 @@ def route(method: str, path: str, query: dict) -> tuple[str, dict]:
         return "ledger", {}
     if path == "/api/log" and method == "GET":
         return "log", {"since": int((query.get("since") or ["0"])[0])}
+    if path == "/api/view/reset" and method == "POST":
+        return "reset-time", {}
     if path.startswith("/api/action/"):
-        name = path.rsplit("/", 1)[-1]
-        if name not in ACTIONS:
+        # Opus-Review-Nachtrag (IMPORTANT 3): `rsplit("/", 1)[-1]` nahm nur
+        # das LETZTE Segment -- "/api/action/fast-forward/../seed-query"
+        # bestand die Pruefung und fuehrte seed-query aus, waehrend die
+        # angeforderte URL etwas anderes suggeriert (Auditier-Anspruch
+        # dieses Projekts verletzt: angeforderter Pfad und ausgefuehrte
+        # Aktion muessen uebereinstimmen). Jetzt: alles nach dem Praefix
+        # muss GENAU ein Segment sein, kein "/" darin, sonst Ablehnung.
+        name = path[len("/api/action/"):]
+        if not name or "/" in name or name not in ACTIONS:
             raise KeyError(f"unbekannte Aktion: {name}")
         if method != "POST":
             raise ValueError("Aktionen schreiben -- nur POST")
@@ -129,7 +150,7 @@ def _do_action_locked(name: str, gms, focus: str, note) -> dict:
     from probate.correct import merge_upstreams
     from probate.writeback import Writeback
 
-    wb = Writeback(gms, dry_run=False, journal_path="harness/runs/journal.jsonl")
+    wb = Writeback(gms, dry_run=False, journal_path=JOURNAL_PATH)
     now_ms = int(time.time() * 1000)
 
     if name == "seed-query":
@@ -143,20 +164,27 @@ def _do_action_locked(name: str, gms, focus: str, note) -> dict:
         # (Beleg fuer die Form: harness/seed_lineage_lab.py:592,
         # subjects=[{entity: up}, {entity: down}]) -- hier direkt gebaut,
         # kein dritter Schreibweg, `harness/**` bleibt unveraendert.
+        #
+        # Opus-Review-Nachtrag (CRITICAL 2): vorher `gms.upsert("query",
+        # [record])` DIREKT -- am Journal vorbei. Der Reviewer bewies live:
+        # ein Knopfdruck erzeugte eine echte Query-Entitaet, das Journal
+        # blieb unveraendert, `probate revert` konnte sie nicht sehen (von
+        # Hand geloescht). Eine Query-Entitaet ist zwei GEWOEHNLICHE
+        # Aspekte -- `wb.aspect()` deckt beide, `revert_all()`s
+        # `before is None -> delete_aspect`-Zweig ist exakt der
+        # Aufraeumschritt, der vorher manuell noetig war.
         import hashlib
         stamp = {"time": now_ms, "actor": "urn:li:corpuser:__datahub_system"}
         sql = f"SELECT * FROM {focus} JOIN {DEMO_PARTNER}"  # nur ID-Bildung (Falle 8: hashlib, nie hash())
         qid = hashlib.sha1(sql.encode()).hexdigest()[:16]
-        record = {
-            "urn": f"urn:li:query:probate-demo-{qid}",
-            "queryProperties": {"value": {
-                "statement": {"value": sql, "language": "SQL"},
-                "source": "MANUAL", "created": stamp, "lastModified": stamp,
-            }},
-            "querySubjects": {"value": {"subjects": [
-                {"entity": focus}, {"entity": DEMO_PARTNER}]}},
+        query_urn = f"urn:li:query:probate-demo-{qid}"
+        props_value = {
+            "statement": {"value": sql, "language": "SQL"},
+            "source": "MANUAL", "created": stamp, "lastModified": stamp,
         }
-        gms.upsert("query", [record])            # Falle 1: Liste, nicht Objekt
+        subjects_value = {"subjects": [{"entity": focus}, {"entity": DEMO_PARTNER}]}
+        wb.aspect("query", query_urn, "queryProperties", props_value)
+        wb.aspect("query", query_urn, "querySubjects", subjects_value)
         note("query written, 2 subject(s)", 2)
         return {"wrote": 1, "expect": "missing"}
 
@@ -267,6 +295,22 @@ def _do_action_locked(name: str, gms, focus: str, note) -> dict:
 _view_offset_days = 0
 
 
+def reset_view_offset(note) -> dict:
+    """Opus-Review-Nachtrag (IMPORTANT 5): `_view_offset_days` akkumuliert
+    sonst fuer die gesamte Prozesslaufzeit, unsichtbar -- 13 Knopfdruecke
+    sind 420 Tage, und jede SPAETERE Messung (`run-ledger`) wird gegen
+    diese verschobene Sicht gerechnet. Ein Juror, der zweimal aus
+    Neugier "Zeit vorspulen" drueckt, vergiftet lautlos den Rest der
+    Demo. Kein siebter/sechster Knopf (die Spec bindet genau sechs) --
+    eine Sicherheitsfunktion daneben, die wie `fast-forward` NICHTS
+    schreibt (dieselbe Garantie, dieselbe Sperre)."""
+    global _view_offset_days
+    with _ACTION_LOCK:
+        _view_offset_days = 0
+    note("observation window reset to now (view only)", 0)
+    return {"now_ms_offset_days": 0}
+
+
 # --- Security-Checkliste Punkt 7: nie ohne validiertes Ziel schreiben -----
 
 _FORBIDDEN_GMS_PORTS = {
@@ -303,6 +347,12 @@ class ApiError(Exception):
 
 _ERROR_ID = itertools.count(1)
 _MAX_BODY_BYTES = 64 * 1024
+# Opus-Review-Nachtrag (IMPORTANT 4): eine ueberhoehte Content-Length ohne
+# genug tatsaechlich gesendete Bytes liess `rfile.read(n)` unbegrenzt
+# blockieren -- kein Socket-Timeout, keine Laengen-Gegenprobe. Ein
+# lokales Slowloris: jeder haengende Handler-Thread ist ein Leck, auch
+# wenn ThreadingHTTPServer andere Verbindungen weiterbedient.
+_BODY_READ_TIMEOUT_S = 5.0
 
 
 def build_handler(gms_url: str, focus: str, log: list):
@@ -350,9 +400,16 @@ def build_handler(gms_url: str, focus: str, log: list):
             Befund war ein Cross-Origin-POST, der die do_action-Zeile erreichte.
             Reihenfolge: Host zuerst (haerteste Pruefung, jeder Request traegt
             ihn), dann Origin (nur wenn vorhanden -- gleicher-Ursprung-GETs
-            schicken ihn oft gar nicht), dann X-Probate nur fuer POST (erzwingt
-            einen Preflight, den dieser Server nie beantwortet -- die tragende
-            Haelfte des Schutzes)."""
+            schicken ihn oft gar nicht), dann X-Probate.
+
+            Opus-Review-Nachtrag (IMPORTANT 6): X-Probate war nur fuer POST
+            Pflicht. Eine "einfache" GET-Anfrage (`<img src>`/`<script src>`)
+            traegt NIE einen Origin- und NIE einen Custom-Header -- SOP
+            verhindert nur, dass die fremde Seite die ANTWORT lesen kann,
+            nicht dass sie den echten GET ueberhaupt AUSLOEST ("confused
+            deputy": jede fremde Seite koennte `/api/ledger` kostenpflichtig
+            gegen GMS feuern lassen, ohne die Antwort je zu sehen). X-Probate
+            ist deshalb jetzt fuer JEDE Methode unter /api/* Pflicht."""
             allowed_hosts = self._allowed_netlocs()
             host = self.headers.get("Host", "")
             if host not in allowed_hosts:
@@ -362,14 +419,21 @@ def build_handler(gms_url: str, focus: str, log: list):
                 allowed_origins = {f"http://{h}" for h in allowed_hosts}
                 if origin not in allowed_origins:
                     raise ApiError(403, "cross-origin abgelehnt")
-            if method == "POST" and self.headers.get("X-Probate") != "1":
+            if self.headers.get("X-Probate") != "1":
                 raise ApiError(403, "x-probate-header fehlt")
 
         def _read_json_body(self) -> None:
             """Punkt 2: Content-Length lesen und begrenzen, Content-Type
             erzwingen -- zweite CSRF-Barriere neben X-Probate. Der Inhalt
             wird bewusst nicht ausgewertet (kein Knopf braucht heute ein
-            Client-Feld), nur seine FORM ist die Pruefung."""
+            Client-Feld), nur seine FORM ist die Pruefung.
+
+            Opus-Review-Nachtrag (IMPORTANT 4): eine ueberhoehte Content-
+            Length ohne genug tatsaechlich gesendete Bytes liess
+            `rfile.read(n)` vorher unbegrenzt blockieren. Socket-Timeout
+            plus Laengen-Gegenprobe (`len(raw) != n`) schliessen beides --
+            ein kurzer Read wird jetzt erkannt statt stillschweigend als
+            vollstaendig behandelt."""
             length = self.headers.get("Content-Length")
             if length is None:
                 raise ApiError(400, "content-length fehlt")
@@ -382,7 +446,17 @@ def build_handler(gms_url: str, focus: str, log: list):
             ctype = (self.headers.get("Content-Type") or "").split(";", 1)[0].strip().lower()
             if ctype != "application/json":
                 raise ApiError(400, "content-type muss application/json sein")
-            raw = self.rfile.read(n) if n else b""
+            raw = b""
+            if n:
+                self.connection.settimeout(_BODY_READ_TIMEOUT_S)
+                try:
+                    raw = self.rfile.read(n)
+                except (_SocketTimeout, OSError):
+                    raise ApiError(400, "body-uebertragung abgebrochen oder zu langsam")
+                finally:
+                    self.connection.settimeout(None)  # restlichen Verbindungslebenszyklus nicht beeinflussen
+                if len(raw) != n:
+                    raise ApiError(400, "body kuerzer als angekuendigt")
             if raw:
                 try:
                     body = json.loads(raw.decode("utf-8"))
@@ -400,9 +474,18 @@ def build_handler(gms_url: str, focus: str, log: list):
                     kind, args = route(method, u.path, parse_qs(u.query))
                 except (KeyError, ValueError):
                     return None
+                if kind == "reset-time":
+                    # Vor `Gms(gms_url)`: reset schreibt nichts, braucht
+                    # gar keine GMS-Verbindung (dieselbe Garantie wie
+                    # fast-forward -- Opus-Review-Nachtrag Punkt 5).
+                    return self._json(reset_view_offset(note))
                 gms = Gms(gms_url)
                 if kind == "mode":
-                    return self._json({"mode": "live", "gms": gms_url, "focus": focus})
+                    # Opus-Review-Nachtrag (MINOR 9): `view_offset_days` mit
+                    # ausliefern, damit werkbank.js die Sicht-Verschiebung
+                    # sichtbar machen kann statt sie unsichtbar zu lassen.
+                    return self._json({"mode": "live", "gms": gms_url, "focus": focus,
+                                        "view_offset_days": _view_offset_days})
                 if kind == "log":
                     return self._json({"entries": log[args["since"]:], "cursor": len(log)})
                 if kind == "ledger":

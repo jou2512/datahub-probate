@@ -216,6 +216,30 @@ button {
   background: currentColor;
 }
 
+/* Zeit-Versatz-Anzeige + Reset (Opus-Review-Nachtrag, IMPORTANT 5):
+   "Zeit vorspulen" akkumuliert unsichtbar fuer die Prozesslaufzeit --
+   dieser Regler sitzt neben dem Live/Aufzeichnung-Abzeichen, keine neue
+   Flaeche, kein neues Farb-Token. */
+.time-offset {
+  gap: var(--space-1);
+}
+
+.time-offset__reset {
+  font: inherit;
+  font-size: 0.75rem;
+  color: inherit;
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  padding: 0 var(--space-1);
+  cursor: pointer;
+}
+
+.time-offset__reset:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
 /* ---------------------------------------------------------------------
    Abdeckungs-Banner -- steht UEBER den Ergebnissen, ist keine Fussnote.
    --------------------------------------------------------------------- */

@@ -4,12 +4,50 @@ Wegewahl, nicht der Socket -- bis auf den Sicherheitsblock unten, der
 BRAUCHT einen echten Socket, weil Host/Origin/X-Probate HTTP-Header sind,
 keine Argumente von route()."""
 
+import json
 import socket
 import threading
+import time
 from http.server import ThreadingHTTPServer
+from pathlib import Path
 
 import pytest
+import ui.serve as serve_module
 from ui.serve import ACTIONS, DEMO_PARTNER, PORT_DEFAULT, build_handler, do_action, route
+
+# --- CRITICAL 1 (Opus-Review-Nachtrag) -----------------------------------
+# Gemessen (Controller): jeder Test, der do_action() aufrief, schrieb
+# vorher in die ECHTE harness/runs/journal.jsonl (kein Injektionspunkt).
+# 100 zusaetzliche Zeilen im Arbeitsbaum, 84 Fixture-Muell mit der
+# Nonsense-URN "urn:focus" auf dem REALEN Dataset
+# probate_seedlab.confirmed_downstream -- `probate revert` haette das in
+# den Live-Katalog zurueckgeschrieben. Diese Datei darf die echte Datei
+# NIE beruehren, egal welcher Test do_action() aufruft -- autouse, jeder
+# Test bekommt einen frischen tmp_path.
+
+
+@pytest.fixture(autouse=True)
+def _isolated_journal(tmp_path, monkeypatch):
+    monkeypatch.setattr(serve_module, "JOURNAL_PATH", str(tmp_path / "journal.jsonl"))
+    yield
+
+
+_REAL_JOURNAL = Path("harness/runs/journal.jsonl")
+
+
+@pytest.fixture(scope="session", autouse=True)
+def _real_journal_stays_byte_identical():
+    """CRITICAL 1, Punkt (c): der BEWEIS, nicht nur die Behauptung -- die
+    echte Datei wird vor und nach der GESAMTEN Session byte-fuer-byte
+    verglichen. Faellt dieser Test, ist die JOURNAL_PATH-Injektion oben
+    irgendwo umgangen worden."""
+    before = _REAL_JOURNAL.read_bytes()
+    yield
+    after = _REAL_JOURNAL.read_bytes()
+    assert after == before, (
+        "harness/runs/journal.jsonl wurde waehrend der Testsuite veraendert -- "
+        "JOURNAL_PATH-Injektion (CRITICAL 1) deckt nicht jeden Aufrufer ab"
+    )
 
 
 def test_the_port_is_never_one_of_the_taken_ones():
@@ -45,6 +83,26 @@ def test_a_get_on_an_action_path_is_not_a_write():
     nichts veraendern."""
     with pytest.raises(ValueError):
         route("GET", "/api/action/add-edge", {})
+
+
+def test_the_view_reset_endpoint_is_routed():
+    assert route("POST", "/api/view/reset", {}) == ("reset-time", {})
+
+
+def test_a_path_traversal_style_action_suffix_is_rejected():
+    """IMPORTANT 3 (Opus-Review-Nachtrag): `rsplit('/', 1)[-1]` nahm vorher
+    nur das LETZTE Segment -- '/api/action/fast-forward/../seed-query'
+    bestand die Pruefung und fuehrte seed-query aus, waehrend die
+    angeforderte URL etwas anderes suggeriert. Angeforderter Pfad und
+    ausgefuehrte Aktion muessen fuer ein auditierbares Produkt
+    uebereinstimmen -- jetzt: GENAU ein Segment nach dem Praefix, sonst
+    Ablehnung."""
+    with pytest.raises(KeyError):
+        route("POST", "/api/action/fast-forward/../seed-query", {})
+    with pytest.raises(KeyError):
+        route("POST", "/api/action/seed-query/", {})
+    with pytest.raises(KeyError):
+        route("POST", "/api/action/", {})
 
 
 # --- Die sechs Knoepfe schreiben wirklich (Task 19, Brief Step 1) -------
@@ -128,6 +186,32 @@ def test_every_action_returns_a_log_line_with_a_number():
         assert seen and seen[-1][1] is not None
 
 
+# --- CRITICAL 2 (Opus-Review-Nachtrag): seed-query umging writeback.py --
+# Der Reviewer bewies live: ein Knopfdruck erzeugte eine echte Query-
+# Entitaet direkt ueber gms.upsert(), das Journal blieb unveraendert,
+# `probate revert` konnte sie nicht sehen (von Hand geloescht). Jetzt
+# laeuft der Schreibvorgang ueber wb.aspect() -- zwei gewoehnliche
+# Aspekte, zwei Journal-Zeilen, `before: null` (die Entitaet existierte
+# vorher nicht -- `revert_all()`s delete_aspect-Zweig deckt das exakt).
+
+def test_seed_query_writes_through_writeback_so_revert_can_see_it(tmp_path):
+    g = FakeGms()
+    out = do_action("seed-query", g, "urn:focus", lambda t, n=None: None)
+    assert out["wrote"] == 1
+
+    journal = tmp_path / "journal.jsonl"  # derselbe Pfad, den _isolated_journal gesetzt hat
+    lines = journal.read_text(encoding="utf-8").splitlines()
+    assert len(lines) == 2, "seed-query muss GENAU zwei journalisierte aspekt-schreibvorgaenge hinterlassen"
+    entries = [json.loads(line) for line in lines]
+    assert all(e["entity_type"] == "query" for e in entries)
+    assert {e["aspect"] for e in entries} == {"queryProperties", "querySubjects"}
+    assert all(e["before"] is None for e in entries), (
+        "die query-entitaet existierte vorher nicht -- before muss null sein, "
+        "sonst kann revert_all() sie nicht per delete_aspect entfernen"
+    )
+    assert g.upserted, "wb.aspect() muss tatsaechlich ueber gms.upsert geschrieben haben"
+
+
 # --- Opus-Review-Nachtrag waehrend Task 19: remove-edge darf keine nie
 # gemessene "keine upstreams"-Behauptung schreiben (dieselbe Fehlerklasse
 # wie der behobene mark_dead-Fund in probate/correct.py) -------------------
@@ -200,10 +284,15 @@ def _stop_test_server(server):
     server.server_close()
 
 
-def _raw_http_request(port, method, path, headers=None, body=b""):
+def _raw_http_request(port, method, path, headers=None, body=b"", timeout=5):
     """http.client/urllib setzen den Host-Header selbst und lassen sich
     darum kaum auf einen FREMDEN Host umbiegen -- ein roher Socket ist
-    hier die einzige Art, "Host: evil.example" tatsaechlich zu senden."""
+    hier die einzige Art, "Host: evil.example" tatsaechlich zu senden.
+
+    `timeout` ist ueberschreibbar (IMPORTANT 4): der Server braucht bis
+    zu `_BODY_READ_TIMEOUT_S` (5s), bevor er selbst bei einer
+    ueberhoehten Content-Length antwortet -- der Client-Timeout muss
+    dafuer sichtbar groesser sein als Server-seitige Wartezeit."""
     if isinstance(body, str):
         body = body.encode()
     lines = [f"{method} {path} HTTP/1.1"]
@@ -211,9 +300,9 @@ def _raw_http_request(port, method, path, headers=None, body=b""):
         lines.append(f"{k}: {v}")
     lines.append("Connection: close")
     head = ("\r\n".join(lines) + "\r\n\r\n").encode()
-    with socket.create_connection(("127.0.0.1", port), timeout=5) as s:
+    with socket.create_connection(("127.0.0.1", port), timeout=timeout) as s:
         s.sendall(head + body)
-        s.settimeout(5)
+        s.settimeout(timeout)
         data = b""
         try:
             while True:
@@ -336,8 +425,84 @@ def test_the_mode_endpoint_answers_200_over_a_real_socket():
     server, port, _ = _start_test_server()
     try:
         status, _ = _raw_http_request(
-            port, "GET", "/api/mode", headers={"Host": f"127.0.0.1:{port}"}
+            port, "GET", "/api/mode",
+            headers={"Host": f"127.0.0.1:{port}", "X-Probate": "1"},
         )
         assert status == 200
     finally:
         _stop_test_server(server)
+
+
+# --- IMPORTANT 6 (Opus-Review-Nachtrag) ----------------------------------
+# X-Probate war vorher nur fuer POST Pflicht. Eine "einfache" Cross-
+# Origin-GET (<img src>/<script src>) traegt NIE Origin und NIE einen
+# Custom-Header -- SOP verhindert nur das LESEN der Antwort im Angreifer-
+# Tab, nicht dass der echte GET-Aufruf gegen GMS ueberhaupt AUSGELOEST
+# wird ("confused deputy"). X-Probate ist deshalb jetzt fuer JEDE Methode
+# unter /api/* Pflicht.
+
+def test_a_get_without_x_probate_is_rejected_even_with_the_right_host():
+    server, port, log = _start_test_server()
+    try:
+        status, _ = _raw_http_request(
+            port, "GET", "/api/ledger",
+            headers={"Host": f"127.0.0.1:{port}"},  # kein Origin, kein X-Probate -- <img src>-Fall
+        )
+        assert status == 403
+        assert log == []
+    finally:
+        _stop_test_server(server)
+
+
+# --- IMPORTANT 4 (Opus-Review-Nachtrag) ----------------------------------
+# Eine ueberhoehte Content-Length ohne genug tatsaechlich gesendete Bytes
+# liess rfile.read(n) vorher unbegrenzt blockieren -- ein lokales
+# Slowloris, ein haengender Handler-Thread pro Angriff.
+
+def test_an_overstated_content_length_gets_a_response_instead_of_hanging_forever():
+    server, port, log = _start_test_server()
+    try:
+        start = time.monotonic()
+        status, _ = _raw_http_request(
+            port, "POST", "/api/action/fast-forward",
+            headers={
+                "Host": f"127.0.0.1:{port}",
+                "X-Probate": "1",
+                "Content-Type": "application/json",
+                "Content-Length": "1000",  # behauptet 1000, gesendet werden nur 5
+            },
+            body=b"{}   ",
+            timeout=serve_module._BODY_READ_TIMEOUT_S + 5,  # muss dem serverseitigen Timeout Zeit geben
+        )
+        elapsed = time.monotonic() - start
+        assert status == 400
+        assert elapsed < serve_module._BODY_READ_TIMEOUT_S + 5, (
+            "der server muss selbst antworten, nicht auf den client warten"
+        )
+        assert log == []
+    finally:
+        _stop_test_server(server)
+
+
+# --- IMPORTANT 5 (Opus-Review-Nachtrag) ----------------------------------
+# _view_offset_days akkumuliert sonst fuer die gesamte Prozesslaufzeit,
+# unsichtbar -- 13 Druecke sind 420 Tage, jede spaetere Messung wird
+# dagegen gerechnet. reset_view_offset() ist keine Sicht-Aenderung mit
+# Schreibfolge (wie fast-forward), sondern deren Aufhebung.
+
+def test_reset_view_offset_zeroes_the_accumulator_and_writes_nothing():
+    g = FakeGms()
+    do_action("fast-forward", g, "urn:focus", lambda t, n=None: None)
+    do_action("fast-forward", g, "urn:focus", lambda t, n=None: None)
+
+    seen = []
+    out = serve_module.reset_view_offset(lambda t, n=None: seen.append((t, n)))
+    assert out["now_ms_offset_days"] == 0
+    assert seen and seen[-1][1] == 0
+
+    # naechstes fast-forward faengt wieder bei 30 an, nicht bei 90 -- der
+    # reset muss den GLEICHEN globalen Zaehler treffen, den fast-forward
+    # erhoeht, nicht eine Kopie.
+    out2 = do_action("fast-forward", g, "urn:focus", lambda t, n=None: None)
+    assert out2["now_ms_offset_days"] == 30
+    assert g.upserted == [] and g.deleted == [], "reset darf wie fast-forward nichts schreiben"
