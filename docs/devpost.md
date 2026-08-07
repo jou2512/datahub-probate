@@ -243,30 +243,40 @@ the write, column-level lineage survived the merge, custom properties survived t
 `revert_count: 2` writes were reverted, and the revert restored the aspect exactly — all six as
 audited booleans and counts from `correct-roundtrip.json` and `upstream-properties-probe.json`.
 
-**The coarse pass scales linearly with catalog size, measured.** From S to M the catalog grows
-ten-fold, 50 → 500 tables, and the coarse pass grows with it: 1.235 s → 12.238 s. Peak memory in
-the coarse pass: 0.38 MB at S, 3.58 MB at M. One API call per table, independent of query volume,
-which itself grew ten-fold in the same step (1,000 → 10,000).
+**The coarse pass scales linearly with catalog size — measured, and this half is solid.** From S to
+M the catalog grows ten-fold, 50 → 500 tables, and the coarse pass grows with it: 1.235 s →
+12.238 s. That is 0.0247 s versus 0.0245 s per dataset, one API call per table either way, and an
+identical 93 characters of response per call across S, M and an independent smoke run. Peak memory
+in the coarse pass: 0.38 MB at S, 3.58 MB at M. Query volume grew ten-fold in the same step
+(1,000 → 10,000) and the coarse pass did not notice, which is the property it was built for.
 
 **The two-stage cost saving, however, is *not* demonstrated by this test, and we are correcting
-that claim rather than shipping it.** The detail pass looks flat between the two runs — 35.614 s →
+that claim rather than shipping it.** The detail pass looks flat between the runs — 35.614 s →
 47.217 s over 41 edges in both — but the 41 is not a finding. It is a hardcoded sample cap
-(`detail_sample: int = 41`, `harness/loadtest.py:161`, applied as
-`suspicious[:detail_sample]` at `:204`), carried over from the design document's assumption of 41
-suspicious edges out of 384. The underlying flag rate on our synthetic fixtures is 100 % — at stage
-S, 50 of 50 tables were flagged — because the generated datasets never populate `statsSummary`, so
-the coarse pass has nothing to clear them with. The architecture may well do what it was designed
-to do; **this test does not show it**, and a flat number produced by a constant is not evidence.
-Demonstrating the saving needs a fixture with realistic usage coverage, which is on the "what's
-next" list rather than in this table.
+(`detail_sample: int = 41`, `harness/loadtest.py`, applied as `suspicious[:detail_sample]`),
+carried over from the design document's assumption of 41 suspicious edges out of 384. The
+underlying flag rate is now measured rather than inferred, and it is **100 % at both scales: 50 of
+50 tables at S, 500 of 500 at M**, matched by an independent probe run. The cause is structural,
+not a fluke: `coarse_pass()` flags a dataset whenever `statsSummary.queryCountLast30Days` is falsy,
+and our fixtures are upserted straight through GMS — they never pass DataHub's usage-aggregation
+pipeline, so `statsSummary` never populates. On synthetic data the coarse triage does not triage;
+it marks everything.
 
-"Detail edges" below is the sampled count, and it is capped at 41 by construction — see the
-paragraph above before reading anything into it.
+So the architecture may well do what it was designed to do. **This test cannot show it**, and a
+flat number produced by a constant is not evidence. Demonstrating the saving needs usage data that
+DataHub itself aggregated, which this measurement never had.
 
-| Stage | Tables | Queries | Seed | Coarse | Coarse API calls | Coarse peak mem | Detail edges (capped) | Detail total | Per edge | Detail peak mem |
+**One result we cannot explain, kept as such.** Per-edge time in the detail pass rose **32.6 %**
+from S to M — 0.8686 s → 1.1516 s — on an *identical* 41-edge sample. We record it as an
+unexplained finding rather than calling it comparable. A plausible factor is that
+`fetch_cooccurrence` queries the instance's entire query corpus, ten times larger at M; no
+controlled counter-test isolated that from general instance load during the measurement, so it
+stays a correlation and is written down as one.
+
+| Stage | Tables | Queries | Seed | Coarse | Coarse API calls | Coarse suspicious | Detail edges | Detail total | Per edge | Detail peak mem |
 |---|---|---|---|---|---|---|---|---|---|---|
-| S | 50 | 1,000 | 11.84 s | 1.235 s | 50 | 0.38 MB | 41 | 35.614 s | 0.8686 s | 1.7 MB |
-| M | 500 | 10,000 | 198.52 s | 12.238 s | 500 | 3.58 MB | 41 | 47.217 s | 1.1516 s | 1.71 MB |
+| S | 50 | 1,000 | 11.84 s | 1.235 s | 50 | 50/50 (100 %) | 41 (capped) | 35.614 s | 0.8686 s | 1.7 MB |
+| M | 500 | 10,000 | 198.52 s | 12.238 s | 500 | 500/500 (100 %) | 41 (capped) | 47.217 s | 1.1516 s | 1.71 MB |
 | L | 5,000 | 100,000 planned, 5,600 written | aborted at 735 s | not run | — | — | — | not run | — | — |
 
 **Stage L did not finish, and we publish it as a failure rather than dropping the row.** Datasets
@@ -399,6 +409,13 @@ all-clear.
   worse — but the single most consequential number in the retirement flow is typed, not measured.
 - **Co-occurrence is undirected.** `QuerySubject` has no direction field, so a `missing` edge
   records its direction as **inferred**, not measured.
+- **The load test does not demonstrate the two-stage cost saving it was designed to measure.** Both
+  runs flag 100 % of datasets as suspicious, because our fixtures never populate `statsSummary`.
+  Demonstrated: the coarse pass scales linearly with catalog size, and the detail pass takes
+  comparable time for a fixed-size sample. Not demonstrated: that suspicious-edge counts stay flat
+  as a real catalog grows.
+- **The detail pass got 32.6 % slower per edge from S to M on an identical sample**, and we cannot
+  say why. Named plausible factor, no counter-test, therefore a correlation.
 - **Load stage L never reached the coarse or detail pass**, and the full-seed duration in its
   artifact is an extrapolation from that run's own batch rate.
 - **Our own cleanup helper has a scaling defect.** `loadgen.cleanup()` always walks the full

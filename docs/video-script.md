@@ -187,17 +187,21 @@ Show the journal line appearing, then the revert output naming the number of wri
 README's load-test table on screen. Highlight the two rows.
 
 **Spoken**
-> Ten times the catalog: the cheap pass grows with it, one and a quarter seconds to twelve —
-> linear, one call per table, independent of how much was queried. What this test does *not* show
-> is the saving from the second stage: the detail pass was capped at a fixed sample, so its flat
-> number is a constant, not a finding. That correction is in the README. And stage L never finished
-> seeding — that row is published as an abort, with its extrapolation labelled as one.
+> Ten times the catalog: the cheap pass grows with it, one and a quarter seconds to twelve. Same
+> cost per table either way, one call each, and it does not care that the query volume also grew
+> ten-fold. What this test does *not* show is the saving from the second stage — our seeded tables
+> all look suspicious to it, so it has nothing to filter. That is in the README as a limitation,
+> not a footnote. Stage L never finished seeding, and that row is published as an abort.
 
-*(Numbers spoken here: 1.235 s and 12.238 s, both audited `claims.json` keys. **Do not say
-"forty-one suspicious edges" and do not claim the two-stage saving** — 41 is a hardcoded
-`detail_sample` cap in `harness/loadtest.py:161`, and the synthetic fixtures flag 100 % of tables
-because they never populate `statsSummary`. An earlier draft of this script said it; it was wrong,
-and it is exactly the kind of claim this project loses credibility by making.)*
+*(Numbers spoken here: 1.235 s and 12.238 s, both audited `claims.json` keys. Derived and safe if
+you prefer them: 0.0247 vs 0.0245 s per dataset, 93 response characters per call at both scales.
+**Do not say "forty-one suspicious edges" and do not claim the two-stage saving.** Measured: the
+flag rate is 100 % at both scales — 50 of 50 at S, 500 of 500 at M
+(`loadtest_s_coarse_suspicious` / `loadtest_m_coarse_suspicious`) — because the fixtures never
+populate `statsSummary`. The 41 is a hardcoded `detail_sample` cap. An earlier draft of this script
+claimed the saving; it was wrong, and it is exactly the kind of claim this project loses
+credibility by making. **Also do not call the per-edge time "comparable"** — it rose 32.6 % from S
+to M on an identical sample and is on the record as unexplained.)*
 
 ---
 
