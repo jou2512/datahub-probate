@@ -1,11 +1,36 @@
 <!doctype html>
 <!--
-  ui/werkbank.html
-  Warum diese Datei existiert: die Werkbank ist die Beweisflaeche der
-  Einreichung -- vier Bereiche, die dieselbe Kante aus zwei Quellen zeigen
-  (Katalog vs. Messung) und ihr einen von vier Zustaenden zuweisen. Dieses
-  Geruest legt nur die Struktur und ehrliche Leerzustaende fest; das
-  Fuellen mit echten Laufdaten uebernimmt werkbank.js (Task 17).
+  ui/werkbank.html — Enterprise-Konsole nach docs/werkbank-spec.md
+
+  Warum diese Struktur und nicht die vom Vormittag:
+
+  Bis 07.08. mittags war die Seite erst ein Vier-Bereiche-Raster
+  ("Declared / Measured / Edge ledger / Live log"), dann eine flache
+  Satzliste. Beides scheiterte an derselben Frage. Joel woertlich:
+  "firmen haben evt 1000 sachen... das hier wird bei 4 schon
+  unuebersichtlich, man weiss nicht von welchen tables man redet, man
+  weiss nicht in welchem katalog... wo sind filter, wo sind kategorien,
+  wo sind die trees, wo sind sidebars, wo ist navigation, wo ist das
+  live dashboard".
+
+  Der Massstab steht in der Spec und ist gemessen, nicht geschaetzt:
+  **5.594 Datensaetze** auf 28080. Jedes Bauteil hier wird gegen diese
+  Zahl geprueft, nicht gegen die acht des Demo-Labors. Deshalb:
+  Seitenleiste mit fuenf Bereichen, serverseitige Filter/Sortierung/
+  Seitenaufteilung (`ui/console_api.py`), und in JEDER Liste die
+  Einordnung "N von M".
+
+  Die Herkunft steht klein UEBER dem Tabellennamen (Spec, Spalte
+  "Von"/"Nach") -- ein Name ohne seinen Ort ist bei 5.594 Datensaetzen
+  wertlos, und genau das war die Kritik.
+
+  Die vier Zustandssaetze stehen EINMAL, im <template id="state-help">.
+  Legende, Tabelle und Detailspalte klonen denselben Knoten.
+
+  [hier haette Joel vielleicht anders gewollt: die Oberflaeche bleibt
+  ENGLISCH. Die Spec ist auf Deutsch geschrieben, die Jury der
+  Einreichung liest Englisch -- der Text folgt der Jury, die Struktur
+  folgt der Spec.]
 -->
 <html lang="en">
 <head>
@@ -15,99 +40,328 @@
   <link rel="stylesheet" href="werkbank.css" />
 </head>
 <body>
-  <main class="shell">
-    <header class="shell__head">
-      <h1 class="shell__title">Lineage truth bench</h1>
-      <p class="shell__sub">Declared lineage, held against measured usage — per edge.</p>
-      <span id="mode-badge" class="badge" data-mode="recording">Recording — no live instance</span>
-      <span id="time-offset" class="badge time-offset" hidden>
-        <span class="time-offset__value">View: now</span>
-        <button type="button" id="time-offset-reset" class="time-offset__reset" disabled>Reset</button>
-      </span>
+  <div class="app">
+
+    <header class="topbar">
+      <div class="topbar__brand">
+        <span class="topbar__mark">Lineage truth bench</span>
+        <span class="topbar__instance" id="instance-label">catalog: not connected</span>
+      </div>
+      <div class="topbar__tools">
+        <label class="search" for="global-search">
+          <span class="search__label">Search tables</span>
+          <input type="search" id="global-search" class="search__input"
+                 placeholder="table, schema or database name" autocomplete="off" />
+        </label>
+        <span id="mode-badge" class="badge" data-mode="recording">Recording — no live instance</span>
+        <span id="time-offset" class="badge time-offset" hidden>
+          <span class="time-offset__value">Clock: now</span>
+          <button type="button" id="time-offset-reset" class="time-offset__reset" disabled>Back to now</button>
+        </span>
+        <button type="button" id="theme-toggle" class="badge theme-toggle">Dark theme</button>
+        <button type="button" id="run-check" class="btn btn--primary" data-action="run-ledger">
+          Run a check
+        </button>
+      </div>
     </header>
 
-    <p id="coverage-banner" class="banner" role="status">
-      <span class="chip chip--unknown banner__chip">Unknown</span>
-      <span class="banner__text">No check has run yet. Coverage — how many edges we actually looked at — will stand here once one has, above every result below it.</span>
-    </p>
+    <div class="app__body">
 
-    <section id="controls" class="controls" aria-label="Control desk">
-      <button type="button" data-action="seed-query">Run a query</button>
-      <button type="button" data-action="add-edge">Declare an edge</button>
-      <button type="button" data-action="remove-edge">Remove an edge</button>
-      <button type="button" data-action="cut-warehouse">Disconnect warehouse</button>
-      <button type="button" data-action="fast-forward">Fast-forward time</button>
-      <button type="button" data-action="run-ledger">Run full check</button>
-    </section>
+      <nav class="sidenav" aria-label="Sections">
+        <button type="button" class="sidenav__item is-active" data-view="overview">
+          <span class="sidenav__name">Overview</span>
+          <span class="sidenav__hint">How is my catalog doing?</span>
+        </button>
+        <button type="button" class="sidenav__item" data-view="connections">
+          <span class="sidenav__name">Connections</span>
+          <span class="sidenav__hint">Which claim holds, which does not?</span>
+          <span class="sidenav__count" id="nav-count-connections"></span>
+        </button>
+        <button type="button" class="sidenav__item" data-view="catalog">
+          <span class="sidenav__name">Catalog</span>
+          <span class="sidenav__hint">Where does this live?</span>
+          <span class="sidenav__count" id="nav-count-catalog"></span>
+        </button>
+        <button type="button" class="sidenav__item" data-view="runs">
+          <span class="sidenav__name">Runs</span>
+          <span class="sidenav__hint">What was measured, and when?</span>
+        </button>
+        <button type="button" class="sidenav__item" data-view="evidence">
+          <span class="sidenav__name">Evidence</span>
+          <span class="sidenav__hint">How does it know that?</span>
+        </button>
 
-    <section class="legend" aria-label="What each edge state means">
-      <p class="legend__item">
-        <span class="chip chip--confirmed" data-state-help="confirmed">Confirmed</span>
-        <span>Declared and measured — the edge carries real traffic.</span>
-      </p>
-      <p class="legend__item">
-        <span class="chip chip--dead" data-state-help="dead">Dead</span>
-        <span>Declared, but no traffic in any observed window.</span>
-      </p>
-      <p class="legend__item">
-        <span class="chip chip--missing" data-state-help="missing">Missing</span>
-        <span>Measured together in queries, but never declared.</span>
-      </p>
-      <p class="legend__item">
-        <span class="chip chip--unknown" data-state-help="unknown">Unknown</span>
-        <span>No usage windows at all — we did not look, so we do not say.</span>
-      </p>
-    </section>
+        <div class="sidenav__foot">
+          <p class="sidenav__note" id="seeded-note"></p>
+        </div>
+      </nav>
 
-    <div class="grid">
-      <section class="pane pane--declared" aria-labelledby="declared-heading">
-        <div class="pane__head">
-          <h2 id="declared-heading">Declared</h2>
-          <span class="pane__caption">What the catalog claims</span>
-        </div>
-        <div id="declared-tree" class="pane__body">
-          <p class="empty-state">No catalog snapshot loaded yet. Press “Run a query” to fetch the declared lineage tree for the seeded tables.</p>
-        </div>
-      </section>
+      <main class="view" id="view-root">
 
-      <section class="pane pane--ledger" aria-labelledby="ledger-heading">
-        <div class="pane__head">
-          <h2 id="ledger-heading">Edge ledger</h2>
-          <span class="pane__caption">Per-edge verdict, declared against measured</span>
-        </div>
-        <div id="edge-ledger" class="pane__body">
-          <p class="empty-state">The ledger is empty until at least one full check has run. Press “Run full check” to classify every known edge into confirmed, dead, missing, or unknown.</p>
-        </div>
-      </section>
+        <!-- ---------------------------------------------------------- -->
+        <section class="pane" data-view="overview">
+          <header class="pane__head">
+            <h1 class="bench__problem">
+              Your catalog claims these tables feed each other.
+              <span class="bench__problem-turn">Nobody re-checks those claims.</span>
+            </h1>
+            <p class="bench__lede">
+              This bench holds every claimed connection against what the queries actually did —
+              and says <em>nothing</em> where it has no measurement.
+            </p>
+          </header>
 
-      <section class="pane pane--measured" aria-labelledby="measured-heading">
-        <div class="pane__head">
-          <h2 id="measured-heading">Measured</h2>
-          <span class="pane__caption">What actually moved, by usage window</span>
-        </div>
-        <div id="measured-bars" class="pane__body">
-          <p class="empty-state">No usage windows recorded yet. Measurement starts once a query moves data through the warehouse — an empty bar and a missing window are not the same claim.</p>
-        </div>
-      </section>
+          <section id="headline" class="kpis" aria-live="polite">
+            <p id="run-verdict" class="kpis__row">No check has run yet.</p>
+          </section>
 
-      <section class="pane pane--log" aria-labelledby="log-heading">
-        <div class="pane__head">
-          <h2 id="log-heading">Live log</h2>
-          <span class="pane__caption">What happened, in order</span>
+          <div class="quality">
+            <div class="quality__item">
+              <p class="quality__label">Coverage</p>
+              <p class="quality__value" id="coverage-banner">not measured yet</p>
+              <p class="quality__hint">For how many connections we had any usage window at all.
+                Without this number, none of the others can be read.</p>
+            </div>
+            <div class="quality__item">
+              <p class="quality__label">Abstention rate</p>
+              <p class="quality__value" id="abstention-rate">not measured yet</p>
+              <p class="quality__hint">How often the model could not cite the catalog text and
+                therefore gave no opinion. A reported result, not a defect.</p>
+            </div>
+            <div class="quality__item">
+              <p class="quality__label">Last run</p>
+              <p class="quality__value" id="last-run">never</p>
+              <p class="quality__hint">Time, duration, connections checked, artifact path.</p>
+            </div>
+          </div>
+
+          <p id="coverage-warning" class="warning" hidden></p>
+
+          <p class="bench__do">
+            Every button writes to a real catalog through the same journalled path as the CLI,
+            and every verdict is re-measured afterwards. Nothing here is pre-recorded.
+          </p>
+
+          <section id="controls" class="controls" aria-label="Things you can do to the catalog">
+            <button type="button" data-action="add-edge">
+              <span class="btn__name">Declare an edge</span>
+              <span class="btn__writes">writes upstreamLineage on the demo target</span>
+            </button>
+            <button type="button" data-action="seed-query">
+              <span class="btn__name">Run a query</span>
+              <span class="btn__writes">writes a query entity touching both tables</span>
+            </button>
+            <button type="button" data-action="cut-warehouse">
+              <span class="btn__name">Disconnect warehouse</span>
+              <span class="btn__writes">deletes the usage timeseries on the demo target</span>
+            </button>
+            <button type="button" data-action="remove-edge">
+              <span class="btn__name">Remove the edge</span>
+              <span class="btn__writes">drops that upstream again</span>
+            </button>
+            <button type="button" data-action="fast-forward">
+              <span class="btn__name">Move the clock forward</span>
+              <span class="btn__writes">view only — ages the interpretation, writes nothing</span>
+            </button>
+            <button type="button" data-action="run-ledger">
+              <span class="btn__name">Re-check everything</span>
+              <span class="btn__writes">re-measures, then asks the model about deviations</span>
+            </button>
+          </section>
+
+          <section class="legend" aria-label="What each verdict means for you">
+            <p class="legend__item" data-state="confirmed">
+              <span class="chip chip--confirmed">Confirmed</span>
+              <span class="legend__text">Real traffic. Leave it alone.</span>
+            </p>
+            <p class="legend__item" data-state="dead">
+              <span class="chip chip--dead">Dead</span>
+              <span class="legend__text">Claimed, but nothing has flowed. Candidate for removal.</span>
+            </p>
+            <p class="legend__item" data-state="missing">
+              <span class="chip chip--missing">Missing</span>
+              <span class="legend__text">Queries join these tables, but nobody wrote it down.</span>
+            </p>
+            <p class="legend__item legend__item--keystone" data-state="unknown">
+              <span class="chip chip--unknown">Not judged</span>
+              <span class="legend__text">No usage data here, so we do not judge.
+                <strong>This is where other tools guess.</strong></span>
+            </p>
+          </section>
+
+          <section class="logbox">
+            <h2 class="pane__title">Live log</h2>
+            <p class="pane__caption">Everything this page did, in order — including every model call and what it cost.</p>
+            <div id="live-log" class="log" aria-live="polite">
+              <p class="empty-state">Nothing has happened yet.</p>
+            </div>
+          </section>
+        </section>
+
+        <!-- ---------------------------------------------------------- -->
+        <section class="pane" data-view="connections" hidden>
+          <header class="pane__head">
+            <h1 class="pane__title">Connections</h1>
+            <p class="pane__caption">
+              One row per claimed or measured connection. Pick a row to see the evidence.
+            </p>
+          </header>
+
+          <div class="filters" id="filters">
+            <div class="filters__states" id="filter-states" role="group" aria-label="Filter by verdict"></div>
+            <label class="field">
+              <span class="field__label">Platform</span>
+              <select id="filter-platform" class="field__input"><option value="">all</option></select>
+            </label>
+            <label class="field">
+              <span class="field__label">Database</span>
+              <select id="filter-database" class="field__input"><option value="">all</option></select>
+            </label>
+            <label class="field">
+              <span class="field__label">Table contains</span>
+              <input type="search" id="filter-q" class="field__input" placeholder="name fragment" />
+            </label>
+            <label class="field field--check">
+              <input type="checkbox" id="filter-judged" /> <span>Only with a model judgement</span>
+            </label>
+            <label class="field field--check">
+              <input type="checkbox" id="filter-abstained" /> <span>Only abstentions</span>
+            </label>
+            <label class="field">
+              <span class="field__label">Sort</span>
+              <select id="filter-sort" class="field__input">
+                <option value="state">verdict</option>
+                <option value="from">source table</option>
+                <option value="to">target table</option>
+                <option value="last">last measured</option>
+                <option value="traffic">traffic</option>
+                <option value="evidence">evidence</option>
+              </select>
+            </label>
+          </div>
+
+          <div class="tablebar">
+            <p class="tablebar__count" id="connections-count">no check has run yet</p>
+            <div class="tablebar__chips" id="active-filters"></div>
+            <div class="tablebar__pager" id="connections-pager"></div>
+          </div>
+
+          <div class="tablewrap">
+            <table class="grid" id="edge-ledger">
+              <thead>
+                <tr>
+                  <th scope="col">Verdict</th>
+                  <th scope="col">From</th>
+                  <th scope="col">To</th>
+                  <th scope="col">Evidence</th>
+                  <th scope="col">Last measured</th>
+                  <th scope="col">Judgement</th>
+                </tr>
+              </thead>
+              <tbody id="edge-rows">
+                <tr><td colspan="6" class="empty-state">
+                  No connection has been checked yet. Press “Run a check”.
+                </td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ---------------------------------------------------------- -->
+        <section class="pane" data-view="catalog" hidden>
+          <header class="pane__head">
+            <h1 class="pane__title">Catalog</h1>
+            <p class="pane__caption">
+              Everything the instance holds — one page at a time. Pick a table to filter
+              connections down to it.
+            </p>
+          </header>
+          <div class="tablebar">
+            <label class="field">
+              <span class="field__label">Search the catalog</span>
+              <input type="search" id="catalog-q" class="field__input" placeholder="table or schema" />
+            </label>
+            <p class="tablebar__count" id="catalog-count">not loaded</p>
+            <div class="tablebar__pager" id="catalog-pager"></div>
+          </div>
+          <div class="tablewrap">
+            <div id="catalog-tree" class="tree">
+              <p class="empty-state">Loading the catalog…</p>
+            </div>
+          </div>
+        </section>
+
+        <!-- ---------------------------------------------------------- -->
+        <section class="pane" data-view="runs" hidden>
+          <header class="pane__head">
+            <h1 class="pane__title">Runs</h1>
+            <p class="pane__caption">
+              A run counts only once it has left an artifact on disk. These are those files.
+            </p>
+          </header>
+          <div class="tablewrap">
+            <table class="grid" id="runs-table">
+              <thead>
+                <tr>
+                  <th scope="col">When</th><th scope="col">Artifact</th>
+                  <th scope="col">Connections</th><th scope="col">Verdicts</th>
+                  <th scope="col">API calls</th><th scope="col">Abstention</th>
+                </tr>
+              </thead>
+              <tbody id="runs-rows">
+                <tr><td colspan="6" class="empty-state">Loading…</td></tr>
+              </tbody>
+            </table>
+          </div>
+        </section>
+
+        <!-- ---------------------------------------------------------- -->
+        <section class="pane" data-view="evidence" hidden>
+          <header class="pane__head">
+            <h1 class="pane__title">Evidence</h1>
+            <p class="pane__caption">
+              Every piece of proof this bench collected: verbatim quotes with their field,
+              the queries, the usage windows — and the gaps where there is nothing.
+            </p>
+          </header>
+          <div class="tablebar">
+            <label class="field">
+              <span class="field__label">Search the evidence</span>
+              <input type="search" id="evidence-q" class="field__input" placeholder="quote, query or table" />
+            </label>
+            <p class="tablebar__count" id="evidence-count"></p>
+          </div>
+          <div id="evidence-list" class="evidence-list">
+            <p class="empty-state">No check has run yet.</p>
+          </div>
+        </section>
+
+      </main>
+
+      <aside class="detail" id="detail" hidden aria-label="Selected connection">
+        <div class="detail__head">
+          <h2 class="detail__title" id="detail-title">Nothing selected</h2>
+          <button type="button" class="detail__close" id="detail-close" aria-label="Close">Close</button>
         </div>
-        <div id="live-log" class="pane__body" aria-live="polite">
-          <p class="empty-state">Nothing has happened yet. Actions taken at the control desk above will appear here, timestamped, in the order they ran.</p>
-        </div>
-      </section>
+        <div class="detail__body" id="detail-body"></div>
+      </aside>
     </div>
 
-    <template id="state-help">
-      <span data-state-help="confirmed">Declared and measured — the edge carries real traffic.</span>
-      <span data-state-help="dead">Declared, but no traffic in any observed window.</span>
-      <span data-state-help="missing">Measured together in queries, but never declared.</span>
-      <span data-state-help="unknown">No usage windows at all — we did not look, so we do not say.</span>
-    </template>
-  </main>
+    <footer class="statusbar" id="statusbar">
+      <span class="statusbar__item" id="status-run">no run yet</span>
+      <span class="statusbar__item" id="status-coverage">coverage: not measured</span>
+      <span class="statusbar__item" id="status-abstention">abstention: not measured</span>
+      <span class="statusbar__item statusbar__item--right" id="status-instance"></span>
+    </footer>
+  </div>
+
+  <template id="state-help">
+    <span data-state-help="confirmed">Real traffic on both sides and a query that touches both. Leave it alone.</span>
+    <span data-state-help="dead">The catalog claims this connection, but no measured window shows it carrying anything. Candidate for removal.</span>
+    <span data-state-help="missing">Queries join these two tables, but nobody ever declared the connection. Your lineage is incomplete here.</span>
+    <span data-state-help="unknown">There is no usage data for these tables at all, so we do not judge. This is the case other tools report as “unused”.</span>
+  </template>
+
   <script type="module" src="werkbank.js"></script>
 </body>
 </html>

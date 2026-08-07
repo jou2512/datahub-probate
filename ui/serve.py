@@ -132,6 +132,18 @@ def route(method: str, path: str, query: dict) -> tuple[str, dict]:
         return "judgements", {}
     if path == "/api/log" and method == "GET":
         return "log", {"since": int((query.get("since") or ["0"])[0])}
+    # --- Die Konsole (docs/werkbank-spec.md): filtern, sortieren und
+    # seitenweise liefern passiert SERVERSEITIG. Bei 5.594 Datensaetzen
+    # kann der Browser nicht mehr alles holen und lokal aussortieren --
+    # das ist der Grund, warum es diese vier Wege ueberhaupt gibt.
+    if path == "/api/connections" and method == "GET":
+        return "connections", {"params": {k: v[0] for k, v in query.items()}}
+    if path == "/api/catalog" and method == "GET":
+        return "catalog", {"params": {k: v[0] for k, v in query.items()}}
+    if path == "/api/runs" and method == "GET":
+        return "runs", {}
+    if path == "/api/evidence" and method == "GET":
+        return "evidence", {"params": {k: v[0] for k, v in query.items()}}
     if path == "/api/view/reset" and method == "POST":
         return "reset-time", {}
     if path.startswith("/api/action/"):
@@ -194,10 +206,58 @@ def do_action(name: str, gms, focus: str, note, full_run=None) -> dict:
         return _do_action_locked(name, gms, focus, note, full_run)
 
 
+# Keine f-String-GraphQL: der URN geht als Variable, nie in den Abfragetext.
+_ENTITY_EXISTS_Q = "query($urn: String!) { entityExists(urn: $urn) }"
+
+
+def _require_dataset(gms, urn: str, role: str) -> None:
+    """Kein Knopf gegen eine Entitaet, die es nicht gibt.
+
+    Gemessener Vorfall (07.08., vom Controller gefunden):
+    `harness/runs/journal.jsonl` war von 20 auf 93 Zeilen gewachsen. Die
+    73 neuen Zeilen nannten `snowflake,analytics.customers_v5` und
+    `analytics.customer_ltv_report_v3` -- Datensaetze, die es im Katalog
+    NICHT gibt. Es waren also Journal-Eintraege fuer Mutationen, die nie
+    stattgefunden haben, in genau der Datei, die `probate revert`
+    abspielt. Ein Journal, das Mutationen behauptet, die nie passiert
+    sind, ist derselbe Fehlertyp, den dieses Produkt anprangert.
+
+    Die Pruefung sitzt VOR dem ersten Schreibweg, nicht danach: sobald
+    `Writeback.aspect()` laeuft, ist die Zeile geschrieben, und
+    `probate/writeback.py` gehoert einer anderen Bahn (nicht anfassen).
+
+    WELCHE Abfrage -- und warum nicht die naheliegende: `dataset(urn:)`
+    liefert fuer eine FREI ERFUNDENE URN trotzdem einen Knoten. Live
+    gemessen (07.08., 28080, genau die URN aus dem Vorfall oben):
+
+        dataset(urn: "...snowflake,analytics.customers_v5,PROD") { urn }
+          -> {"dataset": {"urn": "...customers_v5..."}}        (!)
+        entityExists(urn: "...customers_v5...")  -> false
+        entityExists(urn: "...finance_income_statement...") -> true
+
+    Ein `dataset`-Knoten ist also KEIN Existenzbeweis -- diese Pruefung
+    haette den Vorfall nicht verhindert, nur so ausgesehen. `entityExists`
+    unterscheidet beide Faelle nachweislich. (`dataset { exists }` tut es
+    ebenfalls; `entityExists` ist die kleinere Antwort.)
+    """
+    data = gms.graphql(_ENTITY_EXISTS_Q, {"urn": urn})
+    if not data.get("entityExists"):
+        raise ValueError(
+            f"aktion verweigert: {role} {urn!r} existiert nicht im katalog -- "
+            "kein journal-eintrag fuer eine mutation, die nirgends landen kann"
+        )
+
+
 def _do_action_locked(name: str, gms, focus: str, note, full_run=None) -> dict:
     global _view_offset_days
 
     _validate_action_urn(focus)  # Punkt 3 -- vor JEDEM gms-Kontakt, jede Aktion.
+
+    # Nur die schreibenden Knoepfe: `fast-forward` und `run-ledger`
+    # veraendern den Katalog nicht und brauchen deshalb kein Ziel.
+    if name in ("seed-query", "add-edge", "remove-edge", "cut-warehouse"):
+        _require_dataset(gms, focus, "fokus")
+        _require_dataset(gms, DEMO_PARTNER, "ziel")
 
     from probate.correct import merge_upstreams
     from probate.writeback import Writeback
@@ -478,7 +538,12 @@ def start_judging(gms, ledger: dict, note, transport_factory=None) -> bool:
             money = f"${cost:.4f}" if isinstance(cost, (int, float)) else "cost not reported"
             outcome = ("cited a quote, judged important" if judgement.get("used_model") and judgement.get("important")
                        else "cited a quote, judged not important" if judgement.get("used_model")
-                       else f"abstained ({judgement.get('fallback_reason') or 'no reason given'})")
+                       # Der GENAUE Grund steht uebersetzt in der Zeile des
+                       # Registers (mit dem deutschen Original im title). Ihn hier
+                       # roh zu interpolieren haette deutschen Text in eine
+                       # englische Oberflaeche getragen -- oder eine zweite
+                       # Uebersetzungstabelle in Python verlangt.
+                       else "abstained — no verbatim quote survived the citation check")
             note(f"model call {_short(up)} -> {_short(down)}: {outcome} "
                  f"— {meter.get('seconds')}s, {money}", meter.get("cost_usd"))
 
@@ -562,6 +627,8 @@ def build_handler(gms_url: str, focus: str, log: list):
     focus_list = [focus] if isinstance(focus, str) else list(focus)
     focus_list = [f for f in focus_list if f]
 
+    _cached_ledger: dict | None = None
+
     def note(text: str, number=None) -> None:
         """Jede Protokollzeile traegt eine Zahl, kein Gefuehl."""
         log.append({"t": int(time.time() * 1000), "text": text, "n": number})
@@ -587,6 +654,7 @@ def build_handler(gms_url: str, focus: str, log: list):
         from harness.record_ledger import combine_runs
         from probate.ledger import run as ledger_run
 
+        nonlocal _cached_ledger
         runs = [ledger_run(gms, f, now_ms) for f in focus_list]
         out = combine_runs(runs)
         out["recording"] = False
@@ -594,11 +662,32 @@ def build_handler(gms_url: str, focus: str, log: list):
         out["seeded_statement"] = SEEDED_STATEMENT
         out["demo_focus"] = DEMO_FOCUS
         out["demo_partner"] = DEMO_PARTNER
+        # Der Lauf bleibt liegen: /api/connections filtert und blaettert
+        # DIESEN Lauf, statt ihn pro Seitenwechsel neu zu messen (ein
+        # Register-Lauf sind echte GMS-Aufrufe -- Bezahlung pro Klick
+        # waere eine erfundene Last, keine Funktion).
+        _cached_ledger = out
         return out
 
     class H(SimpleHTTPRequestHandler):
         def __init__(self, *a, **kw):
             super().__init__(*a, directory=str(UI_DIR), **kw)
+
+        def end_headers(self):
+            """Kein Zwischenspeicher fuer die statischen Dateien.
+
+            Gemessen 07.08.: nach dem Umbau der Oberflaeche lieferte der
+            Browser auf Port 8899 weiter das ALTE werkbank.css und
+            werkbank.js aus (SimpleHTTPRequestHandler schickt nur
+            Last-Modified, Chrome speichert dann heuristisch zwischen) --
+            sichtbar als voellig ungestylte Seite mit leerem Register,
+            waehrend die Dateien auf der Platte laengst neu waren. Eine
+            Werkbank, die eine alte Fassung ihrer selbst zeigt, ist genau
+            die Sorte stiller Falschaussage, gegen die dieses Projekt
+            antritt -- und ein Juror, der neu laedt, darf nie eine
+            veraltete Oberflaeche sehen."""
+            self.send_header("Cache-Control", "no-store")
+            super().end_headers()
 
         def _json(self, payload, code=200) -> bool:
             body = json.dumps(payload).encode()
@@ -693,6 +782,41 @@ def build_handler(gms_url: str, focus: str, log: list):
                 if not isinstance(body, dict):
                     raise ApiError(400, "body muss ein json-objekt sein")
 
+        def _console(self, kind: str, args: dict, gms):
+            """Die vier Lese-Wege der Konsole. Alle vier antworten mit
+            `total` neben den Zeilen -- ohne diese Zahl kann die Seite
+            "N von 5.594" nicht schreiben, und genau diese Einordnung
+            fehlte der alten Oberflaeche."""
+            from ui import console_api as api
+
+            params = args.get("params") or {}
+            ledger = _cached_ledger
+            edges = (ledger or {}).get("edges") or []
+            judged = {j["edge"]: j for j in judge_snapshot()["judgements"]}
+
+            if kind == "connections":
+                out = api.filter_sort_page(edges, judged, params)
+                out["facets"] = api.facets(edges)
+                out["has_run"] = ledger is not None
+                out["generated_at_ms"] = (ledger or {}).get("generated_at_ms")
+                return self._json(out)
+
+            if kind == "catalog":
+                known = {}
+                for e in edges:
+                    known[e.get("upstream", "")] = e.get("state", "")
+                    known.setdefault(e.get("downstream", ""), e.get("state", ""))
+                out = api.catalog_page(
+                    gms, params.get("q", "*"),
+                    int(params.get("start") or 0), int(params.get("count") or 50),
+                    known)
+                return self._json(out)
+
+            if kind == "runs":
+                return self._json({"runs": api.runs()})
+
+            return self._json({"items": api.evidence(edges, judged, params.get("q", ""))})
+
         def _handle(self, method):
             u = urlparse(self.path)
             try:
@@ -723,15 +847,19 @@ def build_handler(gms_url: str, focus: str, log: list):
                     return self._json({"entries": log[args["since"]:], "cursor": len(log)})
                 if kind == "judgements":
                     return self._json(judge_snapshot())
+                if kind in ("connections", "catalog", "runs", "evidence"):
+                    return self._console(kind, args, gms)
                 if kind == "ledger":
                     out = run_full_ledger(gms, int(time.time() * 1000)
                                            + _view_offset_days * 86_400_000)
                     note(f"full check: {out['edges_total']} edge(s) over "
                          f"{len(focus_list)} focus dataset(s), {out['api_calls']} API calls",
                          out["edges_total"])
-                    # Der teure Teil laeuft DANACH, im Hintergrund -- der
-                    # Befund geht sofort raus (s. Kommentar bei start_judging).
-                    start_judging(gms, out, note)
+                    # KEIN Modellaufruf an dieser Stelle. Jeder Knopfdruck
+                    # holt das Register neu -- ein Urteilslauf pro Abruf
+                    # waere ein Modellaufruf je Kante je Klick (gemessen:
+                    # 3 Aufrufe, $0.74, 52s pro Lauf). Das Modell laeuft
+                    # nur, wenn jemand "Re-check everything" drueckt.
                     return self._json(out)
                 if kind == "action":
                     self._read_json_body()

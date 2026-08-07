@@ -1,66 +1,88 @@
 /* ui/werkbank.css
-   Warum diese Datei so aussieht: die Gestaltung ist eines von sechs
-   gleichgewichteten Bewertungskriterien, und die Vorgaben sind bindend
-   (Spec, Abschnitt Gestaltung). Rot gehoert dem ZUSTAND einer Kante --
-   nirgends einem Rahmen, einer Kopfzeile oder einem Knopf.
 
-   Alle Literalwerte (Farben) stehen einmal, im ersten :root-Block, als
-   Lichtwerte UND Dunkelwerte. Jede Theme-Umschaltung -- automatisch ueber
-   prefers-color-scheme oder explizit ueber data-theme -- setzt die
-   aktiven Alias-Variablen per var()-Referenz um, nie per neuem Literal.
-   So bleibt "zwei Quellen, zwei Farben, durchgehend" strukturell wahr,
-   nicht nur behauptet. */
+   Gestaltungsrichtung (bindend, Spec-Abschnitt Gestaltung):
+   ruhig statt alarmierend. ROT gehoert ausschliesslich dem ZUSTAND einer
+   Verbindung -- nie einem Rahmen, einer Kopfzeile, einem Knopf.
+
+   Register statt Kachel-Dashboard: die Seite liest sich als Pruef-
+   protokoll. Eine Liste, eine Spalte, ein Urteil pro Zeile, links buendig
+   in einer festen Rinne, damit alle Urteile untereinander stehen und in
+   zwei Sekunden abscannbar sind. Deshalb keine Karten mit Akzentstreifen,
+   keine gleiche grosse Rundung ueberall, keine zentrierte Heldenflaeche.
+
+   Schrift traegt die Rolle: das URTEIL steht in der Monospace-Familie,
+   versal, gesperrt -- die Sprache von Katalog-Bezeichnern und Mess-
+   protokollen, nicht die einer Marketingseite. Fliesstext in der
+   System-Serifenlosen, Zahlen ueberall in Tabellenziffern.
+
+   Alle Farbliterale stehen EINMAL, im ersten :root-Block, als Licht- UND
+   Dunkelwerte. Jede Umschaltung -- automatisch (prefers-color-scheme)
+   oder explizit (data-theme) -- setzt nur Alias-Variablen per var()-
+   Referenz um, nie ein neues Literal. So bleibt "zwei Quellen, zwei
+   Farben, durchgehend" strukturell wahr statt nur behauptet. */
 
 :root {
   color-scheme: light dark;
 
   /* Lichtwerte -- gedeckt, kuehl, ruhig. Kein Creme, kein Terrakotta. */
-  --bg-light:           #f7f8fa;
+  --bg-light:           #f4f6f8;
   --surface-light:      #ffffff;
-  --surface-sunk-light: #eef1f5;
-  --line-light:         #d9dee6;
-  --ink-light:          #16191f;
-  --ink-muted-light:    #5b636f;
+  --surface-sunk-light: #eaeef3;
+  --line-light:         #d5dbe4;
+  --line-soft-light:    #e4e9ef;
+  --ink-light:          #14171d;
+  --ink-muted-light:    #58606d;
+  --ink-faint-light:    #7d8794;
   --declared-light:     #3d5a99;
   --measured-light:     #1f7a63;
   --state-confirmed-light: #1f7a63;
   --state-dead-light:      #a8323a;
-  --state-missing-light:   #9a6b12;
-  --state-unknown-light:   #6b7280;
-  --shadow-light: rgba(22, 25, 31, 0.07);
+  --state-missing-light:   #8f6410;
+  --state-unknown-light:   #646c79;
+  --shadow-light: rgba(20, 23, 29, 0.06);
+  --quote-wash-light: rgba(61, 90, 153, 0.06);
+  --sunk-wash-light:  rgba(20, 23, 29, 0.03);
 
   /* Dunkelwerte -- dieselbe Rolle je Token, angepasste Leuchtdichte. */
-  --bg-dark:           #14161a;
-  --surface-dark:      #1b1e24;
-  --surface-sunk-dark: #22262e;
-  --line-dark:         #313743;
-  --ink-dark:          #e8eaee;
-  --ink-muted-dark:    #9aa3b0;
-  --declared-dark:     #8fa8e0;
+  --bg-dark:           #101318;
+  --surface-dark:      #191d24;
+  --surface-sunk-dark: #21262f;
+  --line-dark:         #2f3641;
+  --line-soft-dark:    #262c35;
+  --ink-dark:          #e9ecf1;
+  --ink-muted-dark:    #9ba4b1;
+  --ink-faint-dark:    #7b8492;
+  --declared-dark:     #91a9e2;
   --measured-dark:     #5fc0a4;
   --state-confirmed-dark: #5fc0a4;
-  --state-dead-dark:      #e08b92;
-  --state-missing-dark:   #d9ad5b;
-  --state-unknown-dark:   #98a1ae;
-  --shadow-dark: rgba(0, 0, 0, 0.35);
+  --state-dead-dark:      #e58e95;
+  --state-missing-dark:   #dbb164;
+  --state-unknown-dark:   #9aa3b0;
+  --shadow-dark: rgba(0, 0, 0, 0.4);
+  --quote-wash-dark: rgba(145, 169, 226, 0.10);
+  --sunk-wash-dark:  rgba(255, 255, 255, 0.04);
 
-  /* Aktives Thema -- Vorgabe hell, siehe Umschaltung weiter unten. */
+  /* Aktives Thema -- Vorgabe hell, Umschaltung weiter unten. */
   --bg:            var(--bg-light);
   --surface:       var(--surface-light);
   --surface-sunk:  var(--surface-sunk-light);
   --line:          var(--line-light);
+  --line-soft:     var(--line-soft-light);
   --ink:           var(--ink-light);
   --ink-muted:     var(--ink-muted-light);
+  --ink-faint:     var(--ink-faint-light);
   --declared:      var(--declared-light);
   --measured:      var(--measured-light);
   --state-confirmed: var(--state-confirmed-light);
   --state-dead:      var(--state-dead-light);
   --state-missing:   var(--state-missing-light);
   --state-unknown:   var(--state-unknown-light);
-  --shadow: var(--shadow-light);
+  --shadow:      var(--shadow-light);
+  --quote-wash:  var(--quote-wash-light);
+  --sunk-wash:   var(--sunk-wash-light);
 
   /* Form: bewusst NICHT ueberall dieselbe grosse Rundung. */
-  --r-card:  6px;
+  --r-card:  5px;
   --r-chip:  3px;
   --r-input: 4px;
 
@@ -80,51 +102,62 @@
     --surface:       var(--surface-dark);
     --surface-sunk:  var(--surface-sunk-dark);
     --line:          var(--line-dark);
+    --line-soft:     var(--line-soft-dark);
     --ink:           var(--ink-dark);
     --ink-muted:     var(--ink-muted-dark);
+    --ink-faint:     var(--ink-faint-dark);
     --declared:      var(--declared-dark);
     --measured:      var(--measured-dark);
     --state-confirmed: var(--state-confirmed-dark);
     --state-dead:      var(--state-dead-dark);
     --state-missing:   var(--state-missing-dark);
     --state-unknown:   var(--state-unknown-dark);
-    --shadow: var(--shadow-dark);
+    --shadow:      var(--shadow-dark);
+    --quote-wash:  var(--quote-wash-dark);
+    --sunk-wash:   var(--sunk-wash-dark);
   }
 }
 
-/* Der explizite Umschalter gewinnt gegen die System-Praeferenz -- die
-   Attribut-Selektoren tragen mehr Spezifitaet als das blosse :root
-   innerhalb der media-Regel, unabhaengig davon, ob die media-Regel
-   gerade greift. */
+/* Der explizite Umschalter gewinnt gegen die System-Praeferenz: die
+   Attribut-Selektoren tragen mehr Spezifitaet als das blosse :root in der
+   media-Regel, unabhaengig davon, ob die media-Regel gerade greift. */
 :root[data-theme="dark"] {
   --bg:            var(--bg-dark);
   --surface:       var(--surface-dark);
   --surface-sunk:  var(--surface-sunk-dark);
   --line:          var(--line-dark);
+  --line-soft:     var(--line-soft-dark);
   --ink:           var(--ink-dark);
   --ink-muted:     var(--ink-muted-dark);
+  --ink-faint:     var(--ink-faint-dark);
   --declared:      var(--declared-dark);
   --measured:      var(--measured-dark);
   --state-confirmed: var(--state-confirmed-dark);
   --state-dead:      var(--state-dead-dark);
   --state-missing:   var(--state-missing-dark);
   --state-unknown:   var(--state-unknown-dark);
-  --shadow: var(--shadow-dark);
+  --shadow:      var(--shadow-dark);
+  --quote-wash:  var(--quote-wash-dark);
+  --sunk-wash:   var(--sunk-wash-dark);
 }
 :root[data-theme="light"] {
   --bg:            var(--bg-light);
   --surface:       var(--surface-light);
   --surface-sunk:  var(--surface-sunk-light);
   --line:          var(--line-light);
+  --line-soft:     var(--line-soft-light);
   --ink:           var(--ink-light);
   --ink-muted:     var(--ink-muted-light);
+  --ink-faint:     var(--ink-faint-light);
   --declared:      var(--declared-light);
   --measured:      var(--measured-light);
   --state-confirmed: var(--state-confirmed-light);
   --state-dead:      var(--state-dead-light);
   --state-missing:   var(--state-missing-light);
   --state-unknown:   var(--state-unknown-light);
-  --shadow: var(--shadow-light);
+  --shadow:      var(--shadow-light);
+  --quote-wash:  var(--quote-wash-light);
+  --sunk-wash:   var(--sunk-wash-light);
 }
 
 /* ---------------------------------------------------------------------
@@ -144,66 +177,841 @@ body {
   -webkit-font-smoothing: antialiased;
 }
 
-h1, h2, h3, p { margin: 0; }
+h1, h2, h3, p, dl, dd, figure, blockquote { margin: 0; }
 
-button {
-  font: inherit;
-  color: inherit;
-}
+button { font: inherit; color: inherit; }
 
 :focus-visible {
   outline: 2px solid var(--declared);
   outline-offset: 2px;
 }
 
+@media (prefers-reduced-motion: reduce) {
+  * { transition: none !important; animation: none !important; }
+}
+
+
 /* ---------------------------------------------------------------------
-   Gerueststruktur -- nicht zentriert, der Inhalt fuellt die Breite.
+   Das Geruest einer Konsole: Kopfzeile, Seitenleiste, Inhalt,
+   Detailspalte, Statusleiste. Volle Fensterhoehe, jede Flaeche scrollt
+   fuer sich -- eine Enterprise-Konsole scrollt nicht als Ganzes weg.
+   Dichte statt Luft (Spec, Ebene 3): grosszuegige Weissraeume sind hier
+   verschenkter Bildschirm, kein Qualitaetsmerkmal.
    --------------------------------------------------------------------- */
 
-.shell {
-  padding: var(--space-5) var(--space-6) var(--space-6);
+html, body { height: 100%; }
+
+.app {
+  height: 100vh;
+  display: grid;
+  grid-template-rows: auto minmax(0, 1fr) auto;
+  background: var(--bg);
+}
+
+.topbar {
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-4);
+  flex-wrap: wrap;
+  padding: var(--space-2) var(--space-4);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.topbar__brand { display: flex; align-items: baseline; gap: var(--space-3); min-width: 0; }
+
+.topbar__mark {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  font-weight: 700;
+}
+
+.topbar__instance {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  overflow: hidden;
+  text-overflow: ellipsis;
+  white-space: nowrap;
+}
+
+.topbar__tools { display: flex; align-items: center; gap: var(--space-2); flex-wrap: wrap; }
+
+.search { display: flex; align-items: center; gap: var(--space-2); }
+.search__label { position: absolute; width: 1px; height: 1px; overflow: hidden; clip-path: inset(50%); }
+
+.search__input,
+.field__input {
+  font: inherit;
+  font-size: 0.82rem;
+  padding: 4px var(--space-2);
+  min-width: 150px;
+  color: var(--ink);
+  background: var(--surface-sunk);
+  border: 1px solid var(--line);
+  border-radius: var(--r-input);
+}
+
+.search__input { min-width: 230px; }
+
+.btn {
+  padding: 5px var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-input);
+  cursor: pointer;
+  font-size: 0.85rem;
+  transition: background var(--t-fast), border-color var(--t-fast);
+}
+
+.btn:hover { background: var(--surface-sunk); }
+.btn:disabled { opacity: 0.45; cursor: not-allowed; }
+
+/* Der einzige hervorgehobene Knopf der Seite -- in der Mess-Farbe, nicht
+   in einer Zustandsfarbe. Rot bleibt den Kanten vorbehalten. */
+.btn--primary { border-color: var(--measured); color: var(--measured); font-weight: 600; }
+
+.app__body {
+  display: grid;
+  grid-template-columns: 210px minmax(0, 1fr);
+  min-height: 0;
+}
+
+.app__body.has-detail { grid-template-columns: 210px minmax(0, 1fr) minmax(320px, 400px); }
+
+@media (max-width: 1100px) {
+  .app__body,
+  .app__body.has-detail { grid-template-columns: minmax(0, 1fr); }
+  .sidenav { flex-direction: row; overflow-x: auto; }
+}
+
+/* ---------------------------------------------------------------------
+   Seitenleiste -- immer da, zeigt immer, wo man ist. Kein Bereich wird
+   ueber einen Knopf im Fliesstext erreicht (Spec, Ebene 1).
+   --------------------------------------------------------------------- */
+
+.sidenav {
   display: flex;
   flex-direction: column;
-  gap: var(--space-4);
+  gap: 2px;
+  padding: var(--space-3) var(--space-2);
+  border-right: 1px solid var(--line);
+  background: var(--surface);
+  overflow-y: auto;
 }
 
-.shell__head {
-  display: flex;
+.sidenav__item {
+  display: grid;
+  grid-template-columns: minmax(0, 1fr) auto;
   align-items: baseline;
-  flex-wrap: wrap;
-  gap: var(--space-3);
-  padding-bottom: var(--space-3);
-  border-bottom: 1px solid var(--line);
+  gap: 0 var(--space-2);
+  text-align: left;
+  padding: var(--space-2) var(--space-3);
+  background: none;
+  border: 1px solid transparent;
+  border-radius: var(--r-input);
+  cursor: pointer;
 }
 
-.shell__title {
-  font-size: 1.5rem;
+.sidenav__item:hover { background: var(--surface-sunk); }
+
+.sidenav__item.is-active {
+  background: var(--surface-sunk);
+  border-color: var(--line);
+}
+
+.sidenav__name { font-size: 0.9rem; font-weight: 600; }
+
+.sidenav__hint {
+  grid-column: 1 / -1;
+  font-size: 0.72rem;
+  color: var(--ink-faint);
+  line-height: 1.35;
+}
+
+.sidenav__count {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+
+.sidenav__foot { margin-top: auto; padding: var(--space-3); }
+
+.sidenav__note { font-size: 0.68rem; color: var(--ink-faint); line-height: 1.4; }
+
+/* ---------------------------------------------------------------------
+   Inhaltsbereich
+   --------------------------------------------------------------------- */
+
+.view { overflow-y: auto; min-width: 0; }
+
+/* `display: flex` schlaegt die eingebaute [hidden]-Regel des Browsers --
+   ohne diese Zeile stehen ALLE fuenf Bereiche untereinander auf dem
+   Schirm, obwohl das hidden-Attribut gesetzt ist (live gesehen, erster
+   Durchgang der Konsole). */
+.pane[hidden] { display: none; }
+
+.pane { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-4); }
+
+.pane__head { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.pane__title {
+  font-size: 1.05rem;
   font-weight: 600;
   letter-spacing: -0.01em;
 }
 
-.shell__sub {
-  color: var(--ink-muted);
-  font-size: 0.95rem;
-  flex: 1 1 auto;
-  min-width: 240px;
+.pane__caption { color: var(--ink-muted); font-size: 0.85rem; max-width: 80ch; }
+
+.bench__problem {
+  font-size: clamp(1.35rem, 2.2vw, 1.85rem);
+  line-height: 1.2;
+  font-weight: 600;
+  letter-spacing: -0.015em;
+  max-width: 30ch;
+}
+
+.bench__problem-turn { display: block; color: var(--ink-muted); font-weight: 500; }
+
+.bench__lede { max-width: 74ch; color: var(--ink-muted); font-size: 0.95rem; }
+.bench__lede em { color: var(--ink); font-style: italic; }
+
+.bench__do { color: var(--ink-muted); font-size: 0.85rem; max-width: 80ch; }
+
+/* ---------------------------------------------------------------------
+   Kennzahlen -- jede Zahl MIT Nenner. Eine Kachelwand aus nackten Zahlen
+   ist ausdruecklich nicht gewollt (Spec, "Was NICHT gebaut wird").
+   --------------------------------------------------------------------- */
+
+.kpis {
+  border-top: 2px solid var(--ink);
+  border-bottom: 1px solid var(--line);
+  padding: var(--space-3) 0;
+}
+
+.kpis__row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: baseline;
+  gap: var(--space-2) var(--space-4);
+  font-size: clamp(1rem, 1.6vw, 1.3rem);
+  font-variant-numeric: tabular-nums;
+}
+
+.kpis__lead { font-weight: 600; }
+
+.kpis__seg { display: inline-flex; align-items: baseline; gap: var(--space-2); }
+
+.kpis__count { font-weight: 700; }
+
+.kpis__label { color: var(--ink-muted); font-size: 0.78em; }
+
+.kpis__denominator { color: var(--ink-faint); font-size: 0.7em; }
+
+.quality {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--space-3);
+}
+
+.quality__item {
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  padding: var(--space-3);
+}
+
+.quality__label {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.quality__value {
+  margin-top: 2px;
+  font-size: 1rem;
+  font-weight: 600;
+  font-variant-numeric: tabular-nums;
+}
+
+.quality__hint { margin-top: var(--space-1); font-size: 0.76rem; color: var(--ink-muted); }
+
+.warning {
+  display: flex;
+  align-items: baseline;
+  gap: var(--space-2);
+  border-left: 3px solid var(--state-unknown);
+  padding: var(--space-2) var(--space-3);
+  background: var(--sunk-wash);
+  font-size: 0.85rem;
 }
 
 /* ---------------------------------------------------------------------
-   Abzeichen -- neutral, keine Zustandsfarbe. Zustandsfarbe ist Kanten
-   vorbehalten, nicht dem Verbindungsmodus der Werkbank selbst.
+   Aktionen -- jeder Knopf sagt VORHER, was er schreibt (Spec: "Kein
+   Knopf, dessen Wirkung man erst nach dem Druecken erfaehrt").
    --------------------------------------------------------------------- */
 
+.controls { display: flex; flex-wrap: wrap; gap: var(--space-2); }
+
+.controls button {
+  display: flex;
+  flex-direction: column;
+  align-items: flex-start;
+  gap: 1px;
+  padding: var(--space-2) var(--space-3);
+  background: var(--surface);
+  border: 1px solid var(--line);
+  border-radius: var(--r-input);
+  cursor: pointer;
+  text-align: left;
+  transition: background var(--t-fast);
+}
+
+.controls button:hover { background: var(--surface-sunk); }
+.controls button:disabled { opacity: 0.45; cursor: not-allowed; }
+.controls button:disabled:hover { background: var(--surface); }
+
+.btn__name { font-size: 0.86rem; font-weight: 600; }
+.btn__writes { font-size: 0.7rem; color: var(--ink-faint); }
+
+.controls button[data-action="run-ledger"] .btn__name { color: var(--measured); }
+
+/* ---------------------------------------------------------------------
+   Legende
+   --------------------------------------------------------------------- */
+
+.legend {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(230px, 1fr));
+  gap: var(--space-2) var(--space-4);
+  padding-top: var(--space-2);
+  border-top: 1px solid var(--line-soft);
+}
+
+.legend__item { display: flex; align-items: baseline; gap: var(--space-2); font-size: 0.82rem; }
+.legend__item .chip { flex: 0 0 auto; }
+.legend__text { color: var(--ink-muted); }
+
+.legend__item--keystone {
+  background: var(--sunk-wash);
+  border-left: 3px solid var(--state-unknown);
+  padding: var(--space-2) var(--space-3);
+}
+
+.legend__item--keystone strong { color: var(--ink); }
+
+/* ---------------------------------------------------------------------
+   Zustands-Chip: FORM + Farbe + Wort. Die Form traegt das Signal, nicht
+   die Farbe -- vier unterscheidbare Silhouetten ueberstehen eine
+   komprimierte Videoaufnahme und einen farbfehlsichtigen Leser.
+   --------------------------------------------------------------------- */
+
+.chip {
+  display: inline-flex;
+  align-items: center;
+  gap: var(--space-2);
+  padding: 1px var(--space-2);
+  border-radius: var(--r-chip);
+  border: 1px solid var(--line);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  font-weight: 700;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  white-space: nowrap;
+}
+
+.chip::before {
+  content: "";
+  display: inline-block;
+  width: 9px;
+  height: 9px;
+  flex: 0 0 auto;
+  background: var(--shape-ink, var(--state-unknown));
+}
+
+.chip--confirmed { --shape-ink: var(--state-confirmed); color: var(--state-confirmed); }
+.chip--dead      { --shape-ink: var(--state-dead);      color: var(--state-dead); }
+.chip--missing   { --shape-ink: var(--state-missing);   color: var(--state-missing); }
+.chip--unknown   { --shape-ink: var(--state-unknown);   color: var(--state-unknown); }
+
+.chip--confirmed::before { border-radius: 50%; }
+.chip--dead::before      { clip-path: polygon(50% 100%, 0 8%, 100% 8%); }
+.chip--missing::before   { clip-path: polygon(50% 0, 100% 50%, 50% 100%, 0 50%); }
+.chip--unknown::before {
+  border-radius: 50%;
+  background: transparent;
+  box-shadow: inset 0 0 0 2px var(--state-unknown);
+}
+
+.chip--off { opacity: 0.4; }
+
+button.chip { cursor: pointer; }
+
+/* ---------------------------------------------------------------------
+   Filterzeile -- sichtbar, nicht in einem Menue versteckt (Spec).
+   --------------------------------------------------------------------- */
+
+.filters {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: var(--space-2) var(--space-3);
+  padding: var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+
+.filters__states { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+
+.field { display: flex; flex-direction: column; gap: 2px; }
+
+.field__label {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.field--check { flex-direction: row; align-items: center; gap: var(--space-2); font-size: 0.8rem; }
+
+.tablebar {
+  display: flex;
+  align-items: flex-end;
+  flex-wrap: wrap;
+  gap: var(--space-3);
+  justify-content: space-between;
+}
+
+.tablebar__count {
+  font-family: var(--font-mono);
+  font-size: 0.78rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+
+.tablebar__chips { display: flex; flex-wrap: wrap; gap: var(--space-1); }
+
+.tablebar__pager { display: flex; align-items: center; gap: var(--space-2); }
+
+.pager__label {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+
+/* ---------------------------------------------------------------------
+   Die Tabelle. Breiter Inhalt scrollt in seinem EIGENEN Behaelter, nie
+   die Seite.
+   --------------------------------------------------------------------- */
+
+.tablewrap {
+  overflow-x: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+
+.grid { width: 100%; border-collapse: collapse; font-size: 0.84rem; }
+
+.grid thead th {
+  position: sticky;
+  top: 0;
+  z-index: 1;
+  text-align: left;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  color: var(--ink-faint);
+  background: var(--surface-sunk);
+  border-bottom: 1px solid var(--line);
+  padding: var(--space-2) var(--space-3);
+  white-space: nowrap;
+}
+
+.grid tbody td {
+  padding: var(--space-2) var(--space-3);
+  border-bottom: 1px solid var(--line-soft);
+  vertical-align: top;
+}
+
+.grid tbody tr:last-child td { border-bottom: none; }
+
+.grid tbody tr.is-selectable { cursor: pointer; }
+.grid tbody tr.is-selectable:hover { background: var(--sunk-wash); }
+.grid tbody tr.is-selected { background: var(--sunk-wash); }
+
+/* Die Herkunft steht KLEIN UEBER dem Tabellennamen -- ein Name ohne
+   seinen Ort ist bei 5.594 Datensaetzen wertlos (Spec, Spalte Von/Nach,
+   und woertlich Joels Kritik). */
+.cellref { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+
+.cellref__where {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  white-space: nowrap;
+}
+
+.cellref__name {
+  font-family: var(--font-mono);
+  font-size: 0.84rem;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.numbers { font-variant-numeric: tabular-nums; font-family: var(--font-mono); font-size: 0.78rem; }
+
+/* Nicht gemessen ist ein WORT, keine leere Zelle und keine Null. */
+.notmeasured {
+  font-size: 0.76rem;
+  font-style: italic;
+  color: var(--ink-muted);
+}
+
+.judge-tag {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.06em;
+  text-transform: uppercase;
+  padding: 1px var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  white-space: nowrap;
+}
+
+.judge-tag--model { color: var(--declared); border-color: var(--declared); }
+.judge-tag--abstained { color: var(--ink-muted); }
+.judge-tag--none { color: var(--ink-faint); }
+
+/* ---------------------------------------------------------------------
+   Katalogbaum -- Navigation, keine Dekoration.
+   --------------------------------------------------------------------- */
+
+.tree { padding: var(--space-2) var(--space-3); font-size: 0.84rem; }
+
+.tree__group { margin-bottom: var(--space-3); }
+
+.tree__group-head {
+  font-family: var(--font-mono);
+  font-size: 0.72rem;
+  letter-spacing: 0.08em;
+  text-transform: uppercase;
+  color: var(--ink-muted);
+  padding: var(--space-1) 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.tree__leaf {
+  display: flex;
+  align-items: center;
+  gap: var(--space-2);
+  width: 100%;
+  padding: 3px var(--space-2) 3px var(--space-4);
+  background: none;
+  border: none;
+  border-left: 1px dashed var(--line);
+  text-align: left;
+  cursor: pointer;
+  font-family: var(--font-mono);
+  font-size: 0.8rem;
+}
+
+.tree__leaf:hover { background: var(--sunk-wash); }
+
+.tree__unchecked { color: var(--ink-faint); font-family: var(--font-ui); font-size: 0.7rem; }
+
+/* ---------------------------------------------------------------------
+   Detailspalte
+   --------------------------------------------------------------------- */
+
+.detail[hidden] { display: none; }
+
+.detail {
+  border-left: 1px solid var(--line);
+  background: var(--surface);
+  overflow-y: auto;
+  min-width: 0;
+}
+
+.detail__head {
+  position: sticky;
+  top: 0;
+  display: flex;
+  align-items: center;
+  justify-content: space-between;
+  gap: var(--space-2);
+  padding: var(--space-3);
+  border-bottom: 1px solid var(--line);
+  background: var(--surface);
+}
+
+.detail__title { font-size: 0.92rem; font-weight: 600; overflow-wrap: anywhere; }
+
+.detail__close {
+  background: none;
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  padding: 1px var(--space-2);
+  font-size: 0.72rem;
+  cursor: pointer;
+  color: var(--ink-muted);
+}
+
+.detail__body { padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-3); }
+
+.detail__sentence { font-size: 0.92rem; line-height: 1.5; }
+.detail__sentence strong { font-weight: 700; }
+
+.block__label {
+  font-family: var(--font-mono);
+  font-size: 0.64rem;
+  letter-spacing: 0.12em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+  margin-bottom: var(--space-1);
+}
+
+.block__label--declared { color: var(--declared); }
+.block__label--measured { color: var(--measured); }
+
+.block__text { font-size: 0.82rem; color: var(--ink-muted); }
+
+.block__urn {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  color: var(--ink-faint);
+  overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------------
+   Zeitverlauf (dataviz): EINE Serie, EINE Farbe, an der Grundlinie
+   verankert, 2px Luft zwischen den Marken. Die drei Faelle sind drei
+   GEOMETRIEN, nicht drei Farbtoene:
+     Verkehr        -> Balken, Hoehe proportional (Minimum 3px)
+     gemessene Null -> 2px Grundlinienstrich in gedaempfter Tinte
+     kein Fenster   -> gestrichelte leere Schiene plus Worte
+   Genau diese Unterscheidung IST das Produkt; sie darf nicht an einer
+   Farbnuance haengen.
+   --------------------------------------------------------------------- */
+
+.spark {
+  display: flex;
+  align-items: flex-end;
+  gap: 2px;
+  height: 46px;
+  padding-top: var(--space-1);
+  border-bottom: 1px solid var(--line);
+  overflow-x: auto;
+}
+
+.spark__bar { flex: 1 1 0; min-width: 3px; background: var(--measured); border-radius: 2px 2px 0 0; }
+
+.spark__bar--zero { background: var(--ink-faint); border-radius: 0; height: 2px; }
+
+.spark--empty {
+  height: 46px;
+  border: 1px dashed var(--line);
+  border-radius: var(--r-chip);
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  color: var(--ink-muted);
+}
+
+.bar--empty { font-size: 0.74rem; font-style: italic; padding: 0 var(--space-2); }
+
+.spark__axis {
+  display: flex;
+  justify-content: space-between;
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+  margin-top: var(--space-1);
+}
+
+.figures {
+  display: flex;
+  flex-wrap: wrap;
+  gap: var(--space-1) var(--space-3);
+  margin-top: var(--space-2);
+  font-family: var(--font-mono);
+  font-size: 0.74rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+
+.figures b { color: var(--ink); }
+
+/* ---------------------------------------------------------------------
+   Modellurteil -- der Kern der Einreichung. Ein Modell darf eine
+   Abweichung nur wichtig nennen, wenn es woertlich zitiert. Das Zitat
+   steht deshalb ALS Zitat, mit Zitatlinie und Quellfeld. Die Enthaltung
+   bekommt genauso viel Flaeche: die Enthaltungsquote ist ein Ergebnis,
+   kein Makel.
+   --------------------------------------------------------------------- */
+
+.judgement {
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  padding: var(--space-3);
+  background: var(--surface-sunk);
+}
+
+.judgement__head { display: flex; align-items: baseline; flex-wrap: wrap; gap: var(--space-2); margin-bottom: var(--space-2); }
+
+.judgement__badge {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  font-weight: 700;
+  padding: 1px var(--space-2);
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  background: var(--surface);
+}
+
+.judgement--cited .judgement__badge { color: var(--declared); border-color: var(--declared); }
+.judgement--abstained .judgement__badge { color: var(--ink-muted); }
+.judgement--pending .judgement__badge { color: var(--ink-muted); }
+
+.judgement__meta {
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-faint);
+}
+
+.judgement__quote {
+  border-left: 3px solid var(--declared);
+  background: var(--quote-wash);
+  padding: var(--space-2) var(--space-3);
+  font-size: 0.9rem;
+  line-height: 1.45;
+}
+
+.judgement__source { margin-top: var(--space-1); font-size: 0.74rem; color: var(--ink-muted); }
+.judgement__source code { font-family: var(--font-mono); color: var(--declared); }
+.judgement__reason { margin-top: var(--space-2); font-size: 0.82rem; color: var(--ink-muted); }
+.judgement__rule { margin-top: var(--space-2); font-size: 0.74rem; color: var(--ink-faint); }
+
+/* ---------------------------------------------------------------------
+   Belege-Bereich
+   --------------------------------------------------------------------- */
+
+.evidence-list { display: flex; flex-direction: column; gap: var(--space-2); }
+
+.evidence-item {
+  display: grid;
+  grid-template-columns: 110px minmax(0, 1fr);
+  gap: var(--space-3);
+  padding: var(--space-2) var(--space-3);
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+}
+
+.evidence-item__kind {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.evidence-item__text { font-size: 0.84rem; overflow-wrap: anywhere; }
+.evidence-item__detail { font-size: 0.74rem; color: var(--ink-muted); margin-top: 2px; }
+.evidence-item--quote .evidence-item__text { border-left: 3px solid var(--declared); padding-left: var(--space-2); }
+.evidence-item--gap .evidence-item__text { font-style: italic; color: var(--ink-muted); }
+
+/* ---------------------------------------------------------------------
+   Protokoll -- Wiederholungen werden GEZAEHLT, nicht wiederholt.
+   --------------------------------------------------------------------- */
+
+.logbox { display: flex; flex-direction: column; gap: var(--space-1); }
+
+.log {
+  font-family: var(--font-mono);
+  font-size: 0.76rem;
+  max-height: 240px;
+  overflow-y: auto;
+  border: 1px solid var(--line);
+  border-radius: var(--r-card);
+  background: var(--surface);
+  padding: var(--space-2) var(--space-3);
+}
+
+.log-entry {
+  display: grid;
+  grid-template-columns: auto minmax(0, 1fr);
+  gap: var(--space-2);
+  padding: 2px 0;
+  border-bottom: 1px solid var(--line-soft);
+}
+
+.log-entry:last-child { border-bottom: none; }
+.log-entry__time { color: var(--ink-faint); font-variant-numeric: tabular-nums; }
+.log-entry__text { color: var(--ink); overflow-wrap: anywhere; }
+.log-entry--model .log-entry__text { color: var(--declared); }
+
+.log-entry__repeat {
+  display: inline-block;
+  margin-left: var(--space-2);
+  padding: 0 var(--space-1);
+  border: 1px solid var(--line);
+  border-radius: var(--r-chip);
+  color: var(--ink-faint);
+  font-variant-numeric: tabular-nums;
+}
+
+/* ---------------------------------------------------------------------
+   Statusleiste
+   --------------------------------------------------------------------- */
+
+.statusbar {
+  display: flex;
+  align-items: center;
+  gap: var(--space-4);
+  padding: var(--space-1) var(--space-4);
+  border-top: 1px solid var(--line);
+  background: var(--surface);
+  font-family: var(--font-mono);
+  font-size: 0.7rem;
+  font-variant-numeric: tabular-nums;
+  color: var(--ink-muted);
+}
+
+.statusbar__item--right { margin-left: auto; color: var(--ink-faint); }
+
+.empty-state { color: var(--ink-muted); font-size: 0.86rem; padding: var(--space-3); max-width: 60ch; }
+
+/* Abzeichen (Modus, Uhr, Thema) -- neutral, nie in einer Zustandsfarbe. */
 .badge {
   display: inline-flex;
   align-items: center;
   gap: var(--space-2);
-  padding: var(--space-1) var(--space-3);
+  padding: 3px var(--space-3);
   border: 1px solid var(--line);
   border-radius: var(--r-chip);
   background: var(--surface-sunk);
   color: var(--ink-muted);
-  font-size: 0.8rem;
+  font-size: 0.74rem;
   white-space: nowrap;
 }
 
@@ -216,407 +1024,23 @@ button {
   background: currentColor;
 }
 
-/* Zeit-Versatz-Anzeige + Reset (Opus-Review-Nachtrag, IMPORTANT 5):
-   "Zeit vorspulen" akkumuliert unsichtbar fuer die Prozesslaufzeit --
-   dieser Regler sitzt neben dem Live/Aufzeichnung-Abzeichen, keine neue
-   Flaeche, kein neues Farb-Token. */
-.time-offset {
-  gap: var(--space-1);
-}
+.badge[data-mode="live"] { color: var(--ink); }
+
+.theme-toggle { cursor: pointer; }
+.theme-toggle::before { display: none; }
 
 .time-offset__reset {
-  font: inherit;
-  font-size: 0.75rem;
+  font-size: 0.7rem;
   color: inherit;
   background: none;
   border: 1px solid var(--line);
   border-radius: var(--r-chip);
-  padding: 0 var(--space-1);
+  padding: 0 var(--space-2);
   cursor: pointer;
 }
 
-.time-offset__reset:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
+.time-offset__reset:disabled { opacity: 0.45; cursor: not-allowed; }
 
-/* ---------------------------------------------------------------------
-   Abdeckungs-Banner -- steht UEBER den Ergebnissen, ist keine Fussnote.
-   --------------------------------------------------------------------- */
-
-.banner {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-3) var(--space-4);
-  background: var(--surface-sunk);
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
-  color: var(--ink);
-  font-size: 0.92rem;
-}
-
-.banner__chip {
-  flex: 0 0 auto;
-}
-
-.banner__text {
-  flex: 1 1 auto;
-}
-
-/* ---------------------------------------------------------------------
-   Bedienpult
-   --------------------------------------------------------------------- */
-
-.controls {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-2);
-}
-
-.controls button {
-  padding: var(--space-2) var(--space-3);
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-input);
-  cursor: pointer;
-  transition: background var(--t-fast), border-color var(--t-fast);
-}
-
-.controls button:hover {
-  background: var(--surface-sunk);
-}
-
-.controls button:disabled {
-  opacity: 0.5;
-  cursor: not-allowed;
-}
-
-.controls button:disabled:hover {
-  background: var(--surface);
-}
-
-.controls button[data-action="run-ledger"] {
-  border-color: var(--measured);
-  color: var(--measured);
-  font-weight: 600;
-}
-
-/* ---------------------------------------------------------------------
-   Zustands-Legende -- die Erklaerung sitzt an Ort und Stelle, nicht in
-   einem separaten Handbuch. Vier Zustaende, vier Saetze, immer sichtbar.
-   --------------------------------------------------------------------- */
-
-.legend {
-  display: flex;
-  flex-wrap: wrap;
-  gap: var(--space-4);
-  padding: var(--space-3) 0;
-}
-
-.legend__item {
-  display: flex;
-  align-items: baseline;
-  gap: var(--space-2);
-  max-width: 320px;
-  font-size: 0.85rem;
-}
-
-.legend__item .chip { flex: 0 0 auto; }
-
-.legend__item span:last-child {
-  color: var(--ink-muted);
-}
-
-/* ---------------------------------------------------------------------
-   Zustands-Chip -- farbiger Punkt + Text. Kein Akzentstreifen, das
-   Signal sitzt im Punkt, nicht am Rahmen der Karte.
-   --------------------------------------------------------------------- */
-
-.chip {
-  display: inline-flex;
-  align-items: center;
-  gap: var(--space-1);
-  padding: 2px var(--space-2);
-  border-radius: var(--r-chip);
-  border: 1px solid var(--line);
-  font-size: 0.8rem;
-  font-weight: 600;
-  white-space: nowrap;
-}
-
-.chip::before {
-  content: "";
-  display: inline-block;
-  width: 7px;
-  height: 7px;
-  border-radius: 50%;
-  background: var(--dot, var(--state-unknown));
-}
-
-.chip--confirmed { --dot: var(--state-confirmed); }
-.chip--dead      { --dot: var(--state-dead); }
-.chip--missing   { --dot: var(--state-missing); }
-.chip--unknown   { --dot: var(--state-unknown); }
-
-/* ---------------------------------------------------------------------
-   Die vier Bereiche -- zwei Spalten, zwei Zeilen, keine Zentrierung.
-   --------------------------------------------------------------------- */
-
-.grid {
-  display: grid;
-  grid-template-columns: minmax(0, 1fr) minmax(0, 1fr);
-  grid-template-rows: repeat(2, minmax(220px, auto));
-  gap: var(--space-4);
-}
-
-.pane {
-  display: flex;
-  flex-direction: column;
-  background: var(--surface);
-  border: 1px solid var(--line);
-  border-radius: var(--r-card);
-  box-shadow: 0 1px 2px var(--shadow);
-  overflow: hidden;
-}
-
-.pane__head {
-  display: flex;
-  align-items: baseline;
-  justify-content: space-between;
-  gap: var(--space-2);
-  padding: var(--space-3) var(--space-4);
-  border-bottom: 1px solid var(--line);
-}
-
-.pane__head h2 {
-  font-size: 0.85rem;
-  font-weight: 600;
-  text-transform: uppercase;
-  letter-spacing: 0.04em;
-}
-
-.pane__caption {
-  color: var(--ink-muted);
-  font-size: 0.78rem;
-}
-
-.pane__body {
-  flex: 1 1 auto;
-  padding: var(--space-4);
-  overflow-x: auto;
-  overflow-y: auto;
-}
-
-/* ---------------------------------------------------------------------
-   Leerzustand -- ehrlich statt erfunden. Steht so lange hier, bis
-   werkbank.js (Task 17) den Bereich fuellt.
-   --------------------------------------------------------------------- */
-
-.empty-state {
-  color: var(--ink-muted);
-  font-size: 0.9rem;
-  max-width: 46ch;
-}
-
-/* ---------------------------------------------------------------------
-   Deklarierter Baum -- Einrueckung ueber gedaempfte Leitlinien, kein
-   Icon-Set, kein Zusatzsystem.
-   --------------------------------------------------------------------- */
-
-.tree { font-family: var(--font-mono); font-size: 0.85rem; }
-
-.tree__node {
-  padding: var(--space-1) 0 var(--space-1) var(--space-3);
-  border-left: 1px dashed var(--line);
-}
-
-.tree__node[data-source="declared"] { color: var(--declared); }
-
-/* ---------------------------------------------------------------------
-   Gemessene Balken -- eine Farbe (Gemessen), Groesse traegt die Aussage.
-   Spur in surface-sunk, Fuellung in --measured, 4px gerundetes Ende,
-   an der Grundlinie verankert -- kein zweites Signal, keine zweite Farbe.
-   --------------------------------------------------------------------- */
-
-.bar-row {
-  display: grid;
-  grid-template-columns: minmax(120px, 1fr) minmax(80px, 2fr) auto;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-1) 0;
-  font-size: 0.85rem;
-}
-
-.bar-row__label {
-  font-family: var(--font-mono);
-  color: var(--ink);
-  /* Ohne diese drei Zeilen laesst ein langer Bezeichner ohne Leerzeichen
-     (lange Postgres-Tabellennamen) seinen Text ueber die Spuren-Spalte
-     hinweg auslaufen -- gemessen (scrollWidth > offsetWidth bei
-     white-space: normal, overflow-x: visible), sichtbar als Text, der in
-     den "no usage data"-Hinweis oder den Balken hineinlief. Sauber
-     abgeschnitten mit Ellipse statt optischer Kollision; der volle Name
-     bleibt im title-Attribut (Tooltip). */
-  overflow: hidden;
-  text-overflow: ellipsis;
-  white-space: nowrap;
-}
-
-.bar-track {
-  height: 8px;
-  background: var(--surface-sunk);
-  border-radius: var(--r-chip);
-  overflow: hidden;
-}
-
-.bar-track__fill {
-  height: 100%;
-  background: var(--measured);
-  border-radius: var(--r-chip);
-}
-
-.bar-row__value {
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-  color: var(--ink-muted);
-  text-align: right;
-}
-
-/* ---------------------------------------------------------------------
-   Kanten-Register -- die eigentliche Ledger-Zeile: Punkt, gerichteter
-   Schluessel, zwei Quell-Marken. Das ist die Karte, an der man diese
-   Werkbank wiedererkennt -- ein Pruefprotokoll, kein Kachel-Dashboard.
-   --------------------------------------------------------------------- */
-
-.ledger-row {
-  display: flex;
-  align-items: center;
-  gap: var(--space-3);
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--line);
-  font-family: var(--font-mono);
-  font-size: 0.82rem;
-}
-
-.ledger-row:last-child { border-bottom: none; }
-
-.ledger-row__key {
-  flex: 1 1 auto;
-  min-width: 0;
-  overflow-wrap: anywhere;
-  color: var(--ink);
-}
-
-.ledger-row__source {
-  flex: 0 0 auto;
-  font-size: 0.7rem;
-  padding: 1px var(--space-1);
-  border-radius: var(--r-chip);
-  border: 1px solid var(--line);
-}
-
-.ledger-row__source--declared { color: var(--declared); }
-.ledger-row__source--measured { color: var(--measured); }
-
-/* ---------------------------------------------------------------------
-   Live-Protokoll -- Zeitstempel in Tabellenziffern, Zeilen chronologisch.
-   --------------------------------------------------------------------- */
-
-.log { font-family: var(--font-mono); font-size: 0.82rem; }
-
-.log-entry {
-  display: flex;
-  gap: var(--space-3);
-  padding: var(--space-1) 0;
-}
-
-.log-entry__time {
-  flex: 0 0 auto;
-  color: var(--ink-muted);
-  font-variant-numeric: tabular-nums;
-}
-
-.log-entry__text { color: var(--ink); }
-
-/* ---------------------------------------------------------------------
-   Task 17 -- werkbank.js fuellt die Bereiche; diese Regeln geben den
-   Klassen, die dort entstehen, eine Form. Keine neuen Farb-Literale --
-   alles ueber die bestehenden Token aus dem :root-Block oben.
-   --------------------------------------------------------------------- */
-
-/* Mehrere Fokus-Baeume im Aufzeichnungsmodus (ein Baum pro geseedetem
-   Zustand) -- getrennt durch eine gestrichelte Linie, keine zweite Farbe. */
-.tree__group + .tree__group {
-  margin-top: var(--space-3);
-  padding-top: var(--space-3);
-  border-top: 1px dashed var(--line);
-}
-
-.tree__root {
-  font-weight: 600;
-  color: var(--ink);
-  padding: var(--space-1) 0;
-  overflow-wrap: anywhere;
-}
-
-.tree__node {
-  display: flex;
-  align-items: center;
-  gap: var(--space-2);
-  overflow-wrap: anywhere;
-}
-
-/* Gemessene Balken ohne Datenlage -- sichtbar LEER, nicht auf null gesetzt.
-   Gestrichelte, leere Spur statt eines 0%-Balkens: "nicht hingesehen" und
-   "nichts passiert" sehen sonst optisch identisch aus, obwohl es zwei
-   verschiedene Aussagen sind (Timeline-Docstring, probate/ledger.py). */
-.bar-row--no-data .bar-track {
-  height: auto;
-  min-height: 8px;
-  background: transparent;
-  border: 1px dashed var(--line);
-  overflow: visible;
-  display: flex;
-  align-items: center;
-}
-
-.bar--empty {
-  display: inline-block;
-  padding: 1px var(--space-2);
-  font-size: 0.72rem;
-  font-style: italic;
-  color: var(--ink-muted);
-}
-
-/* Kanten-Register -- eine Karte pro Kante: Kopfzeile (Chip + Schluessel +
-   Quell-Marken), darunter der erklaerende Satz und die Zeitachsen-Aussage.
-   Die Kopfzeile bleibt .ledger-row (Task 16); der Rahmen/Abstand wandert
-   auf die Karte, damit Erklaerung und Zeitachse nicht abgeschnitten werden. */
-.ledger-entry {
-  padding: var(--space-2) 0;
-  border-bottom: 1px solid var(--line);
-}
-
-.ledger-entry:last-child { border-bottom: none; }
-
-.ledger-entry .ledger-row {
-  padding: 0;
-  border-bottom: none;
-}
-
-.ledger-entry__help {
-  margin: var(--space-1) 0 0;
-  color: var(--ink-muted);
-  font-size: 0.82rem;
-  font-family: var(--font-ui);
-  max-width: 60ch;
-}
-
-.ledger-entry__timeline {
-  margin: 2px 0 0;
-  color: var(--ink-muted);
-  font-size: 0.78rem;
-  font-family: var(--font-mono);
-  font-variant-numeric: tabular-nums;
-}
+/* Verschobene Uhr ist ein LAUTER Zustand: jede spaetere Messung wird
+   gegen diese Sicht gerechnet. Kein Rot -- das gehoert den Zustaenden. */
+.time-offset[data-shifted="true"] { color: var(--declared); border-color: var(--declared); }

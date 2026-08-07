@@ -1,0 +1,97 @@
+{
+  "seeded": true,
+  "recording": true,
+  "recorded_at_iso": "2026-08-07T01:42:57Z",
+  "gms": "http://localhost:28080",
+  "source_artifact": "harness/runs/judge-seedlab-matrix.json",
+  "running": false,
+  "expected": 3,
+  "done": 3,
+  "calls": 3,
+  "seconds": 60.9,
+  "cost_usd": null,
+  "cost_note": "This recording predates cost metering (ui/judging.py). Durations are measured; dollar amounts were not recorded.",
+  "judgements": [
+    {
+      "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_downstream,PROD)",
+      "important": false,
+      "reason": "deterministischer Befund: dead",
+      "quote": "",
+      "source_field": "",
+      "used_model": false,
+      "fallback_reason": "kein Zitat geliefert",
+      "seconds": 17.84,
+      "cost_usd": null,
+      "transport_ok": true,
+      "transport_error": ""
+    },
+    {
+      "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)",
+      "important": true,
+      "reason": "The downstream dataset is a business-critical metric feeding executive reporting, so a missing lineage edge to it merits human verification despite weak co-occurrence evidence.",
+      "quote": "Grundlage fuer Marketing-Budgetentscheidungen sowie Teil des monatlichen Reportings an die Geschaeftsleitung",
+      "source_field": "description",
+      "used_model": true,
+      "fallback_reason": "",
+      "seconds": 19.94,
+      "cost_usd": null,
+      "transport_ok": true,
+      "transport_error": ""
+    },
+    {
+      "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_downstream,PROD)",
+      "important": true,
+      "reason": "The upstream is described as an intermediate table of a deduplication script while the downstream is a temporary staging table for a migration test, so a lineage link between two unrelated temporary/throwaway artifacts warrants human verification.",
+      "quote": "Zwischentabelle eines Deduplizierungs-Skripts, haelt das Zwischenergebnis eines internen Bereinigungsschritts.",
+      "source_field": "description",
+      "used_model": true,
+      "fallback_reason": "",
+      "seconds": 23.12,
+      "cost_usd": null,
+      "transport_ok": true,
+      "transport_error": ""
+    }
+  ],
+  "log": [
+    {
+      "t": 1786066977000,
+      "text": "observing 4 focus dataset(s) from the seed manifest",
+      "n": 4
+    },
+    {
+      "t": 1786066977900,
+      "text": "full check: 4 edge(s), 14 API calls",
+      "n": 4
+    },
+    {
+      "t": 1786066978020,
+      "text": "verdicts: 1 confirmed, 1 dead, 1 missing, 1 not judged",
+      "n": 4
+    },
+    {
+      "t": 1786066978100,
+      "text": "model queue: 3 deviating edge(s) \u2014 confirmed edges are never sent",
+      "n": 3
+    },
+    {
+      "t": 1786066995940,
+      "text": "model call dead_upstream -> dead_downstream: abstained \u2014 no verbatim quote survived the citation check \u2014 17.84s, cost not recorded in this run",
+      "n": null
+    },
+    {
+      "t": 1786067015880,
+      "text": "model call missing_upstream -> missing_downstream: cited a quote, judged important \u2014 19.94s, cost not recorded in this run",
+      "n": null
+    },
+    {
+      "t": 1786067039000,
+      "text": "model call unknown_upstream -> unknown_downstream: cited a quote, judged important \u2014 23.12s, cost not recorded in this run",
+      "n": null
+    },
+    {
+      "t": 1786067039050,
+      "text": "model run done: 3 call(s), 60.9s, cost not recorded in this run",
+      "n": 3
+    }
+  ]
+}

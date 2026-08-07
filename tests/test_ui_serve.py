@@ -140,7 +140,13 @@ class FakeGms:
         return 200, {"value": {"timeseriesRows": 3}}
 
     def graphql(self, q, v=None):
-        return {"dataset": {"lineage": {"relationships": []}},
+        # `entityExists` gehoert dazu, seit jede schreibende Aktion vorher
+        # prueft, ob das Ziel ueberhaupt existiert (gemessener Vorfall:
+        # 73 Journal-Zeilen fuer Datensaetze, die es nie gab). Ein Fake
+        # ohne dieses Feld liesse JEDEN Knopf verweigern -- und der Test
+        # unten prueft genau den umgekehrten Fall.
+        return {"entityExists": True,
+                "dataset": {"lineage": {"relationships": []}},
                 "searchAcrossEntities": {"total": 0, "searchResults": []}}
 
 
@@ -552,3 +558,124 @@ def test_reset_view_offset_zeroes_the_accumulator_and_writes_nothing():
     out2 = do_action("fast-forward", g, "urn:focus", lambda t, n=None: None)
     assert out2["now_ms_offset_days"] == 30
     assert g.upserted == [] and g.deleted == [], "reset darf wie fast-forward nichts schreiben"
+
+
+# --- Der Live-Modus deckt ALLE VIER Zustaende ab (07.08., Umbau) --------
+#
+# Vorher: `--focus` war EIN Dataset, der Vorgabewert der leere String. Ein
+# blosser Start beobachtete nichts, ein Start mit einem Fokus zeigte genau
+# EINE Kante. Ein Juror sah damit entweder vier Zustaende ohne Knoepfe
+# (Aufzeichnung) oder Knoepfe mit einer Kante (Live) -- beides ist keine
+# Demo.
+
+def test_no_table_name_is_ever_written_into_the_server_source():
+    """Waehrend dieser Aufgabe hat eine parallele Bahn die Seedlab-
+    Tabellen umbenannt und musste `DEMO_PARTNER` von Hand nachziehen.
+    Genau das darf nicht wieder passieren: die Namen kommen aus dem
+    Manifest, nicht aus dem Quelltext."""
+    source = Path("ui/serve.py").read_text(encoding="utf-8")
+    manifest = json.loads(Path("examples/seedlab-manifest.json").read_text(encoding="utf-8"))
+    names = {e[side].split(",")[1] for e in manifest["edges"]
+             for side in ("upstream_urn", "downstream_urn")}
+    # Kommentare duerfen einen Namen als BELEG nennen (der Umbenennungs-
+    # Vorfall ist dort dokumentiert) -- Code darf es nicht.
+    code = "\n".join(line for line in source.splitlines()
+                     if not line.lstrip().startswith("#"))
+    for name in names:
+        assert name not in code, f"{name} steht im Quelltext statt im Manifest"
+
+
+def test_the_four_focuses_come_from_the_manifest(tmp_path):
+    """`focuses` ist die Liste der vier Upstreams -- je einer pro Zustand,
+    in Manifest-Reihenfolge."""
+    manifest = tmp_path / "m.json"
+    manifest.write_text(json.dumps({
+        "namespace": "ns",
+        "seeded_statement": "seeded",
+        "edges": [
+            {"upstream_urn": "urn:up:c", "downstream_urn": "urn:down:c",
+             "expected_edge_state": "confirmed"},
+            {"upstream_urn": "urn:up:d", "downstream_urn": "urn:down:d",
+             "expected_edge_state": "dead"},
+            {"upstream_urn": "urn:up:m", "downstream_urn": "urn:down:m",
+             "expected_edge_state": "missing"},
+            {"upstream_urn": "urn:up:u", "downstream_urn": "urn:down:u",
+             "expected_edge_state": "unknown"},
+        ],
+    }), encoding="utf-8")
+    out = serve_module.load_manifest_targets(manifest)
+    assert out["focuses"] == ["urn:up:c", "urn:up:d", "urn:up:m", "urn:up:u"]
+    # Die Knoepfe schreiben auf die unknown-Quelle (noch keine Verbindung,
+    # keine eigene Nutzung) und auf das confirmed-Ziel (das einzige mit
+    # einer echten Nutzungs-Zeitreihe) -- sonst zeigt kein Knopf Wirkung.
+    assert out["demo_focus"] == "urn:up:u"
+    assert out["demo_partner"] == "urn:down:c"
+    assert out["seeded_statement"] == "seeded"
+
+
+def test_the_judgements_endpoint_is_routed_separately_from_the_ledger():
+    """Ein Modellaufruf dauerte live 17.8-23.1s, der deterministische
+    Befund unter einer Sekunde. Wer beides an eine Antwort haengt, laesst
+    den billigen, sicheren Befund auf den teuren warten."""
+    assert route("GET", "/api/judgements", {}) == ("judgements", {})
+    # Urteile werden gelesen, nie geschrieben -- ein POST hat hier keinen Weg.
+    with pytest.raises(KeyError):
+        route("POST", "/api/judgements", {})
+
+
+def test_the_judge_snapshot_never_reports_a_cost_it_did_not_measure():
+    snap = serve_module.judge_snapshot()
+    assert set(snap) >= {"running", "expected", "done", "calls", "seconds",
+                         "cost_usd", "judgements"}
+    assert isinstance(snap["judgements"], list)
+
+
+# --- Kein Journal-Eintrag fuer eine Mutation, die nie landen kann -------
+
+class _GhostGms(FakeGms):
+    """Ein Katalog, in dem die Ziel-URN NICHT existiert. `entityExists`
+    ist der einzige Unterschied zu `FakeGms` -- und live der einzige
+    verlaessliche Unterschied ueberhaupt: `dataset(urn:)` liefert auch
+    fuer eine frei erfundene URN einen Knoten (07.08. gegen 28080
+    gemessen, genau mit der URN aus dem Vorfall)."""
+
+    def graphql(self, q, v=None):
+        out = super().graphql(q, v)
+        out["entityExists"] = False
+        return out
+
+
+@pytest.mark.parametrize("action", ["add-edge", "seed-query", "remove-edge", "cut-warehouse"])
+def test_a_button_against_a_nonexistent_dataset_leaves_the_journal_byte_identical(
+        action, tmp_path, monkeypatch):
+    """Gemessener Vorfall (07.08.): `harness/runs/journal.jsonl` wuchs von
+    20 auf 93 Zeilen; die 73 neuen nannten `snowflake,analytics.
+    customers_v5` -- Datensaetze, die es im Katalog nicht gibt. Das
+    Journal behauptete also Mutationen, die nie stattgefunden haben, in
+    genau der Datei, die `probate revert` abspielt.
+
+    Derselbe Fehlertyp wie CRITICAL 1 oben, anderer Einstieg: dort schrieb
+    der TEST in die echte Datei, hier der SERVER Eintraege ohne Wirkung.
+    """
+    journal = tmp_path / "journal.jsonl"
+    journal.write_text('{"pre": "existing line"}' + chr(10), encoding="utf-8")
+    monkeypatch.setattr(serve_module, "JOURNAL_PATH", str(journal))
+    before = journal.read_bytes()
+
+    with pytest.raises(ValueError, match="existiert nicht im katalog"):
+        do_action(action, _GhostGms(), "urn:li:dataset:(urn:li:dataPlatform:x,a.b,PROD)",
+                  lambda *a, **kw: None)
+
+    assert journal.read_bytes() == before
+
+
+def test_the_view_only_buttons_need_no_target_and_still_write_nothing(tmp_path, monkeypatch):
+    """`fast-forward` und `run-ledger` veraendern den Katalog nicht -- sie
+    duerfen deshalb auch dann laufen, wenn gar kein Ziel existiert."""
+    journal = tmp_path / "journal.jsonl"
+    journal.write_text("", encoding="utf-8")
+    monkeypatch.setattr(serve_module, "JOURNAL_PATH", str(journal))
+    out = do_action("fast-forward", _GhostGms(), "urn:focus", lambda *a, **kw: None)
+    assert out["now_ms_offset_days"] > 0
+    assert journal.read_bytes() == b""
+    serve_module.reset_view_offset(lambda *a, **kw: None)
