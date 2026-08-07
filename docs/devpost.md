@@ -266,6 +266,24 @@ So the architecture may well do what it was designed to do. **This test cannot s
 flat number produced by a constant is not evidence. Demonstrating the saving needs usage data that
 DataHub itself aggregated, which this measurement never had.
 
+**The question the spec called decisive is answered with numbers.** A full reconciliation may take
+two hours, as long as the daily follow-up takes minutes — that is what decides whether this runs in
+a real company or only in a demo. Measured: on 50 datasets, a full run takes 5.765 s against
+0.077 s for the daily delta (**74.87×**, 91 API calls against 2). On 500 datasets, 23.567 s against
+1.377 s (**17.11×**, 541 calls against 20).
+
+**What "delta" means here has to travel with the ratio**, or the number has an unknown denominator.
+A full run queries `statsSummary` for every dataset and then runs the detail pass over its
+suspicious edges. The delta runs the same two passes over the **newest 2 %** of the plan list — an
+explicit *proxy* for "changed since the last marker", because our synthetic fixtures carry no real
+write-timestamp field to filter on. With no marker set, delta falls back to a full run and the tool
+reports **"not cheaper"** rather than manufacturing a speed-up.
+
+The ratio falls as the catalog grows, and that is the expected shape rather than a disappointment:
+the delta's cost is roughly fixed while the full run's scales with catalog size. The operationally
+relevant figure is not the ratio at all — it is the absolute **1.377 s** for a delta pass over a
+500-table catalog.
+
 **One result we cannot explain, kept as such.** Per-edge time in the detail pass rose **32.6 %**
 from S to M — 0.8686 s → 1.1516 s — on an *identical* 41-edge sample. We record it as an
 unexplained finding rather than calling it comparable. A plausible factor is that
@@ -346,9 +364,11 @@ can actually defend.
   rather than a to-do.
 - **A real warehouse connection.** The entire measurement chain has only ever run against a local
   instance and data we seeded ourselves.
-- **Full run vs. daily delta.** The spec asks how much cheaper an incremental run is than a full
-  reconciliation; that comparison is designed but **not measured**, and it is the number that
-  decides whether this is usable in a real company.
+- **A real change marker, to replace the 2 % proxy.** The full-vs-delta ratio is measured, but the
+  "changed since last run" set is approximated by the newest 2 % of the plan list, because our
+  fixtures have no write timestamp. Establishing what a real catalog's daily change set looks like,
+  and whether DataHub exposes a marker to select it reliably, is the work that turns that ratio
+  into an operational promise.
 - **Stage L to completion**, so the extrapolation can be replaced by a measurement.
 - **Two upstream contributions**, both side findings we did not build on:
   `DatasetPatchBuilder.remove_upstream_lineage()` exists with zero callers, not even a test; and
@@ -409,6 +429,15 @@ all-clear.
   worse — but the single most consequential number in the retirement flow is typed, not measured.
 - **Co-occurrence is undirected.** `QuerySubject` has no direction field, so a `missing` edge
   records its direction as **inferred**, not measured.
+- **The full-vs-delta speed-up is measured against a proxy, not real change detection.** The
+  "daily delta" is the newest 2 % of the plan list, standing in for "changed since the last marker".
+  The ratios are real measurements of that workload; that a real catalog changes 2 % a day is *not*
+  established.
+- **The GMS instance hung completely during that measurement** — over two hours of silent logs,
+  unresponsive, mid-run — and had to be restarted with volumes preserved before the run could be
+  finished. The published numbers come from the clean re-measurement after the restart; the
+  contaminated run's numbers are published nowhere. Anyone reproducing this on the same quickstart
+  stack may hit the same hang.
 - **The load test does not demonstrate the two-stage cost saving it was designed to measure.** Both
   runs flag 100 % of datasets as suspicious, because our fixtures never populate `statsSummary`.
   Demonstrated: the coarse pass scales linearly with catalog size, and the detail pass takes

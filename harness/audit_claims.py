@@ -53,7 +53,22 @@ RUN_FILES = (
     "correct-roundtrip.json",
     "watcher-live.json",
     "upstream-properties-probe.json",
+    "full-vs-delta.json",
 )
+# full-vs-delta.json (aufgenommen 2026-08-07): beantwortet die Frage, die
+# die Spezifikation selbst als entscheidend bezeichnet -- "ein Vollabgleich
+# darf zwei Stunden dauern, solange der taegliche Nachlauf Minuten braucht".
+# Aufgenommen erst NACH dem Neustart der haengenden GMS-Instanz und einer
+# sauberen Neumessung; die Zahlen des kontaminierten Laufs stehen nirgends.
+# Wichtig fuer jeden, der hier eine Zahl zitiert: 'change_fraction' (0.02)
+# gehoert zwingend neben jedes Verhaeltnis. Das Delta ist NICHT "was sich
+# wirklich geaendert hat", sondern die juengsten 2% der Plan-Liste als
+# ausdruecklicher Stellvertreter -- die synthetischen Fixtures tragen kein
+# echtes Schreib-Zeitstempel-Feld. Ein Verhaeltnis ohne diese Definition
+# ist keine Messung, sondern eine Zahl mit unbekanntem Nenner. Die
+# Definition selbst liegt als 'delta_definition' im Artefakt und ist als
+# Freitext bewusst NICHT in claims.json -- sie ist der Kontext einer
+# Behauptung, nicht die Behauptung.
 
 # Schluessel, die NIE gemerged werden, obwohl sie skalar sind: sie sind
 # Metadaten UEBER das einzelne Artefakt (eine Disclosure-Pflicht aus

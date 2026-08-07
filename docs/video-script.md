@@ -205,6 +205,32 @@ to M on an identical sample and is on the record as unexplained.)*
 
 ---
 
+### Optional insert · Full run vs. daily delta — only if the cut runs short
+
+**Decision: this is NOT in the base cut.** The measurement is strong — 74.87× at S, 17.11× at M,
+and a 1.377 s delta pass over a 500-table catalog (`full-vs-delta.json`, all audited keys). But the
+ratio is meaningless without its definition: the "daily delta" is the newest **2 %** of the plan
+list, a proxy for "changed since the last marker", because the fixtures carry no write timestamp.
+Saying the ratio without the proxy takes about eight seconds; saying it *with* the proxy takes
+closer to fifteen, and the cut has neither. **A spoken ratio without its definition would be worse
+than silence** — so the base cut stays silent and the README carries it.
+
+If a take comes in short and there are 12+ free seconds, use this and nothing shorter:
+
+**On screen [E]** `harness/runs/full-vs-delta.json`, or the README's full-vs-delta table.
+
+**Spoken**
+> One number decides whether this is usable daily: a full check of a five-hundred-table catalog
+> takes twenty-three seconds, the incremental pass one-point-four. That incremental set is the
+> newest two percent of the catalog, standing in for "changed since last run" — our seeded tables
+> have no write timestamp to filter on, and with no marker at all the tool runs the full check and
+> says so.
+
+**Forbidden shortening:** dropping the last sentence. Without it this becomes a benchmark with an
+undisclosed denominator, which is the exact failure the rest of the video is about.
+
+---
+
 ### 2:43 – 2:55 · Close
 
 **On screen [E]** Scroll the README to *Honest limitations*, let two or three bullets be readable.

@@ -257,6 +257,34 @@ Artifacts: [`loadtest_s.json`](harness/runs/loadtest_s.json),
 [`loadtest_m.json`](harness/runs/loadtest_m.json),
 [`loadtest_l.json`](harness/runs/loadtest_l.json).
 
+### Full run vs. daily delta
+
+The design spec calls this the question that decides whether the tool is usable in a real company
+or only in an example: a full reconciliation may take two hours, as long as the daily follow-up
+takes minutes. It is now measured, not argued
+([`full-vs-delta.json`](harness/runs/full-vs-delta.json)):
+
+| Scale | Full run | Daily delta | Speed-up | API calls, full → delta |
+|---|---|---|---|---|
+| S, 50 datasets | 5.765 s | 0.077 s | **74.87×** | 91 → 2 |
+| M, 500 datasets | 23.567 s | 1.377 s | **17.11×** | 541 → 20 |
+
+**What "delta" means here, because a ratio without its definition is a number with an unknown
+denominator.** A full run queries `statsSummary` for *every* dataset in the catalog and then runs
+the detail pass over its suspicious edges. The daily delta runs the same two passes over the
+**newest 2 %** of the plan list (`change_fraction`). That 2 % is an explicit **proxy** for "changed
+since the last marker": our synthetic fixtures carry no real write-timestamp field, so there is
+nothing to filter on honestly. When no marker is set at all, delta falls back to a full run and the
+tool reports **"not cheaper"** rather than manufacturing a speed-up.
+
+What dominates each side is not symmetrical, and it is worth saying: the full run is dominated by
+the coarse pass scaling with catalog size (500 calls at M against 50 at S). The delta run is
+dominated by nothing — the target set is too small to cost anything measurable.
+
+So the ratio falls as the catalog grows, 74.87× to 17.11×, which is the expected shape: the delta's
+cost is roughly fixed while the full run's grows. The number that matters for daily operation is
+not the ratio but the absolute one — **1.377 s** for a delta pass on a 500-table catalog.
+
 **Stage L did not finish seeding, and coarse/detail never started.** What actually happened, per
 the artifact's own binary search against `get_aspect` (not the seed loop's own counters, and
 deliberately not `search`, whose index lags ~30 s): the 5,000 datasets and their 5,000 lineage
@@ -362,6 +390,19 @@ by `audit_claims.py`, and they are the softest figures in this document:
   comparable time for a fixed-size sample regardless of catalog size. What is *not* demonstrated:
   that the number of suspicious edges stays flat as a real catalog grows — that would require usage
   data DataHub itself aggregated, which this test never had.
+- **The full-vs-delta speed-up is measured against a proxy, not against real change detection.**
+  The "daily delta" is the newest 2 % of the plan list (`change_fraction`), standing in for "changed
+  since the last marker", because our synthetic fixtures carry no write-timestamp field to filter
+  on. The ratios (74.87× at S, 17.11× at M) are real measurements of that proxy workload. What is
+  *not* established is that a real catalog's daily change set is 2 %, or that DataHub exposes a
+  reliable marker to select it — both are open. With no marker, the tool falls back to a full run
+  and reports "not cheaper".
+- **The GMS instance hung completely during this measurement.** Over two hours of silent logs and
+  an unresponsive server, mid-run. It had to be restarted (volumes preserved) before the run could
+  be completed. The published numbers are from the clean re-measurement *after* that restart; the
+  contaminated run's numbers appear nowhere. We are recording this because someone reproducing the
+  load test on the same quickstart stack may hit the same hang, and because "our benchmark
+  environment fell over" is exactly the kind of fact that quietly disappears from a submission.
 - **The detail pass got 32.6 % slower per edge from S to M on an identical 41-edge sample**
   (0.8686 s → 1.1516 s). This is recorded as an **unexplained finding**. A plausible factor is that
   `fetch_cooccurrence` queries against the instance's whole query corpus, ten times larger at M —

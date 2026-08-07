@@ -70,6 +70,18 @@
   "loadtest_l_cleanup_verified": true,
   "loadtest_l_cleanup_leftover": 0,
 
+  "change_fraction": 0.02,
+  "loadtest_s_full_seconds": 5.765,
+  "loadtest_s_delta_seconds": 0.077,
+  "loadtest_s_full_api_calls": 91,
+  "loadtest_s_delta_api_calls": 2,
+  "loadtest_s_full_vs_delta_speedup": 74.87,
+  "loadtest_m_full_seconds": 23.567,
+  "loadtest_m_delta_seconds": 1.377,
+  "loadtest_m_full_api_calls": 541,
+  "loadtest_m_delta_api_calls": 20,
+  "loadtest_m_full_vs_delta_speedup": 17.11,
+
   "loadtest_smoke_coarse_seconds": 1.189,
   "loadtest_smoke_coarse_api_calls": 50,
   "loadtest_smoke_coarse_peak_mb": 0.63,
