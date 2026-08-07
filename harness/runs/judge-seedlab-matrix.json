@@ -1,0 +1,108 @@
+{
+  "seeded": true,
+  "seeded_statement": "Alle vier Fokusse sind die kuenstlich eingespielten Seedlab-Datensaetze (harness/seed_lineage_lab.py), keine echte Warehouse-Nutzung.",
+  "run_at_iso": "2026-08-07T01:34:17Z",
+  "gms": "http://localhost:28080",
+  "judge_limit": 5,
+  "focuses": [
+    {
+      "expected_state_per_manifest": "confirmed",
+      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
+      "edges_total": 1,
+      "edges": [
+        {
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)",
+          "state": "confirmed"
+        }
+      ],
+      "judged_edges": 0,
+      "judged_with_model": 0,
+      "judged_fallback": 0,
+      "judge_seconds_total": 0.0,
+      "judgements": []
+    },
+    {
+      "expected_state_per_manifest": "dead",
+      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+      "edges_total": 1,
+      "edges": [
+        {
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_downstream,PROD)",
+          "state": "dead"
+        }
+      ],
+      "judged_edges": 1,
+      "judged_with_model": 0,
+      "judged_fallback": 1,
+      "judge_seconds_total": 27.38,
+      "judgements": [
+        {
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_downstream,PROD)",
+          "important": false,
+          "reason": "deterministischer Befund: dead",
+          "quote": "",
+          "source_field": "",
+          "used_model": false,
+          "fallback_reason": "Zitat zu kurz, kein Beleg"
+        }
+      ]
+    },
+    {
+      "expected_state_per_manifest": "missing",
+      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
+      "edges_total": 2,
+      "edges": [
+        {
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)",
+          "state": "confirmed"
+        },
+        {
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)",
+          "state": "missing"
+        }
+      ],
+      "judged_edges": 1,
+      "judged_with_model": 1,
+      "judged_fallback": 0,
+      "judge_seconds_total": 16.55,
+      "judgements": [
+        {
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)",
+          "important": false,
+          "reason": "co-occurrence-only evidence with no textual support tying checkout event logs to the CLV glossary metric, and the module is explicitly synthetic demo data",
+          "quote": "probate-seedlab -- synthetische Demonstrationsdaten",
+          "source_field": "description",
+          "used_model": true,
+          "fallback_reason": ""
+        }
+      ]
+    },
+    {
+      "expected_state_per_manifest": "unknown",
+      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)",
+      "edges_total": 1,
+      "edges": [
+        {
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_downstream,PROD)",
+          "state": "unknown"
+        }
+      ],
+      "judged_edges": 1,
+      "judged_with_model": 1,
+      "judged_fallback": 0,
+      "judge_seconds_total": 20.53,
+      "judgements": [
+        {
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_downstream,PROD)",
+          "important": true,
+          "reason": "Downstream table is described as temporary storage for an unrelated migration test, not as a consumer of the upstream deduplication script's output, so the declared lineage looks spurious",
+          "quote": "Temporaere Ablage eines Migrationstests, haelt dessen Zwischenstand.",
+          "source_field": "description",
+          "used_model": true,
+          "fallback_reason": ""
+        }
+      ]
+    }
+  ],
+  "any_edge_judged_with_model": true
+}
