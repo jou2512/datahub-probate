@@ -20,5 +20,29 @@
   "loadtest_s_cleanup_verified": true,
   "loadtest_s_cleanup_leftover": 0,
   "loadtest_s_cleanup_errors": [],
-  "loadtest_s_cleanup_broke": false
+  "loadtest_s_cleanup_broke": false,
+  "loadtest_s_coarse_suspicious": 50,
+  "loadtest_s_coarse_suspicious_note": "Review-Runde 1 (CRITICAL): run_stage() kappt die Detail-Stichprobe unbedingt auf detail_sample=41 (harness/loadtest.py, 'sample = (coarse.get(\"_suspicious\") or [])[:detail_sample]') -- das urspruengliche Artefakt zeigte deshalb nur loadtest_s_detail_edges=41, ohne dass ersichtlich war, ob 41 ein organischer Befund oder ein Kappungs-Artefakt ist. Dieses Feld traegt den UNGEKAPPTEN Vorab-Wert nach: 50 von 50 Datasets als verdaechtig markiert (100%) -- deckt sich exakt mit dem unabhaengigen Sondenlauf loadtest_smoke.json (loadtest_smoke_coarse_suspicious: 50 von 50, separat gegen dieselbe Skala S gemessen). Ursache: coarse_pass() markiert ein Dataset immer dann verdaechtig, wenn statsSummary.queryCountLast30Days falsy ist -- unsere synthetischen Fixtures werden per GMS-Upsert direkt geschrieben und durchlaufen DataHubs Usage-Aggregations-Pipeline nie, statsSummary bleibt darum fuer sie praktisch immer leer. Die Coarse-Triage triagiert auf synthetischen Daten folglich NICHTS -- 41 in loadtest_s_detail_edges war ein Kappungs-Artefakt der Stichprobengroesse, kein organischer Fund von 41 unter 50.",
+  "loadtest_s_coarse_recheck_seconds": 1.122,
+  "loadtest_s_coarse_recheck_api_calls": 50,
+  "loadtest_s_coarse_recheck_note": "Separater Nachtrags-Lauf (Seed->Coarse->Cleanup, kein Detail), einzig um coarse_suspicious ungekappt zu messen. loadtest_s_coarse_seconds/_api_calls/_response_chars/_peak_mb oben bleiben die ORIGINALEN Zahlen aus dem ersten Vollauf (S. README zitiert diese); die hier gemessene Wiederholung (1.122s) ist eine zweite, unabhaengige Coarse-Messung derselben Groessenordnung, separat gefuehrt statt die urspruengliche Zahl zu ueberschreiben.",
+  "loadtest_s_coarse_recheck_cleanup_verified": false,
+  "loadtest_s_coarse_recheck_cleanup_leftover": 0,
+  "loadtest_s_coarse_recheck_cleanup_errors": [
+    "delete_aspect query urn:li:query:probate_load-s-000304.querySubjects: delete_aspect query.querySubjects HTTP 500: {\"error\":\"Internal server error occurred\"}",
+    "delete_aspect query urn:li:query:probate_load-s-000382.querySubjects: delete_aspect query.querySubjects HTTP 500: {\"error\":\"Internal server error occurred\"}",
+    "delete_aspect query urn:li:query:probate_load-s-000511.querySubjects: delete_aspect query.querySubjects HTTP 500: {\"error\":\"Internal server error occurred\"}",
+    "delete_aspect query urn:li:query:probate_load-s-000536.querySubjects: delete_aspect query.querySubjects HTTP 500: {\"error\":\"Internal server error occurred\"}",
+    "delete_aspect query urn:li:query:probate_load-s-000727.querySubjects: delete_aspect query.querySubjects HTTP 500: {\"error\":\"Internal server error occurred\"}",
+    "delete_aspect query urn:li:query:probate_load-s-000796.querySubjects: delete_aspect query.querySubjects HTTP 500: {\"error\":\"Internal server error occurred\"}",
+    "delete_aspect query urn:li:query:probate_load-s-000909.querySubjects: delete_aspect query.querySubjects HTTP 500: {\"error\":\"Internal server error occurred\"}"
+  ],
+  "loadtest_s_coarse_recheck_cleanup_retry_1_leftover": 1100,
+  "loadtest_s_coarse_recheck_cleanup_retry_1_verified": false,
+  "loadtest_s_coarse_recheck_cleanup_retry_1_note": "Ein unmittelbarer manueller Retry-Aufruf von cleanup(g,'s') zeigte kurzzeitig 1100 Leftover, obwohl eine direkte Ruecklese unmittelbar DAVOR 0 ergeben hatte. Prozessliste (Win32_Process) zur selben Zeit bestaetigte ein FREMDES Skript (Pfad einer ANDEREN Session/Lane: .../9d0329bb-.../scratchpad/run_fvd_s.py, PID 185216, ebenfalls gegen den Namespace probate_load Skala s) parallel aktiv -- also ein Kollisions-Artefakt einer anderen, gleichzeitig laufenden Lane, kein Fehler dieses Laufs. Nach Abschluss jenes fremden Prozesses erneut geprueft (naechster Eintrag).",
+  "loadtest_s_coarse_recheck_cleanup_retry_2_leftover": 0,
+  "loadtest_s_coarse_recheck_cleanup_retry_2_verified": true,
+  "loadtest_s_coarse_recheck_cleanup_retry_2_errors": [],
+  "loadtest_s_final_state_verified": true,
+  "loadtest_s_final_state_note": "Nach Abklingen der fremden Kollision: unabhaengige volle Ruecklese (get_aspect, nie search) VOR und NACH einem erneuten cleanup()-Aufruf ergab je 0 -- probate_load Skala s ist nachweislich leer."
 }

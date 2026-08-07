@@ -17,6 +17,7 @@
   "loadtest_m_detail_seconds_per_edge": 1.1516,
   "loadtest_m_detail_peak_mb": 1.71,
   "loadtest_m_detail_broke": false,
+  "loadtest_m_detail_per_edge_growth_note": "loadtest_m_detail_seconds_per_edge (1.1516s) ist ~32.6% hoeher als loadtest_s_detail_seconds_per_edge (0.8686s) fuer dieselbe fest gedeckelte 41-Kanten-Stichprobe -- 'vergleichbar' waere hier beschoenigend. KEINE Gegenprobe gemacht, darum als Befund ohne belegte Ursache festgehalten, nicht als Erklaerung: fetch_cooccurrence(gms,urn) fragt Kandidaten-Kanten gegen den GESAMTEN Query-Bestand der Instanz ab, nicht nur gegen die 41 gezogene Stichprobe -- ein plausibler, aber unbewiesener Faktor ist der zehnfach groessere Query-Bestand bei M (10000 vs 1000) im Hintergrund jeder einzelnen Kanten-Abfrage. Ebenso plausibel und unbewiesen: allgemeine Instanzlast durch andere parallel laufende Lanes (mehrfach beobachtet, siehe *_coarse_recheck_*-Felder unten). Korrelation, keine belegte Kausalitaet.",
   "loadtest_m_cleanup_verified": false,
   "loadtest_m_cleanup_leftover": 0,
   "loadtest_m_cleanup_errors": [
@@ -30,5 +31,23 @@
   "loadtest_m_final_state_readback_before": 0,
   "loadtest_m_final_state_readback_after": 0,
   "loadtest_m_final_state_verified": true,
-  "loadtest_m_final_state_note": "Manuelle Nachpruefung, UNABHAENGIG vom automatisierten cleanup(): eine eigene volle Ruecklese ueber ALLE 500 Datasets (3 Aspekte je) + 10000 Queries via get_aspect (nie search, Index hinkt ~30s) ergab VOR und NACH einem erneuten cleanup()-Aufruf je 0 Treffer. Der erneute cleanup()-Aufruf selbst lief fehlerfrei (cleanup_retry_errors leer). Damit ist der reale Endzustand des Namespace probate_load fuer Skala m verifiziert leer -- der einzelne HTTP 500 war ein transienter GMS-Fehler auf einen ohnehin nie geschriebenen Aspekt, keine echte Dateninkonsistenz."
+  "loadtest_m_final_state_note": "Manuelle Nachpruefung, UNABHAENGIG vom automatisierten cleanup(): eine eigene volle Ruecklese ueber ALLE 500 Datasets (3 Aspekte je) + 10000 Queries via get_aspect (nie search, Index hinkt ~30s) ergab VOR und NACH einem erneuten cleanup()-Aufruf je 0 Treffer. Der erneute cleanup()-Aufruf selbst lief fehlerfrei (cleanup_retry_errors leer). Damit ist der reale Endzustand des Namespace probate_load fuer Skala m verifiziert leer -- der einzelne HTTP 500 war ein transienter GMS-Fehler auf einen ohnehin nie geschriebenen Aspekt, keine echte Dateninkonsistenz.",
+  "loadtest_m_coarse_suspicious": 500,
+  "loadtest_m_coarse_suspicious_note": "Review-Runde 1 (CRITICAL): run_stage() kappt die Detail-Stichprobe unbedingt auf detail_sample=41 -- loadtest_m_detail_edges=41 war deshalb nicht erkennbar organisch oder Kappungs-Artefakt. Dieses Feld traegt den UNGEKAPPTEN Vorab-Wert nach: 500 von 500 Datasets verdaechtig (100%), exakt dieselbe Rate wie bei Skala S (loadtest_s_coarse_suspicious: 50/50) und im unabhaengigen Sondenlauf (loadtest_smoke_coarse_suspicious: 50/50). Gleiche Ursache wie bei S: statsSummary.queryCountLast30Days bleibt fuer per GMS-Upsert geschriebene synthetische Fixtures praktisch immer leer, weil sie DataHubs Usage-Aggregations-Pipeline nie durchlaufen -- die Coarse-Triage triagiert auf synthetischen Daten nicht, sie markiert alles.",
+  "loadtest_m_coarse_recheck_seconds": 25.15,
+  "loadtest_m_coarse_recheck_api_calls": 500,
+  "loadtest_m_coarse_recheck_seconds_note": "loadtest_m_coarse_seconds oben (12.238s) bleibt die ORIGINALE Zahl aus dem ersten Vollauf (vom README zitiert). Diese zweite, unabhaengige Coarse-Messung im selben Nachtrags-Lauf (25.15s, mehr als doppelt so lang) faellt in dieselbe Zeitspanne, in der andere Lanes nachweislich parallel gegen dieselbe GMS-Instanz liefen (siehe cleanup_recheck_final_verification.context) -- ein plausibler, aber nicht durch Gegenprobe belegter Erklaerungsfaktor fuer die Abweichung. Bewusst NICHT ueber die Original-Zahl geschrieben, um beide Messungen ehrlich nebeneinander stehen zu lassen.",
+  "loadtest_m_coarse_recheck_seed_broke": false,
+  "loadtest_m_coarse_recheck_cleanup_verified": false,
+  "loadtest_m_coarse_recheck_cleanup_leftover": 0,
+  "loadtest_m_coarse_recheck_cleanup_errors": [],
+  "loadtest_m_coarse_recheck_note": "Nachtrags-Lauf, Review-Runde 1: separater Seed->Coarse->Cleanup-Zyklus (kein Detail-Pass), einzig um den UNGEKAPPTEN coarse_suspicious-Wert zu messen.",
+  "loadtest_m_coarse_recheck_cleanup_verified_note": "cleanup_verified/errors=[] bei gleichzeitig leftover=0 wirkt widerspruechlich (cleanup() selbst: verified = leftover==0 and not errors). Ursache: measure() liefert bei einer WERFENDEN Ausnahme result=None -> das aufrufende Skript fiel per .get(...,Default) auf verified=False/errors=[] zurueck, OHNE den echten Fehlertext zu drucken -- eine Luecke in diesem Nachtrags-Skript (harness/run_coarse_recheck.py), nicht in loadgen.cleanup() selbst. Nachtraeglich diagnostiziert: die tatsaechliche Ausnahme war `TimeoutError: timed out` in get_aspect (30s-Timeout, gms.py:122) waehrend der Ruecklese-Schleife -- dieselbe Fehlerklasse wie der bereits dokumentierte Seed-Timeout in Stufe M.",
+  "loadtest_m_coarse_recheck_final_verification": {
+    "context": "Zum Zeitpunkt der Nachpruefung war die GMS-Instanz ueber ~45 Minuten unter 'localhost:28080/health' nicht erreichbar (curl --max-time 15 -> http_000, wiederholt) -- eine PARALLELE, andere Lane fuehrte gleichzeitig ein eigenes Skript 'cleanup_m_retry.py' gegen dieselbe Skala m aus (Win32_Process bestaetigt, PID 187792, andere Session-ID). Erst nach Abklingen dieser gemeinsamen Last war eine zuverlaessige Pruefung moeglich.",
+    "before_leftover_full_readback": 0,
+    "cleanup_result": {"cleanup_leftover": 0, "cleanup_errors": [], "cleanup_verified": true},
+    "after_leftover_full_readback": 0,
+    "conclusion": "probate_load Skala m ist nach Abklingen der Fremd-Last nachweislich leer -- volle Ruecklese ueber alle 500 Datasets x 3 Aspekte + 10000 Queries per get_aspect (nie search), vor UND nach einem fehlerfreien cleanup()-Aufruf je 0."
+  }
 }

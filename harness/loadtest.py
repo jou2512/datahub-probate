@@ -196,6 +196,7 @@ def run_stage(gms, scale: str, detail_sample: int = 41) -> dict:
     out[f"loadtest_{scale}_coarse_peak_mb"] = m_coarse["peak_memory_mb"]
     out[f"loadtest_{scale}_coarse_api_calls"] = coarse.get("coarse_api_calls", 0)
     out[f"loadtest_{scale}_coarse_response_chars"] = coarse.get("coarse_response_chars", 0)
+    out[f"loadtest_{scale}_coarse_suspicious"] = len(coarse.get("_suspicious", []))
     out[f"loadtest_{scale}_coarse_broke"] = m_coarse["broke"]
     if m_coarse["broke"]:
         out[f"loadtest_{scale}_coarse_error"] = m_coarse["error"]

@@ -33,6 +33,7 @@
   "loadtest_s_coarse_seconds": 1.235,
   "loadtest_s_coarse_api_calls": 50,
   "loadtest_s_coarse_peak_mb": 0.38,
+  "loadtest_s_coarse_suspicious": 50,
   "loadtest_s_detail_edges": 41,
   "loadtest_s_detail_seconds_total": 35.614,
   "loadtest_s_detail_seconds_per_edge": 0.8686,
@@ -46,6 +47,7 @@
   "loadtest_m_coarse_seconds": 12.238,
   "loadtest_m_coarse_api_calls": 500,
   "loadtest_m_coarse_peak_mb": 3.58,
+  "loadtest_m_coarse_suspicious": 500,
   "loadtest_m_detail_edges": 41,
   "loadtest_m_detail_seconds_total": 47.217,
   "loadtest_m_detail_seconds_per_edge": 1.1516,
@@ -71,6 +73,7 @@
   "loadtest_smoke_coarse_seconds": 1.189,
   "loadtest_smoke_coarse_api_calls": 50,
   "loadtest_smoke_coarse_peak_mb": 0.63,
+  "loadtest_smoke_coarse_suspicious": 50,
 
   "loadtest_s_smoke_total_seconds": 107.05
 }
