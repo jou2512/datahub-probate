@@ -25,6 +25,25 @@ DEFAULT_GMS = "http://localhost:28080"
 
 CAMPAIGN_STATE = Path("harness/runs/campaign.json")
 
+# Dasselbe geteilte Journal, das 'apply'/'confirm' schon hardkodiert
+# benutzen -- als Konstante, nicht mehr an drei Stellen getippt, und jetzt
+# per --journal ueberschreibbar (Task 14: 'correct'/'revert'). Grund fuer
+# die Ueberschreibbarkeit, nicht nur Bequemlichkeit: das geteilte Journal
+# unter diesem Pfad war beim Bau dieser Aufgabe bereits mit >80 kaputten
+# Alt-Eintraegen verunreinigt (Wert "urn:focus" -- keine gueltige URN,
+# vermutlich aus einem Test, der versehentlich den STANDARD-Journalpfad
+# statt tmp_path traf), sodass 'probate revert' ohne --journal auf den
+# aeltesten Eintraegen mit HTTP 400 abbricht, BEVOR es zurueckmeldet. Das
+# ist ein Befund ausserhalb des Datei-Umfangs dieser Aufgabe (die
+# verursachende Datei ist nicht probate/cli.py), siehe task-14-report.md.
+# --journal laesst 'correct'/'revert' denselben Pfad wie bisher benutzen
+# (Vorgabe unveraendert, bestehendes Verhalten fuer 'apply'/'confirm'
+# bleibt exakt gleich), erlaubt aber einen ISOLIERTEN Rundlauf, der von
+# dieser Alt-Verunreinigung unberuehrt bleibt -- genau das Muster, das
+# harness/correct_roundtrip_probe.py auf der correct.py-Ebene schon nutzt
+# (eigener _correct_roundtrip_journal.jsonl-Pfad statt des geteilten).
+JOURNAL_PATH = "harness/runs/journal.jsonl"
+
 # Die drei Regeln, die probate selbst auswertet und als testResults auf den
 # Vorgaenger schreibt (Task 7 -- der Auswerter, den DataHub nicht hat).
 RULES = [
@@ -118,6 +137,8 @@ def main() -> int:
     r = sub.add_parser("revert", help="alle journalisierten Schreibvorgaenge zuruecknehmen")
     r.add_argument("--gms", default=DEFAULT_GMS)
     r.add_argument("--token", default=None, help="Personal Access Token; sonst DATAHUB_TOKEN aus der Umgebung")
+    r.add_argument("--journal", default=JOURNAL_PATH,
+                    help="Pfad zum Schreib-Journal -- muss zu 'correct --journal' passen, wenn dort gesetzt")
 
     lg = sub.add_parser("ledger", help="Kanten-Register: deklarierte Lineage gegen gemessene Nutzung")
     lg.add_argument("--focus", required=True, help="Dataset-URN, dessen Kanten geprueft werden")
@@ -133,6 +154,39 @@ def main() -> int:
                     help="Modell-Urteil ueber auffaellige Kanten (einziger Modellaufruf im Projekt)")
     lg.add_argument("--judge-limit", dest="judge_limit", type=int, default=20,
                     help="Obergrenze der Kanten, die dem Modell vorgelegt werden")
+
+    pr = sub.add_parser(
+        "propose",
+        help="Korrektur-Vorschlaege aus einem Kanten-Register bauen -- schreibt NICHTS in den Katalog",
+    )
+    pr.add_argument("--ledger", default="harness/runs/ledger.json",
+                     help="Pfad zu einem 'probate ledger'-Artefakt")
+    pr.add_argument("--out", default="harness/runs/proposals.json")
+
+    # Abweichung vom Brief (aktueller Code gewinnt -- Auftragsvorgabe): der
+    # Brief-Entwurf fuer diesen Unterbefehl schreibt IMMER
+    # `Writeback(gms, dry_run=False, ...)`, ohne jede Bestaetigung -- ein
+    # blosser Aufruf haette sofort geschrieben. Die Aufgabenstellung
+    # verlangt ausdruecklich "explicit confirmation required, dry_run=True
+    # must remain the default so a bare invocation cannot write" -- deshalb
+    # hier zusaetzlich --confirm, symmetrisch zu 'start --apply'.
+    co = sub.add_parser(
+        "correct",
+        help="EINEN bestaetigten Vorschlag anwenden -- Vorgabe ist Dry-Run, "
+             "schreibt ohne --confirm NICHTS",
+    )
+    co.add_argument("--edge", required=True, help="Kanten-Schluessel 'upstream->downstream'")
+    co.add_argument("--kind", required=True,
+                     choices=["add_edge", "mark_dead", "enrich_doc", "remove_edge"])
+    co.add_argument("--proposals", default="harness/runs/proposals.json",
+                     help="Artefakt aus 'probate propose' (nicht gebraucht bei --kind remove_edge)")
+    co.add_argument("--confirm", action="store_true",
+                     help="wirklich schreiben (Vorgabe: dry-run, es wird NICHTS geschrieben)")
+    co.add_argument("--gms", default=DEFAULT_GMS)
+    co.add_argument("--token", default=None, help="Personal Access Token; sonst DATAHUB_TOKEN aus der Umgebung")
+    co.add_argument("--journal", default=JOURNAL_PATH,
+                     help="Pfad zum Schreib-Journal, das 'revert' spaeter liest (Vorgabe: das geteilte "
+                          "Projekt-Journal, wie jeder andere Schreibweg in diesem Projekt)")
 
     args = p.parse_args()
 
@@ -157,7 +211,7 @@ def main() -> int:
 
     if args.cmd == "apply":
         gms = Gms(args.gms, token=args.token)
-        wb = Writeback(gms, dry_run=False, journal_path="harness/runs/journal.jsonl")
+        wb = Writeback(gms, dry_run=False, journal_path=JOURNAL_PATH)
         targets = classify(
             declared=fetch_declared(gms, args.predecessor),
             measured=fetch_measured(gms, args.predecessor),
@@ -267,7 +321,7 @@ def main() -> int:
             return 1
 
         gms = Gms(args.gms, token=args.token)
-        wb = Writeback(gms, dry_run=False, journal_path="harness/runs/journal.jsonl")
+        wb = Writeback(gms, dry_run=False, journal_path=JOURNAL_PATH)
         evidence = {"note": args.evidence}
         r = verify(wb, form_urn, args.entity, evidence)
         if not r.applied:
@@ -289,7 +343,8 @@ def main() -> int:
         return 0
 
     if args.cmd == "revert":
-        n = Writeback(Gms(args.gms, token=args.token), dry_run=False).revert_all()
+        n = Writeback(Gms(args.gms, token=args.token), dry_run=False,
+                       journal_path=args.journal).revert_all()
         print(f"{n} Schreibvorgaenge zurueckgenommen")
         return 0
 
@@ -326,5 +381,104 @@ def main() -> int:
                   f"{out['edges_unknown']} Kante(n) sind 'unknown', NICHT 'dead'.")
         return 0
 
+    if args.cmd == "propose":
+        from probate.correct import propose as build_proposals
+
+        ledger_path = Path(args.ledger)
+        if not ledger_path.exists():
+            print(f"Kein Kanten-Register unter {ledger_path} -- erst 'probate ledger --focus <urn>' laufen lassen.")
+            return 1
+        ledger = json.loads(ledger_path.read_text(encoding="utf-8"))
+        props = [p.to_json() for p in build_proposals(ledger)]
+
+        out = {
+            "seeded": ledger.get("seeded", False),
+            "ledger": str(ledger_path),
+            "focus": ledger.get("focus"),
+            "proposals": props,
+        }
+        Path(args.out).parent.mkdir(parents=True, exist_ok=True)
+        Path(args.out).write_text(json.dumps(out, indent=2, ensure_ascii=False), encoding="utf-8")
+
+        for p in props:
+            print(f"  [{p['kind']:<11}] {p['edge']}  (zustand: {p['state']})\n"
+                  f"      {p['human_summary']}\n"
+                  f"      beleg: {json.dumps(p['evidence'], ensure_ascii=False)}")
+        print(f"\n  {len(props)} Vorschlag/Vorschlaege aus {len(ledger.get('edges', []))} "
+              f"Kante(n) im Register ({args.ledger}), geschrieben nach {args.out}. "
+              "Keiner davon ist angewendet -- "
+              "'probate correct --edge <k> --kind <art> --confirm' pro Stueck, nach menschlicher Pruefung.")
+        return 0
+
+    if args.cmd == "correct":
+        import time
+
+        from probate.correct import Abstention, Proposal, apply_proposal, remove_edge
+
+        gms = Gms(args.gms, token=args.token)
+        # Vorgabe ist dry_run=True (kein --confirm) -- ein blosser Aufruf
+        # kann strukturell nichts schreiben, siehe Kommentar am Parser oben.
+        wb = Writeback(gms, dry_run=not args.confirm, journal_path=args.journal)
+        now_ms = int(time.time() * 1000)
+
+        if args.kind == "remove_edge":
+            try:
+                upstream, downstream = args.edge.split("->", 1)
+            except ValueError:
+                print(f"--edge muss die form 'upstream->downstream' haben: {args.edge!r}")
+                return 1
+            try:
+                r = remove_edge(wb, upstream, downstream, now_ms)
+            except ValueError as e:
+                print(f"ABGELEHNT: {e}")
+                return 1
+        else:
+            proposals_path = Path(args.proposals)
+            if not proposals_path.exists():
+                print(f"Keine Vorschlaege unter {proposals_path} -- erst 'probate propose' laufen lassen.")
+                return 1
+            data = json.loads(proposals_path.read_text(encoding="utf-8"))
+            match = [p for p in data["proposals"]
+                     if p["edge"] == args.edge and p["kind"] == args.kind]
+            if not match:
+                print(f"Kein Vorschlag {args.kind} fuer {args.edge} in {proposals_path}.")
+                return 1
+            pj = match[0]
+            proposal = Proposal(pj["kind"], pj["edge"], pj["target_urn"], pj["aspect"],
+                                 pj["evidence"], pj["state"], pj["human_summary"])
+            try:
+                r = apply_proposal(wb, proposal, now_ms=now_ms)
+            except ValueError as e:
+                print(f"ABGELEHNT: {e}")
+                return 1
+
+        # Drei ununterscheidbare Ausgaenge, drei unterschiedliche Meldungen
+        # und Rueckgabewerte -- eine Enthaltung ist weder Fehler noch
+        # Erfolg (Auftragsvorgabe: "Abstentions are reported as
+        # abstentions, not as errors or as successes").
+        if isinstance(r, Abstention):
+            print(f"ENTHALTUNG [{r.kind}] {r.edge_key}: {r.reason}")
+            return 3
+        if not r.applied:
+            print(f"DRY-RUN (nichts geschrieben): {r.detail}\n"
+                  f"  Zum wirklichen Schreiben: 'probate correct --edge \"{args.edge}\" "
+                  f"--kind {args.kind} --confirm'")
+            return 1
+        print(f"GESCHRIEBEN: {r.detail}")
+        return 0
+
     print(CAMPAIGN_STATE.read_text(encoding="utf-8"))
     return 0
+
+
+if __name__ == "__main__":
+    # Bislang fehlte dieser Guard komplett -- `python -m probate.cli`
+    # importierte das Modul und tat sonst nichts (live geprueft, 07.08.:
+    # kein Fehler, keine Ausgabe, Exit 0). Der einzige funktionierende Weg
+    # war der `probate`-Entry-Point aus pyproject.toml
+    # (`probate = "probate.cli:main"`). Der Guard macht `python -m
+    # probate.cli` zu dem, was ein Aufrufer erwartet -- kostet nichts,
+    # aendert am Entry-Point-Pfad nichts.
+    import sys
+
+    sys.exit(main())

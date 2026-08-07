@@ -1,0 +1,137 @@
+{
+  "seeded": true,
+  "seeded_statement": "Laeuft gegen den geseedeten Beispielkatalog (namespace probate_seedlab, harness/seed_lineage_lab.py) -- jeder Schritt ruft probate.cli.main() wie ein echter Terminal-Aufruf ('uv run --python 3.11 probate <befehl>'), kein Test-Double und kein Direktimport von correct.py.",
+  "gms_url": "http://localhost:28080",
+  "manifest": "examples\\seedlab-manifest.json",
+  "generated_at": "2026-08-07T02:28:58.415806+00:00",
+  "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
+  "target": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)",
+  "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)",
+  "journal_note": "Laeuft ueber 'correct --journal' / 'revert --journal' mit einem ISOLIERTEN Journal-Pfad, nicht dem geteilten Vorgabe-Pfad harness/runs/journal.jsonl -- der war zum Zeitpunkt dieses Laufs mit >80 kaputten Alt-Eintraegen ('urn:focus', keine gueltige URN) verunreinigt und liess 'probate revert' ohne --journal live mit HTTP 400 abbrechen. Befund ausserhalb des Datei-Umfangs von Task 14, siehe task-14-report.md. Die 'correct'/'revert'-Handler selbst sind dieselben, die auch ohne --journal laufen (Vorgabewert unveraendert).",
+  "commands": [
+    {
+      "argv": [
+        "ledger",
+        "--focus",
+        "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
+        "--out",
+        "harness\\runs\\_cli_roundtrip_ledger_before.json"
+      ],
+      "returncode": 0,
+      "output": "{\n  \"focus\": \"urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)\",\n  \"gms\": \"http://localhost:28080\",\n  \"seeded\": true,\n  \"generated_at_ms\": 1786069737774,\n  \"edges_total\": 1,\n  \"edges_confirmed\": 0,\n  \"edges_dead\": 0,\n  \"edges_missing\": 1,\n  \"edges_unknown\": 0,\n  \"coverage_buckets_seen\": 3,\n  \"coverage_days_span\": 2,\n  \"coverage_thin\": true,\n  \"api_calls\": 4,\n  \"queries_seen\": 1\n}\n\n  ACHTUNG duenne Abdeckung: 3 Zeitfenster insgesamt. 0 Kante(n) sind 'unknown', NICHT 'dead'."
+    },
+    {
+      "argv": [
+        "propose",
+        "--ledger",
+        "harness\\runs\\_cli_roundtrip_ledger_before.json",
+        "--out",
+        "harness\\runs\\_cli_roundtrip_proposals.json"
+      ],
+      "returncode": 0,
+      "output": "[add_edge   ] urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)  (zustand: missing)\n      Kante urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD) in 1 Abfrage(n) beobachtet, aber nicht deklariert. Beleg: urn:li:query:probate-seedlab-missing. Richtung ist ungerichtet aus Ko-Okkurrenz erschlossen, nicht gemessen.\n      beleg: {\"query_urns\": [\"urn:li:query:probate-seedlab-missing\"], \"cooccurrence_count\": 1, \"direction_evidence\": \"co-occurrence (undirected)\"}\n\n  1 Vorschlag/Vorschlaege aus 1 Kante(n) im Register (harness\\runs\\_cli_roundtrip_ledger_before.json), geschrieben nach harness\\runs\\_cli_roundtrip_proposals.json. Keiner davon ist angewendet -- 'probate correct --edge <k> --kind <art> --confirm' pro Stueck, nach menschlicher Pruefung."
+    },
+    {
+      "argv": [
+        "correct",
+        "--edge",
+        "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)",
+        "--kind",
+        "add_edge",
+        "--proposals",
+        "harness\\runs\\_cli_roundtrip_proposals.json",
+        "--confirm",
+        "--journal",
+        "harness\\runs\\_cli_roundtrip_journal.jsonl"
+      ],
+      "returncode": 0,
+      "output": "GESCHRIEBEN: upstreamLineage auf urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD) geschrieben"
+    },
+    {
+      "argv": [
+        "ledger",
+        "--focus",
+        "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
+        "--out",
+        "harness\\runs\\_cli_roundtrip_ledger_after_write.json"
+      ],
+      "returncode": 0,
+      "output": "{\n  \"focus\": \"urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)\",\n  \"gms\": \"http://localhost:28080\",\n  \"seeded\": true,\n  \"generated_at_ms\": 1786069737975,\n  \"edges_total\": 1,\n  \"edges_confirmed\": 0,\n  \"edges_dead\": 0,\n  \"edges_missing\": 1,\n  \"edges_unknown\": 0,\n  \"coverage_buckets_seen\": 3,\n  \"coverage_days_span\": 2,\n  \"coverage_thin\": true,\n  \"api_calls\": 4,\n  \"queries_seen\": 1\n}\n\n  ACHTUNG duenne Abdeckung: 3 Zeitfenster insgesamt. 0 Kante(n) sind 'unknown', NICHT 'dead'."
+    },
+    {
+      "argv": [
+        "revert",
+        "--journal",
+        "harness\\runs\\_cli_roundtrip_journal.jsonl"
+      ],
+      "returncode": 0,
+      "output": "1 Schreibvorgaenge zurueckgenommen"
+    },
+    {
+      "argv": [
+        "ledger",
+        "--focus",
+        "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
+        "--out",
+        "harness\\runs\\_cli_roundtrip_ledger_after_revert.json"
+      ],
+      "returncode": 0,
+      "output": "{\n  \"focus\": \"urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)\",\n  \"gms\": \"http://localhost:28080\",\n  \"seeded\": true,\n  \"generated_at_ms\": 1786069738197,\n  \"edges_total\": 1,\n  \"edges_confirmed\": 0,\n  \"edges_dead\": 0,\n  \"edges_missing\": 1,\n  \"edges_unknown\": 0,\n  \"coverage_buckets_seen\": 3,\n  \"coverage_days_span\": 2,\n  \"coverage_thin\": true,\n  \"api_calls\": 4,\n  \"queries_seen\": 1\n}\n\n  ACHTUNG duenne Abdeckung: 3 Zeitfenster insgesamt. 0 Kante(n) sind 'unknown', NICHT 'dead'."
+    }
+  ],
+  "roundtrip_states_before": {
+    "edge_state": "missing",
+    "edges_total": 1,
+    "edges_confirmed": 0,
+    "edges_dead": 0,
+    "edges_missing": 1,
+    "edges_unknown": 0
+  },
+  "roundtrip_states_after_write": {
+    "edge_state": "missing",
+    "edges_total": 1,
+    "edges_confirmed": 0,
+    "edges_dead": 0,
+    "edges_missing": 1,
+    "edges_unknown": 0
+  },
+  "roundtrip_states_after_revert": {
+    "edge_state": "missing",
+    "edges_total": 1,
+    "edges_confirmed": 0,
+    "edges_dead": 0,
+    "edges_missing": 1,
+    "edges_unknown": 0
+  },
+  "roundtrip_reverted_writes": 1,
+  "add_edge_visible_in_raw_aspect_after_write": true,
+  "true_original_aspect": {
+    "value": {
+      "upstreams": []
+    }
+  },
+  "after_write_aspect": {
+    "value": {
+      "upstreams": [
+        {
+          "auditStamp": {
+            "actor": "urn:li:corpuser:__datahub_system",
+            "time": 1786069737881
+          },
+          "type": "TRANSFORMED",
+          "dataset": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
+          "properties": {
+            "probate.evidence": "urn:li:query:probate-seedlab-missing",
+            "probate.direction": "co-occurrence (undirected)"
+          }
+        }
+      ]
+    }
+  },
+  "after_revert_aspect": {
+    "value": {
+      "upstreams": []
+    }
+  },
+  "restored_exactly": true
+}
