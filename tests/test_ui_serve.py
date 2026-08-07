@@ -212,6 +212,42 @@ def test_seed_query_writes_through_writeback_so_revert_can_see_it(tmp_path):
     assert g.upserted, "wb.aspect() muss tatsaechlich ueber gms.upsert geschrieben haben"
 
 
+def test_seed_query_actually_reverts_end_to_end_not_just_structurally(tmp_path):
+    """Opus-Review-Nachtrag (Re-Review): der Test oben beweist nur die
+    FORM des Journals (zwei Zeilen, before=null) -- das zeigt, dass
+    revert_all() strukturell funktionieren WUERDE, nicht dass er es TUT.
+    Dieser Test fuehrt den Rundlauf tatsaechlich aus: Knopf -> Journal ->
+    frisches Writeback auf DEMSELBEN Journal -> revert_all() -> die
+    Entitaet ist wirklich weg (g.deleted), nichts sonst wurde angefasst.
+    Das macht aus der strukturellen Behauptung einen mechanischen Beweis
+    -- derselbe Massstab, an dem dieses Projekt jede andere Zahl misst."""
+    from probate.writeback import Writeback
+
+    g = FakeGms()
+    out = do_action("seed-query", g, "urn:focus", lambda t, n=None: None)
+    query_urn = None  # aus dem journal gelesen, nicht erraten/neu berechnet
+
+    journal = tmp_path / "journal.jsonl"
+    lines = journal.read_text(encoding="utf-8").splitlines()
+    entries = [json.loads(line) for line in lines]
+    query_urns = {e["urn"] for e in entries}
+    assert len(query_urns) == 1, "beide journal-zeilen muessen dieselbe query-urn tragen"
+    query_urn = query_urns.pop()
+
+    # Frisches Writeback auf DEMSELBEN Journal-Pfad -- genau das, was
+    # `probate revert` tut: eine neue Writeback-Instanz liest die
+    # bestehende Journal-Datei, nicht denselben Python-Objektzustand.
+    wb2 = Writeback(g, dry_run=False, journal_path=str(journal))
+    reverted = wb2.revert_all()
+
+    assert reverted == 2, f"revert_all() muss beide aspekt-schreibvorgaenge zaehlen, zaehlte {reverted}"
+    assert set(g.deleted) == {
+        ("query", query_urn, "queryProperties"),
+        ("query", query_urn, "querySubjects"),
+    }, "revert_all() muss GENAU diese zwei aspekte loeschen, nichts mehr und nichts weniger"
+    assert g.deleted != [], "die entitaet ist erst 'weg', wenn delete_aspect tatsaechlich aufgerufen wurde"
+
+
 # --- Opus-Review-Nachtrag waehrend Task 19: remove-edge darf keine nie
 # gemessene "keine upstreams"-Behauptung schreiben (dieselbe Fehlerklasse
 # wie der behobene mark_dead-Fund in probate/correct.py) -------------------
@@ -301,7 +337,17 @@ def _raw_http_request(port, method, path, headers=None, body=b"", timeout=5):
     lines.append("Connection: close")
     head = ("\r\n".join(lines) + "\r\n\r\n").encode()
     with socket.create_connection(("127.0.0.1", port), timeout=timeout) as s:
-        s.sendall(head + body)
+        try:
+            s.sendall(head + body)
+        except (ConnectionAbortedError, ConnectionResetError):
+            # Verifizierter Windows-TCP-Rennen (Reviewer, kein Regressions-
+            # befund, git show a497c3c bestaetigt byte-identisch): bei
+            # grossem body kann der server seine 400-antwort senden und
+            # den socket schliessen, WAEHREND der client noch sendet --
+            # ein RST auf der sendeseite. die antwort selbst steht trotzdem
+            # schon im empfangspuffer; der folgende recv()-block liest sie
+            # unveraendert, die assertion unten bleibt exakt dieselbe.
+            pass
         s.settimeout(timeout)
         data = b""
         try:
