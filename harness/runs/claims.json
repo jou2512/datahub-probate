@@ -23,7 +23,7 @@
   "properties_survived": true,
 
   "watcher_started": true,
-  "watcher_events_seen": 10,
+  "watcher_events_seen": 80,
   "watcher_relapses_detected": 1,
   "watcher_reclassified_edges": 0,
 
