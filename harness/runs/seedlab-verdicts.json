@@ -3,19 +3,19 @@
   "seeded_statement": "Laeuft gegen den geseedeten Beispielkatalog (namespace probate_seedlab, harness/seed_lineage_lab.py) -- keine echte Warehouse-Nutzung.",
   "gms_url": "http://localhost:28080",
   "manifest": "examples\\seedlab-manifest.json",
-  "generated_at": "2026-08-07T08:43:18.423661+00:00",
-  "now_ms": 1786092198423,
+  "generated_at": "2026-08-07T12:00:31.688352+00:00",
+  "now_ms": 1786104031688,
   "all_four_states_matched_expected": true,
   "pairs": {
     "confirmed": {
-      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
-      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)",
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.gl_journal_entries_daily,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.finance_income_statement_consolidated,PROD)",
       "expected_state": "confirmed",
       "state": "confirmed",
       "matches_expected": true,
       "evidence": {
         "query_urns": [
-          "urn:li:query:probate-seedlab-confirmed"
+          "urn:li:query:probate-seedlab-gl-consolidation"
         ],
         "source": "declared lineage + query co-occurrence"
       },
@@ -27,8 +27,8 @@
         "newest_bucket_ms": 1786060800000,
         "days_span": 2,
         "reason": "",
-        "window_start_ms": 1783327398505,
-        "window_end_ms": 1786178598505,
+        "window_start_ms": 1783339231790,
+        "window_end_ms": 1786190431790,
         "window_days": 33
       },
       "timeline": {
@@ -52,8 +52,8 @@
       }
     },
     "dead": {
-      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
-      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_downstream,PROD)",
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_revenue_weekly_east,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_sales_ranking_east,PROD)",
       "expected_state": "dead",
       "state": "dead",
       "matches_expected": true,
@@ -61,8 +61,8 @@
         "reason": "im geprueften Fenster nie gemessen",
         "buckets_checked": 4,
         "window_days": 33,
-        "window_start_ms": 1783327398595,
-        "window_end_ms": 1786178598595,
+        "window_start_ms": 1783339231871,
+        "window_end_ms": 1786190431871,
         "source": "declared lineage"
       },
       "queries_seen": 0,
@@ -73,8 +73,8 @@
         "newest_bucket_ms": 1786060800000,
         "days_span": 30,
         "reason": "",
-        "window_start_ms": 1783327398595,
-        "window_end_ms": 1786178598595,
+        "window_start_ms": 1783339231871,
+        "window_end_ms": 1786190431871,
         "window_days": 33
       },
       "timeline": {
@@ -102,14 +102,14 @@
       }
     },
     "missing": {
-      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
-      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)",
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.checkout_events_raw,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_lifetime_value_by_segment,PROD)",
       "expected_state": "missing",
       "state": "missing",
       "matches_expected": true,
       "evidence": {
         "query_urns": [
-          "urn:li:query:probate-seedlab-missing"
+          "urn:li:query:probate-seedlab-clv-build"
         ],
         "cooccurrence_count": 1,
         "direction_evidence": "co-occurrence (undirected)",
@@ -123,8 +123,8 @@
         "newest_bucket_ms": 1786060800000,
         "days_span": 2,
         "reason": "",
-        "window_start_ms": 1783327398680,
-        "window_end_ms": 1786178598680,
+        "window_start_ms": 1783339231979,
+        "window_end_ms": 1786190431979,
         "window_days": 33
       },
       "timeline": {
@@ -148,8 +148,8 @@
       }
     },
     "unknown": {
-      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)",
-      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_downstream,PROD)",
+      "upstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_dedup_stage,PROD)",
+      "downstream_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.crm_migration_staging,PROD)",
       "expected_state": "unknown",
       "state": "unknown",
       "matches_expected": true,
@@ -165,8 +165,8 @@
         "newest_bucket_ms": null,
         "days_span": null,
         "reason": "keine Nutzungs-Zeitfenster im Katalog",
-        "window_start_ms": 1783327398746,
-        "window_end_ms": 1786178598746,
+        "window_start_ms": 1783339232066,
+        "window_end_ms": 1786190432066,
         "window_days": 33
       },
       "timeline": {
