@@ -175,6 +175,74 @@ def test_marking_dead_annotates_the_edge_and_leaves_the_others_untouched():
     assert "properties" not in by_urn["urn:b"]
 
 
+# --- Fix-Runde 1 (Opus-Review, Task-12), CRITICAL 1: merge_upstreams las
+# nur value.upstreams und loeschte damit STILL jeden anderen Top-Level-
+# Schluessel des Aspekts bei JEDEM Schreibvorgang -- am gravierendsten
+# fineGrainedLineages (spaltengenaue Lineage von dbt/BigQuery/Snowflake/
+# Looker/Spark & Co.). Reproduktion: before mit upstreams+CLL -> nach dem
+# Schreiben war CLL weg. Jetzt wird der GANZE aufgeloeste Wert als Basis
+# genommen und nur upstreams ersetzt.
+
+def test_merge_upstreams_carries_fine_grained_lineages_through_unchanged():
+    cll = [{"upstreamType": "FIELD_SET", "downstreamType": "FIELD",
+            "downstreams": ["urn:li:schemaField:(urn:m,customer_id)"],
+            "upstreams": ["urn:li:schemaField:(urn:legit,cust_id)"],
+            "confidenceScore": 1.0}]
+    before = {"value": {"upstreams": [
+        {"dataset": "urn:legit", "type": "TRANSFORMED",
+         "auditStamp": {"time": 1, "actor": "urn:li:corpuser:someone"}}],
+        "fineGrainedLineages": cll}}
+    merged = merge_upstreams(before, add=[{"dataset": "urn:up", "type": "TRANSFORMED",
+                                            "auditStamp": {"time": 2, "actor": "x"}}])
+    assert merged["fineGrainedLineages"] == cll
+    assert {u["dataset"] for u in merged["upstreams"]} == {"urn:legit", "urn:up"}
+
+
+def test_merge_upstreams_carries_fine_grained_lineages_through_a_mark_dead_too():
+    cll = [{"upstreamType": "FIELD_SET", "downstreamType": "FIELD",
+            "downstreams": ["urn:li:schemaField:(urn:d,x)"],
+            "upstreams": ["urn:li:schemaField:(urn:up,x)"]}]
+    before = {"value": {"upstreams": [
+        {"dataset": "urn:up", "type": "TRANSFORMED", "auditStamp": {"time": 1, "actor": "x"}}],
+        "fineGrainedLineages": cll}}
+    merged = merge_upstreams(before, mark_dead={"urn:up": "2026-04-11"})
+    assert merged["fineGrainedLineages"] == cll
+
+
+def test_apply_proposal_add_edge_preserves_fine_grained_lineages_on_the_target():
+    cll = [{"upstreamType": "FIELD_SET", "downstreamType": "FIELD",
+            "downstreams": ["urn:li:schemaField:(urn:m,x)"],
+            "upstreams": ["urn:li:schemaField:(urn:legit,x)"]}]
+    wb = RecordingWb({("dataset", "urn:m", "upstreamLineage"): {"value": {"upstreams": [
+        {"dataset": "urn:legit", "type": "TRANSFORMED",
+         "auditStamp": {"time": 1, "actor": "x"}}], "fineGrainedLineages": cll}}})
+    p = [x for x in propose(LEDGER) if x.kind == "add_edge"][0]
+    apply_proposal(wb, p, now_ms=7)
+    _, _, _, value, _ = wb.written[0]
+    assert value["fineGrainedLineages"] == cll
+
+
+# --- Fix-Runde 1, IMPORTANT 4: ein 'before' ohne 'value'-Wrapper wurde
+# still zu einer leeren Liste -- totaler, stiller Datenverlust. Jetzt wird
+# entweder aufgeloest (wie writeback.py:79 es beim Revert selbst tut) oder
+# laut abgelehnt, nie geraten.
+
+def test_merge_upstreams_accepts_an_unwrapped_before_like_writebacks_revert_does():
+    before = {"upstreams": [{"dataset": "urn:legit", "type": "TRANSFORMED",
+                              "auditStamp": {"time": 1, "actor": "x"}}]}
+    merged = merge_upstreams(before, add=[{"dataset": "urn:up", "type": "TRANSFORMED",
+                                            "auditStamp": {"time": 2, "actor": "x"}}])
+    assert {u["dataset"] for u in merged["upstreams"]} == {"urn:legit", "urn:up"}
+
+
+def test_merge_upstreams_raises_on_a_before_from_which_no_upstreams_can_be_resolved():
+    try:
+        merge_upstreams({"someOtherField": True})
+        assert False, "haette werfen muessen"
+    except ValueError:
+        pass
+
+
 def test_apply_add_edge_writes_through_writeback_with_a_list_payload():
     """Falle 1: POST /openapi/v3/entity/<typ> will eine LISTE. Der Weg
     darf nicht an gms.upsert() vorbeigehen, das die Liste erzwingt --
@@ -304,3 +372,107 @@ def test_apply_proposal_writes_a_well_formed_mark_dead_proposal_and_keeps_other_
     by_urn = {u["dataset"]: u for u in value["upstreams"]}
     assert DEAD_MARKER_KEY in by_urn["urn:up"]["properties"]
     assert "properties" not in by_urn["urn:other"]
+
+
+# --- Fix-Runde 1, IMPORTANT 2: mark_dead schrieb den MOMENT DES
+# SCHREIBENS (`_iso_day(now_ms)`) als "seit wann tot", nicht das gemessene
+# Datum. Ledger sagte 117 Tage tot (last_covered_ms=100), Katalog bekam
+# "heute" -- eine unbelegte Behauptung. Jetzt wird last_covered_ms aus der
+# Evidenz verwendet; der alte Test pruefte nur, DASS der Schluessel
+# existiert, nie seinen WERT -- deshalb bestand er trotz des Fehlers.
+
+def test_apply_proposal_writes_the_measured_last_covered_date_not_the_write_moment():
+    wb = RecordingWb({("dataset", "urn:d", "upstreamLineage"): {"value": {"upstreams": [
+        {"dataset": "urn:up", "type": "TRANSFORMED", "auditStamp": {"time": 1, "actor": "x"}}]}}})
+    p = [x for x in propose(LEDGER) if x.kind == "mark_dead"][0]
+    assert p.evidence["last_covered_ms"] == 100  # LEDGER-Fixture, zur Kontrolle
+    # now_ms liegt absichtlich WEIT in der Zukunft -- wuerde es verwendet,
+    # ergaebe das ein Datum weit nach 1970, und der Test wuerde das sofort zeigen.
+    apply_proposal(wb, p, now_ms=9_999_999_999_999)
+    _, _, _, value, _ = wb.written[0]
+    by_urn = {u["dataset"]: u for u in value["upstreams"]}
+    assert by_urn["urn:up"]["properties"][DEAD_MARKER_KEY] == "1970-01-01"  # aus ms=100, nicht aus now_ms
+
+
+def test_apply_proposal_refuses_a_mark_dead_without_a_measured_last_covered_timestamp():
+    """Reiner Untergrenzen-Fall (dead_since_is_lower_bound=True): es gibt
+    kein gemessenes Datum, nur eine Tage-Untergrenze. Ein now_ms-basierter
+    Ersatz waere dieselbe unbelegte Behauptung -- also wird verweigert."""
+    wb = RecordingWb({("dataset", "urn:d", "upstreamLineage"): {"value": {"upstreams": [
+        {"dataset": "urn:up", "type": "TRANSFORMED", "auditStamp": {"time": 1, "actor": "x"}}]}}})
+    p = Proposal(kind="mark_dead", edge_key="urn:up->urn:d", target_urn="urn:d",
+                 aspect="upstreamLineage",
+                 evidence={"last_covered_ms": None, "dead_since_days": 40,
+                           "dead_since_is_lower_bound": True, "buckets_checked": 5},
+                 state="dead", human_summary="nur untergrenze, kein exaktes datum")
+    try:
+        apply_proposal(wb, p, now_ms=7)
+        assert False, "haette werfen muessen"
+    except ValueError:
+        pass
+    assert wb.written == []
+
+
+# --- Fix-Runde 1, IMPORTANT 3: zwei stille Fehlschlaege bei mark_dead.
+# (a) Upstream nicht in der bestehenden Liste -> identische Liste zurueck,
+# applied=True, kein Marker irgendwo -- der Mensch bestaetigt, nichts
+# passiert. (b) gar kein Aspekt vorhanden -> {"upstreams": []} geschrieben,
+# eine nie gemessene Behauptung "keine Upstreams". Beide muessen laut
+# scheitern.
+
+def test_apply_proposal_refuses_to_mark_dead_an_edge_not_present_in_the_aspect():
+    wb = RecordingWb({("dataset", "urn:d", "upstreamLineage"): {"value": {"upstreams": [
+        {"dataset": "urn:someone_else", "type": "TRANSFORMED",
+         "auditStamp": {"time": 1, "actor": "x"}}]}}})
+    p = [x for x in propose(LEDGER) if x.kind == "mark_dead"][0]  # upstream=urn:up, fehlt hier
+    try:
+        apply_proposal(wb, p, now_ms=7)
+        assert False, "haette werfen muessen"
+    except ValueError:
+        pass
+    assert wb.written == []
+
+
+def test_apply_proposal_refuses_to_mark_dead_when_the_dataset_has_no_aspect_at_all():
+    wb = RecordingWb({})  # kein upstreamLineage fuer urn:d ueberhaupt
+    p = [x for x in propose(LEDGER) if x.kind == "mark_dead"][0]
+    try:
+        apply_proposal(wb, p, now_ms=7)
+        assert False, "haette werfen muessen"
+    except ValueError:
+        pass
+    assert wb.written == []
+
+
+# --- Fix-Runde 1, MINOR 8: edge_key und target_urn wurden nie
+# gegeneinander geprueft -- ein manipuliertes Proposal koennte eine
+# beliebige Upstream-URN auf ein beliebiges Ziel-Dataset schreiben.
+
+def test_apply_proposal_refuses_when_edge_key_downstream_does_not_match_target_urn():
+    wb = RecordingWb(EXISTING)
+    p = Proposal(kind="add_edge", edge_key="urn:up->urn:victim", target_urn="urn:m",
+                 aspect="upstreamLineage",
+                 evidence={"query_urns": ["urn:li:query:q1"], "cooccurrence_count": 1,
+                           "direction_evidence": "co-occurrence (undirected)"},
+                 state="missing", human_summary="manipuliert")
+    try:
+        apply_proposal(wb, p, now_ms=7)
+        assert False, "haette werfen muessen"
+    except ValueError:
+        pass
+    assert wb.written == []
+
+
+# --- Fix-Runde 1, MINOR 9: query_urns=[""] ist eine nicht-leere Liste,
+# aber keine Substanz.
+
+def test_require_substantive_evidence_rejects_add_edge_with_only_blank_query_urns():
+    p = Proposal(kind="add_edge", edge_key="urn:up->urn:m", target_urn="urn:m",
+                 aspect="upstreamLineage",
+                 evidence={"query_urns": ["", "   "], "cooccurrence_count": 1},
+                 state="missing", human_summary="leer")
+    try:
+        _require_substantive_evidence(p)
+        assert False, "haette werfen muessen"
+    except ValueError:
+        pass

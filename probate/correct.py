@@ -121,22 +121,69 @@ def propose(ledger: dict) -> list[Proposal]:
 DEAD_MARKER_KEY = "probate.dead_since"
 
 
+def _resolve_aspect_before(before: dict | None) -> dict:
+    """Der Aspekt-WERT (nicht die Huelle) -- niemals stillschweigend leer.
+
+    (Task-12-Review, Fund IMPORTANT 4): der Aspekt-Wert kommt in zwei
+    Formen vor -- gewrappt (`{"value": {...}}`, wie `get_aspect()`
+    liefert) oder direkt (`{...}`, die Form, die `writeback.py:79` beim
+    Revert manchmal uebergibt: `e["before"].get("value", e["before"])`).
+    Die alte `merge_upstreams`-Kette (`(before or {}).get("value") or {}`)
+    loeste diese Mehrdeutigkeit NICHT auf: ein `before` ohne `value`-
+    Schluessel wurde still zu `{}`, also einer leeren bestehenden Liste --
+    derselbe Datenverlust, den dieses Modul verhindern soll, nur eine
+    Ebene tiefer und ohne jede Fehlermeldung.
+
+    `before=None` (der Aspekt existiert noch nicht) ist der einzige Fall,
+    der ohne Fehler zu `{}` aufgeloest wird. Jede andere Form, aus der
+    sich kein `"upstreams"` herleiten laesst, ist mehrdeutig und wird
+    ABGELEHNT statt geraten.
+    """
+    if before is None:
+        return {}
+    value = before.get("value", before) if isinstance(before, dict) else before
+    if not isinstance(value, dict) or "upstreams" not in value:
+        raise ValueError(
+            "merge_upstreams: 'before' hat eine unbekannte form und kann nicht "
+            f"sicher gemergt werden (weder value.upstreams noch upstreams direkt "
+            f"vorhanden): {before!r}"
+        )
+    return value
+
+
 def merge_upstreams(
     before: dict | None,
     add: list[dict] = (),
     drop: list[str] = (),
     mark_dead: dict[str, str] | None = None,
 ) -> dict:
-    """Bestehende Kanten bleiben. Immer.
+    """Bestehende Kanten bleiben. Immer -- und das gilt fuer JEDEN
+    Top-Level-Schluessel des Aspekts, nicht nur `upstreams`.
 
-    `before` ist die rohe `get_aspect()`-Antwort (`{"value": {"upstreams":
-    [...]}}` oder `None`, wenn der Aspekt noch nicht existiert). Reihenfolge
-    bewusst add-vor-drop-vor-mark_dead: eine Kante kann in derselben Runde
-    hinzugefuegt und in derselben Runde als tot markiert werden (theoretisch
-    widerspruechlich, aber die Funktion soll dabei nicht raten, welche
-    Absicht Vorrang hat -- sie tut schlicht beides, in dieser Reihenfolge).
+    (Task-12-Review, Fund CRITICAL 1): `UpstreamLineageClass` traegt auch
+    `fineGrainedLineages` (spaltengenaue Lineage, von dbt/BigQuery/
+    Snowflake/Looker/Spark & Co. emittiert). Die urspruengliche Fassung
+    las nur `value.upstreams` und gab `{"upstreams": [...]}` zurueck --
+    genau das, was dieses Modul an DataHubs eigenem Aggregator kritisiert
+    (frischer, leerer Aspekt ersetzt den ganzen bestehenden), nur eine
+    Ebene tiefer: jeder unbekannte Top-Level-Schluessel wurde bei JEDEM
+    Schreibvorgang stillschweigend geloescht. Jetzt wird der komplette
+    aufgeloeste Aspekt-Wert als Basis genommen und nur `upstreams` ersetzt
+    (vgl. DataHubs eigenes `incremental_lineage_helper.py`, das beide
+    Felder durchreicht).
+
+    `before` ist die rohe `get_aspect()`-Antwort (oder eine unverpackte
+    Form, siehe `_resolve_aspect_before`) bzw. `None`, wenn der Aspekt noch
+    nicht existiert. Reihenfolge bewusst DROP-vor-ADD-vor-MARK_DEAD (so
+    steht es im Code; eine fruehere Fassung dieses Docstrings nannte die
+    falsche Reihenfolge -- Task-12-Review, Minor 6): eine Kante kann in
+    derselben Runde entfernt, neu hinzugefuegt und markiert werden
+    (theoretisch widerspruechlich, aber die Funktion soll dabei nicht
+    raten, welche Absicht Vorrang hat -- sie tut schlicht alle drei, in
+    dieser Reihenfolge).
     """
-    existing = list(((before or {}).get("value") or {}).get("upstreams") or [])
+    resolved = _resolve_aspect_before(before)
+    existing = list(resolved.get("upstreams") or [])
     drop_set = set(drop)
     out = [u for u in existing if u.get("dataset") not in drop_set]
     have = {u.get("dataset") for u in out}
@@ -154,13 +201,47 @@ def merge_upstreams(
             else:
                 marked.append(u)
         out = marked
-    return {"upstreams": out}
+    return {**resolved, "upstreams": out}
 
 
 def _iso_day(ms: int | None) -> str:
-    if not ms:
+    if ms is None:
         return "unbekannt"
     return _dt.datetime.fromtimestamp(ms / 1000, _dt.timezone.utc).date().isoformat()
+
+
+def _dead_since_iso(evidence: dict) -> str:
+    """Das GEMESSENE Sterbedatum -- niemals der Moment des Schreibens.
+
+    (Task-12-Review, Fund IMPORTANT 2): `now_ms` ist der Zeitpunkt des
+    Schreibvorgangs, nicht der Zeitpunkt, seit dem die Kante tot ist. Die
+    Evidenz traegt das bereits (`last_covered_ms`, aus DERSELBEN Messung
+    wie `dead_since_days`, siehe `ledger.Timeline`) -- dieses Datum wird
+    geschrieben, "heute" nie.
+
+    Fehlt `last_covered_ms` (das passiert, wenn im GESAMTEN geprueften
+    Fenster nie Verkehr gemessen wurde -- `ledger.Timeline.dead_since()`
+    liefert dann nur eine Untergrenze ab dem AELTESTEN Bucket,
+    `dead_since_is_lower_bound=True`), gibt es kein exaktes Datum zu
+    belegen. Ein `now_ms`-basierter Ersatz waere exakt die unbelegte
+    Behauptung, die dieser Fund verbietet -- also wird verweigert statt
+    geschaetzt.
+    """
+    last_covered_ms = evidence.get("last_covered_ms")
+    if last_covered_ms is None:
+        raise ValueError(
+            "dead_since kann nicht bestimmt werden: 'last_covered_ms' fehlt in "
+            "der evidenz (dead_since_days waere hier nur eine untergrenze ab dem "
+            "aeltesten geprueften bucket) -- wird nicht geschrieben"
+        )
+    return _iso_day(last_covered_ms)
+
+
+def _has_real_entries(items) -> bool:
+    """`["", "  "]` ist eine nicht-leere Liste, aber keine Substanz
+    (Task-12-Review, Minor 9) -- mindestens ein Eintrag muss, getrimmt,
+    tatsaechlich Zeichen enthalten."""
+    return any((x or "").strip() for x in items)
 
 
 def _require_substantive_evidence(p: Proposal) -> None:
@@ -174,7 +255,7 @@ def _require_substantive_evidence(p: Proposal) -> None:
     if p.kind == "add_edge":
         query_urns = p.evidence.get("query_urns") or []
         cooccurrence_count = p.evidence.get("cooccurrence_count") or 0
-        if not query_urns or cooccurrence_count <= 0:
+        if not _has_real_entries(query_urns) or cooccurrence_count <= 0:
             raise ValueError(
                 f"vorschlag {p.edge_key} ({p.kind}) hat keinen tragfaehigen beleg -- "
                 f"query_urns={query_urns!r} cooccurrence_count={cooccurrence_count!r} "
@@ -191,7 +272,7 @@ def _require_substantive_evidence(p: Proposal) -> None:
             )
     elif p.kind == "enrich_doc":
         query_urns = p.evidence.get("query_urns") or []
-        if not query_urns:
+        if not _has_real_entries(query_urns):
             raise ValueError(
                 f"vorschlag {p.edge_key} ({p.kind}) hat keinen tragfaehigen beleg -- "
                 f"query_urns={query_urns!r} -- wird nicht geschrieben"
@@ -231,13 +312,28 @@ def apply_proposal(
     Schreibvorgaenge. `wb.aspect()` gibt intern eine LISTE an
     gms.upsert() (Falle 1) -- ein eigener Weg wuerde das umgehen.
 
-    Beide Haertungen aus dem Task-11-Review laufen VOR jedem Schreiben,
-    nicht nur im `add_edge`-Zweig: ein Vorschlag ohne tragfaehigen Beleg
-    oder mit einem `mark_dead` auf einer nicht-toten Kante scheitert hier
-    laut, bevor `wb.aspect()` ueberhaupt aufgerufen wird.
+    Haertungen aus dem Task-11- und dem Task-12-Review laufen VOR jedem
+    Schreiben: ein Vorschlag ohne tragfaehigen Beleg, mit einer
+    edge_key/target_urn-Diskrepanz oder mit einem `mark_dead` auf einer
+    nicht-toten bzw. nicht-existenten Kante scheitert hier laut, bevor
+    `wb.aspect()` ueberhaupt aufgerufen wird.
     """
     _require_substantive_evidence(p)
-    upstream = p.edge_key.split("->", 1)[0]
+
+    # Task-12-Review, Minor 8: edge_key traegt die Downstream-URN ein
+    # zweites Mal (als Teil von "upstream->downstream"). Ohne diesen
+    # Abgleich koennte ein handkonstruiertes/manipuliertes Proposal eine
+    # beliebige Upstream-URN auf ein beliebiges Ziel-Dataset schreiben --
+    # `target_urn` wuerde einfach geglaubt, `edge_key` nie geprueft.
+    try:
+        upstream, edge_downstream = p.edge_key.split("->", 1)
+    except ValueError:
+        raise ValueError(f"edge_key hat nicht die form 'upstream->downstream': {p.edge_key!r}")
+    if edge_downstream != p.target_urn:
+        raise ValueError(
+            f"edge_key/target_urn stimmen nicht ueberein: edge_key nennt downstream="
+            f"{edge_downstream!r}, target_urn={p.target_urn!r} -- wird nicht geschrieben"
+        )
 
     if p.kind == "add_edge":
         before = wb.gms.get_aspect("dataset", p.target_urn, "upstreamLineage") \
@@ -252,9 +348,31 @@ def apply_proposal(
 
     if p.kind == "mark_dead":
         _require_dead_state(p.state)
+        dead_since = _dead_since_iso(p.evidence)
         before = wb.gms.get_aspect("dataset", p.target_urn, "upstreamLineage") \
             if hasattr(wb, "gms") else None
-        value = merge_upstreams(before, mark_dead={upstream: _iso_day(now_ms)})
+
+        # Task-12-Review, Fund IMPORTANT 3: zwei stille Fehlschlaege
+        # verhindern. (a) Existiert ueberhaupt kein Aspekt, waere
+        # `merge_upstreams(None, mark_dead=...)` ein leeres `{"upstreams":
+        # []}` -- eine nie gemessene Behauptung "dieses Dataset hat keine
+        # Upstreams". (b) Ist der Upstream nicht in der bestehenden Liste,
+        # schriebe `merge_upstreams` die IDENTISCHE Liste zurueck, mit
+        # `applied=True` und ohne jeden Marker -- der Mensch bestaetigt
+        # eine Tot-Markierung, und nichts passiert. Beide Faelle sind
+        # dieselbe Wurzel: eine `dead`-Markierung ohne die deklarierte
+        # Kante, auf die sie sich bezieht, ist sinnlos -- verweigern statt
+        # still nichts (oder etwas Erfundenes) zu tun.
+        resolved = _resolve_aspect_before(before)
+        existing_urns = {u.get("dataset") for u in resolved.get("upstreams") or []}
+        if upstream not in existing_urns:
+            raise ValueError(
+                f"dead-markierung verweigert: {upstream!r} steht nicht in der bestehenden "
+                f"upstreamLineage von {p.target_urn!r} -- ohne bestehenden eintrag waere das "
+                "entweder ein stiller kein-op oder eine nie gemessene leere upstreams-liste"
+            )
+
+        value = merge_upstreams(before, mark_dead={upstream: dead_since})
         return wb.aspect("dataset", p.target_urn, "upstreamLineage", value)
 
     raise ValueError(f"unbekannte vorschlagsart: {p.kind}")
