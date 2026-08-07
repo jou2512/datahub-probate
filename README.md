@@ -1,163 +1,321 @@
-# Probate
+# Probate — an agent that tests lineage instead of trusting it
 
-Ein Agent, der eine Datenbanktabelle in [DataHub](https://datahub.com) **richtig** stilllegt:
-er misst die echten Abhängigen statt sie zu behaupten, beweist die Gleichwertigkeit des
-Nachfolgers, holt pro Abhängigem eine Unterschrift ein, schaltet um — und hinterlässt eine
-**stehende Regel** im Katalog statt eines Berichts, der morgen niemand mehr liest.
+Probate reads the lineage a [DataHub](https://datahub.com) catalog **declares**, reads the query
+usage the catalog **measured**, and reports the difference **per edge** — with a date attached:
+covered until when, dead since when, and where no statement is possible at all.
 
-Gebaut für **„Build with DataHub: The Agent Hackathon"**, Track *Agents That Do Real Work*
-(*„reads DataHub…, takes action, and writes results back"*).
+Built for *Build with DataHub: The Agent Hackathon*, track **Agents That Do Real Work**
+(*"reads DataHub…, takes action, and writes results back"*).
 
-## Die These
+## What separates this from everything else
 
-Ein Tabellenabbau scheitert selten an der Technik. Er scheitert daran, dass niemand mit
-Sicherheit sagen kann: **„Nutzt das wirklich noch jemand?"** und **„Ist der Nachfolger wirklich
-gleichwertig?"**. Beides wird meist behauptet, nicht gemessen — und DataHub selbst kann es
-nicht: es speichert, zeigt und indiziert `testResults` auf 24 Entitätstypen und **führt keinen
-einzigen Test aus**.
+> Everyone else uses usage data to **weight** edges they already believe.
+> This tool uses it to **test the edge itself**.
 
-Probate bringt den fehlenden Auswerter mit und schreibt nichts zurück, was es nicht belegen
-kann. Eine Enthaltung ist ein Ergebnis: fehlende Zeilenzahlen ergeben **kein** „ok", sondern ein
-begründetes Nein.
+That is not a slogan, it is the result of a survey of the field. Seven projects were found that
+read both sources. All seven attach usage to an edge as a weight, a hint, or an evidence string
+on lineage they already accept. None of them ask whether the edge should exist.
 
-## Der Ablauf, ein echter Lauf
+**And DataHub's own blog post?** It pairs the two signals already — but it pairs them to judge a
+*table*, once, by hand:
 
-```
-$ probate start --from customers_v7 --to customers_v8
-{ "live": 1, "dead_wood": 0, "missing_lineage": 1, "live_targets": 1 }        → examples/campaign-start.json
+> "Lineage shows what's connected to what. Dataset usage and query history shows what's actually
+> being read … Together they turn 'might still be used' into a binary."
 
-$ probate apply --from customers_v7 --to customers_v8 --old-rows 9000 --new-rows 9000
-{ "live_consumers": 1, "parity_ok": true, "awaiting_confirmation": [...] }    → schlaegt vor, signiert NICHT
+The delimitation, in the words we want a juror to use:
 
-$ probate confirm --entity '<konsument-urn>' --evidence "Report gegen v8 geprueft, Zahlen stimmen."
-1/1 Konsumenten signiert.                                                     → examples/campaign-apply.json
-```
+> Others pair lineage and usage to decide whether a **table** can go — once, by hand.
+> We check every **edge**, continuously, and say since when it stopped being covered.
 
-**`apply` schlägt vor, `confirm` signiert — nie dieselbe Instanz.** Live-Fund aus einer
-externen Jury-Simulation (2026-08-06): die erste Fassung liess `apply` sich selbst zum Owner
-der Konsumenten-Tabelle machen und danach selbst `verifyForm` aufrufen — eine Selbstbescheinigung,
-keine Unterschrift, und genau die Behauptung ohne Beleg, gegen die dieses Projekt antritt.
-Jetzt bricht `apply` nach dem Vorschlag ab; `confirm` ist ein eigener, expliziter Befehl mit
-menschlich geschriebenem `--evidence`-Text, den probate nie selbst aufruft.
+## The four states
 
-Live gegen eine echte DataHub-Instanz (v1.5.0.6) gemessen, 2026-08-06. Vorher/Nachher der
-Regelauswertung, direkt aus dem Katalog zurückgelesen:
+The unit of judgement is the edge, not the table.
 
-| Regel | vorher | nachher |
+| State | Meaning | Evidence carried with the verdict |
 |---|---|---|
-| `has-successor` | ❌ FAILURE | ✅ SUCCESS |
-| `parity-proven` | ❌ FAILURE | ✅ SUCCESS |
-| `all-consumers-signed` | ❌ FAILURE | ✅ SUCCESS |
+| `confirmed` | declared **and** measured | query URN + the time windows it was seen in |
+| `dead` | declared, **never** measured inside the window | window length, number of buckets checked |
+| `missing` | measured (query co-occurrence), **not** declared | query URN, number of co-occurrences |
+| `unknown` | **no data in the window — no statement possible** | why: no usage data / no buckets |
 
-→ [`examples/testResults-vorher-nachher.json`](examples/testResults-vorher-nachher.json),
-jeder Schreibvorgang dahinter journalisiert in [`examples/journal.jsonl`](examples/journal.jsonl).
+### Why `unknown` is not `dead`
 
-**Und der Verweigerungsfall, genauso echt:** eine zweite Tabelle mit 8,8 % Zeilenabweichung
-wurde **nicht** umgeschaltet — kein Konsument angefragt, keine Unterschrift eingeholt, nichts
-deprecated. → [`examples/campaign-refused.json`](examples/campaign-refused.json)
+This is the failure the project exists to correct, and it was our own failure first.
 
-```
-REFUSED - keine Umschaltung ohne Beweis:
-  - Zeilenzahl weicht um 8.8% ab (100000 -> 91200), erlaubt sind 1%
-```
+In the earlier version, "we measured nothing" and "nothing was used" collapsed into the same
+empty list, and the resulting category counted as *harmless*. So on a catalog with thin or
+missing usage coverage, a real, active consumer would have been quietly overwritten by a tool
+that sounded confident.
 
-## Architektur
+The distinction is present in the data and is now made explicitly: **no time windows at all**
+means we cannot see; **time windows that exist and read zero** means we looked and nothing
+happened. Before anything is classified, Probate runs a coverage check — how many usage windows
+exist, how far back they reach — and reports thin coverage as a result, instead of selling it as
+a measurement.
 
-| Modul | Aufgabe |
+A tool whose whole claim is "assert nothing without evidence" does not get to guess here.
+
+## Where is the agent?
+
+Exactly one place, deliberately: **the model judges which deviation matters.**
+
+A dead edge into a table whose description mentions the annual close is not the same as a dead
+edge into a nameless intermediate table. That is judgement over unstructured text — description,
+owners, glossary terms, domain — not a rule anyone can write. Everything else in the pipeline is
+deterministic and testable offline.
+
+The model works under a **citation duty**: no verbatim quote from the text it was given, no
+judgement, and the deterministic finding stands unchanged. The fallback is the normal case, not
+an error case.
+
+Measured against the seeded four-state lab
+([`harness/runs/judge-seedlab-matrix.json`](harness/runs/judge-seedlab-matrix.json)):
+
+| Focus | State | Model judgement | Citation |
+|---|---|---|---|
+| confirmed | `confirmed` | not offered to the model | excluded by design — a confirmed edge needs no judgement |
+| dead | `dead` | fell back to the deterministic finding | `fallback_reason: "kein Zitat geliefert"` (no quote supplied) |
+| missing | `missing` | yes | quoted the downstream `description` |
+| unknown | `unknown` | yes | quoted the upstream `description` |
+
+So the citation duty bites: on one of the three edges offered, the model produced no usable
+quote and was overruled by its own rule. We consider that the feature working, and we report it
+rather than tuning the fixture until the number looks better
+([`docs/entscheidungen/2026-08-07-seed-hinweis-nicht-zitierfaehig.md`](docs/entscheidungen/2026-08-07-seed-hinweis-nicht-zitierfaehig.md)
+records a related decision: our own "this data is seeded" disclaimer was removed from the citable
+corpus, because a quote from the label that marks data as fake proves nothing about the data).
+
+## What DataHub does not do
+
+Checked in source and against a live instance, not assumed.
+
+| Finding | Evidence |
 |---|---|
-| `probate/gms.py` | einziger Weg nach draussen — verriegelt zwei stille Fehlschlagsklassen von DataHubs REST/GraphQL-APIs (siehe „Was live gefunden wurde") |
-| `probate/targets.py` | deklarierte Lineage gegen gemessene Nutzung aus dem Query-Log — die Differenz selbst ist ein Ergebnis (Karteileiche vs. fehlende Lineage) |
-| `probate/parity.py` | der Beweis: Schema-Diff + Zeilenzahl-Toleranz, Enthaltung statt Freibrief bei fehlendem Beleg |
-| `probate/writeback.py` | einziger Schreibweg — dry-run als Vorgabe, jeder Schreibvorgang journalisiert, echter Rückwärtsgang (löscht Aspekte, die es vorher nicht gab, statt sie auf `None` zu setzen) |
-| `probate/ruleset.py` | der Auswerter, den DataHub nicht hat — schreibt `testResults`, das DataHub nur anzeigt |
-| `probate/succession.py` | Nachfolge nur gegen Beweis, feste Reihenfolge (Zusage → Version verknüpfen → erst dann abkündigen) |
-| `probate/campaign.py` | die Unterschrift über DataHubs eigene Formular-Oberfläche, inkl. Owner-Absicherung |
-| `probate_action/watcher.py` | Rückfall-Erkennung über den Aspekt, nicht über den Actor (Ingest/Propagation sind actor-seitig nicht von echten Zugriffen zu unterscheiden) |
-| `probate/cli.py` | `start` (messen) · `apply` (Beweis + Vorschlag, signiert nicht) · `confirm` (menschliche Unterschrift, ein Konsument) · `status` · `revert` |
-| `harness/audit_claims.py` | prüft jede Zahl in diesem README gegen die Lauf-Artefakte, Exit 1 bei Drift |
+| **DataHub replaces lineage, it never compares it.** `sql_parsing_aggregator.py:1534` builds a fresh, empty edge list (`UpstreamLineageClass(upstreams=[])`), fills it only from the queries parsed in *this* run, and emits it as a full aspect. The file's only aspect read (`:665`) fetches `SchemaMetadataClass` — schema resolution, not lineage. | read in the cloned source, master @ `26a9f6c` |
+| Both ingestion modes are blind: the default overwrites in full (dropping legitimate old edges), `incremental_lineage: true` only appends — dead edges accumulate forever, are never reported, never removed. | source + `docs/features/feature-guides/lineage.md:106` (the doc statement holds only with the `incremental_lineage` flag set) |
+| `DatasetPatchBuilder.remove_upstream_lineage()` **exists and has zero callers** — grep over the cloned tree including all of `metadata-ingestion` finds nothing but the definition, not even a test. *Limitation: the clone is partial; trees we did not clone could contain callers.* | `metadata-ingestion/src/datahub/specific/dataset.py:167` |
+| DataHub's own edge verdict `LineageMatchType` only checks URN resolvability, and its own docstring says: *"reflects DataHub's knowledge AT THE TIME THE LINEAGE EDGE WAS INGESTED, not the current state of the graph … not re-evaluated automatically"* | `dataset/LineageMatchType.pdl` |
+| No assertion type targets lineage (OSS enum read live: `DATASET, FRESHNESS, VOLUME, SQL, FIELD, DATA_SCHEMA, CUSTOM`). | live introspection |
+| `isManual` is self-declared, not enforced: an edge written over REST with `{"source":"UI"}` came back as `isManual: true` without ever passing through the UI. | live counter-check, three edges written and read back |
 
-## Nachprüfen, ohne irgendetwas zu installieren
+## Quickstart
+
+Python on this machine must be pinned — a bare `python` hits a broken 3.9 alias, and DataHub
+needs 3.10+. Every command below is verified to run as written.
+
+```bash
+# The edge ledger: declared lineage vs. measured usage, per edge, with timeline
+uv run --python 3.11 probate ledger \
+  --focus 'urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)' \
+  --gms http://localhost:28080
+
+# ... with the model judging which deviations matter (the only model call in the project)
+uv run --python 3.11 probate ledger --focus '<dataset-urn>' --judge --judge-limit 5
+
+# The workbench: serves ui/ and proxies writes through the single write path
+uv run --python 3.11 python -m ui.serve --gms http://localhost:28080 --focus '<dataset-urn>'
+# then open http://localhost:8899
+
+# The retirement flow that can follow from a ledger full of dead edges
+uv run --python 3.11 probate start   --from '<predecessor-urn>' --to '<successor-urn>'
+uv run --python 3.11 probate apply   --from '<predecessor-urn>' --to '<successor-urn>' \
+                                     --old-rows N --new-rows N
+uv run --python 3.11 probate confirm --entity '<consumer-urn>' --evidence '<written by a human>'
+uv run --python 3.11 probate revert   # undo every journalled write of this session
+
+# The continuous watcher (the subcommand is `actions`, not `run`)
+uv run --python 3.11 --with acryl-datahub-actions \
+  datahub-actions --debug actions -c probate_action/recipe.yml
+```
+
+Offline, against the committed artifacts, without a DataHub instance:
 
 ```bash
 uv run --python 3.11 --with pytest --with acryl-datahub-actions python -m pytest tests/ -q
-# 61 passed
-
 uv run --python 3.11 python harness/audit_claims.py
-# Alle 3 Zahlen decken sich mit den Laeufen.
 ```
 
-Beide Befehle laufen offline gegen die committeten Artefakte in `harness/runs/` und `examples/`.
+Two notes that cost us time and are therefore written down:
+`python -m probate.cli` runs to completion and does **nothing** — `cli.py` has no
+`if __name__ == "__main__"` block; use the `probate` entry point declared in `pyproject.toml`.
+And `--debug` belongs **before** `actions`, otherwise the Kafka log lines stay invisible while
+the pipeline is in fact running.
 
-## Selbst laufen lassen
+`--old-rows` / `--new-rows` are deliberately typed in by a human. Probate has no warehouse
+connection to count rows itself, and an invented count would be worse than a missing one — the
+same principle the tool enforces on everyone else.
 
-Braucht eine echte DataHub-Instanz (`datahub docker quickstart`). **Standard-GMS ist
-`http://localhost:28080`**, nicht 18080 — 18080 trägt in dieser Session die
-`showcase-ecommerce`-Demodaten, gegen die eine zweite Einreichung (`datahub-attest`)
-Zahlen misst, die nicht verunreinigt werden dürfen. Gegen die eigene Instanz mit `--gms`
-umleiten.
+Against a secured instance: `--token <PAT>` or `DATAHUB_TOKEN`. Without a token the actor is
+`urn:li:corpuser:__datahub_system`, which only works against an instance without access control.
 
-```bash
-probate start   --from '<vorgaenger-urn>' --to '<nachfolger-urn>'
-probate apply   --from '<vorgaenger-urn>' --to '<nachfolger-urn>' --old-rows N --new-rows N
-probate confirm --entity '<konsument-urn>' --evidence '<warum, von einem Menschen geschrieben>'
-probate revert   # nimmt jeden journalisierten Schreibvorgang dieser Session zurueck
-```
+## The workbench
 
-`--old-rows`/`--new-rows` sind bewusst manuelle Eingaben: Probate hat keine
-Warehouse-Anbindung zum Selbstzählen eingebaut. Eine erfundene Zählung wäre schlimmer als eine
-fehlende — genau das Prinzip, das dieses Projekt selbst durchsetzt.
+A dashboard that only shows numbers proves nothing — you cannot tell whether it computed them or
+someone typed them in. So the UI is a lab, not a report: four panes (declared / measured / edge
+ledger / live log) and six buttons that change the two truth sources for real, through the same
+journalled write path as the CLI.
 
-**Gegen eine abgesicherte Instanz:** `--token <PAT>` oder `DATAHUB_TOKEN` in der Umgebung.
-Ohne Token authentifiziert probate sich als `urn:li:corpuser:__datahub_system` — das
-funktioniert nur gegen eine Instanz ohne Zugriffskontrolle (z.B. eine lokale
-`docker quickstart`). Live-Fund aus derselben Jury-Simulation: das stand vorher nur in einem
-Code-Kommentar, nicht im README.
+The demo, forty seconds, three directions:
 
-## Was live gefunden wurde, nicht im Bauplan stand
+1. **Add edge** — the edge appears as `dead` (declared, no traffic).
+2. **Seed query** — the same edge turns `confirmed` (traffic now measured).
+3. **Cut warehouse** — it turns `unknown`, **not** `dead`. This is the button that carries the
+   demo: it shows in five seconds that the tool really distinguishes "nothing measured" from
+   "nothing happened".
 
-Zwölf eigenständige Funde beim Bauen gegen eine echte Instanz, jeder mit Commit-Beleg in der
-Git-Historie — die letzten drei kamen aus einer externen Jury-Simulation, nicht aus eigener
-Prüfung, und wiegen am schwersten:
+Opened without the proxy, `ui/werkbank.html` falls back to the recorded run in
+[`ui/recorded/ledger.json`](ui/recorded/) and labels itself as a recording rather than
+disguising itself as a live session.
 
-1. `POST /openapi/v3/entity/<typ>` verlangt eine **Liste** — ein Objekt liefert HTTP 200 mit
-   leerem `[]` und schreibt nichts.
-2. GraphQL meldet Fehler mit HTTP 200 im `errors`-Feld.
-3. `_QUERIES_Q` aus der ursprünglichen Planung existiert nicht im Schema — die echte
-   `QuerySubject.pdl` indiziert das Zieldataset als `@Searchable`-Feld, keine Graph-Relationship.
-4. `Deprecation.actor` ist ein Pflichtfeld der Aspekt-Validierung.
-5. **`revert_all()` übersprang im ursprünglichen Entwurf jeden Erst-Schreibvorgang**
-   (`before=None`) — genau der Normalfall bei Probate, da die meisten Zieltabellen noch nicht
-   deprecated sind. Ein Revert, der den häufigsten Fall lautlos nicht zurücknimmt, ist die
-   Fehlerklasse, gegen die dieses Projekt selbst antritt. Korrigiert: Löschen statt ein
-   erfundenes `None` zurückzuschreiben.
-6. `TestResults.pdl` hat kein Zeitstempelfeld — ein geplantes `lastComputed` wurde von der
-   REST-API mit HTTP 200 angenommen und beim Rücklesen stillschweigend verworfen.
-7. `createForm` verlangt `structuredPropertyParams` schon beim Anlegen des Prompts, nicht erst
-   bei `submitFormPrompt` — und in anderer Feldform als dort.
-8. Prompt-IDs sind **global eindeutig über alle Formulare der Instanz**, nicht pro Formular.
-9. Pythons eingebautes `hash()` ist für Strings **nicht stabil über Prozessläufe**
-   (PYTHONHASHSEED) — eine VersionSet-URN, die darauf aufbaute, wäre bei jedem Neustart eine
-   andere gewesen. Ersetzt durch `hashlib.sha1`.
-10. **`apply` machte probate zum Konsumenten-Owner und liess es sich selbst verifizieren** —
-    keine Unterschrift, eine Selbstbescheinigung, und im README nicht als Grenze benannt (anders
-    als die Kafka-Lücke unten). Behoben: `apply` schlägt nur noch vor (`assign`/`autofill`),
-    `confirm` ist ein eigener Befehl mit menschlich geschriebenem Beleg-Text, den probate nie
-    selbst aufruft.
-11. **`ruleset.evaluate()` verschluckte eine werfende Regel lautlos zu `FAILURE`** — nicht
-    unterscheidbar von einem echten, geprüften Nein. Ein kaputtes Rule-Objekt (z.B. `KeyError`
-    nach einer Schema-Änderung) hätte für immer wie ein sauberes Ergebnis ausgesehen. Behoben:
-    `RuleOutcome.errored` trägt die Ursache, eine Warnung geht auf stderr.
-12. **Keine Auth-Story.** Ohne Token läuft probate als `urn:li:corpuser:__datahub_system` — nur
-    gegen eine Instanz ohne Zugriffskontrolle nutzbar. Behoben: `--token`/`DATAHUB_TOKEN`.
+## Measured numbers
 
-## Bewusste Lücke
+Every number below is derived from a committed artifact in `harness/runs/` and re-checked by
+`harness/audit_claims.py`, which exits 1 on any drift between prose and run. Nothing here is
+estimated, rounded, or remembered.
 
-Der Kafka-Action-Pipeline-Start (`probate_action/recipe.yml`) wurde **nicht live gestartet** —
-dieser Task ist im eigenen Bauplan der erste Streichkandidat bei Zeitmangel, und ein echter
-Lauf hätte eine Kafka-Konsumentengruppe offen gehalten, ohne in dieser Session prüfbare
-Ereignisse zu erzeugen. `is_relapse()` und `ProbateWatcher.act()` sind vollständig getestet
-(Unit-Ebene); der reine Pipeline-Start ist ungeprüft und wird als solcher geführt.
+**All usage data in these runs is seeded** ([`harness/seed_lineage_lab.py`](harness/seed_lineage_lab.py),
+namespace `probate_seedlab`). DataHub's sample catalog ships none — live check: `totalSqlQueries:
+null`, `buckets: []`. Every artifact carries `"seeded": true` for this reason.
 
-## Lizenz
+### Four states, end to end
 
-Apache 2.0, siehe [`LICENSE`](LICENSE).
+| Result | Value | Artifact |
+|---|---|---|
+| all four states matched the manifest's expectation | `true` | [`seedlab-verdicts.json`](harness/runs/seedlab-verdicts.json) |
+| at least one edge judged by the model with a citation | `true` | [`judge-seedlab-matrix.json`](harness/runs/judge-seedlab-matrix.json) |
+
+A single-focus ledger run against the confirmed pair
+([`ledger.json`](harness/runs/ledger.json)): 1 edge total, 1 `confirmed`, 0 `dead`, 0 `missing`,
+0 `unknown`, over 3 usage buckets spanning 2 days. The run flags its own coverage as thin — that
+flag is the point.
+
+### Write, verify, undo
+
+Nothing is written without a proposal, a human, and a journal entry with a real reverse gear
+([`correct-roundtrip.json`](harness/runs/correct-roundtrip.json),
+[`upstream-properties-probe.json`](harness/runs/upstream-properties-probe.json)):
+
+| Check | Value |
+|---|---|
+| the pre-existing edge survived the merge | `true` |
+| the new edge was present after the write | `true` |
+| column-level lineage survived the merge | `true` |
+| custom properties survived the write-back | `true` |
+| writes reverted | `2` |
+| revert restored the aspect exactly | `true` |
+
+### Load test
+
+Two-stage design: a coarse pass over the aggregates (one API call per table, independent of
+query volume), then a detail pass only into the edges that look suspicious. The point is that
+the expensive half scales with the number of *suspicious edges*, not with the number of queries.
+
+| Stage | Tables | Queries | Seed | Coarse pass | Coarse API calls | Coarse peak mem | Edges in detail pass | Detail pass | Per edge | Detail peak mem |
+|---|---|---|---|---|---|---|---|---|---|---|
+| S | 50 | 1000 | 11.84 s | 1.235 s | 50 | 0.38 MB | 41 | 35.614 s | 0.8686 s | 1.7 MB |
+| M | 500 | 10000 | 198.52 s | 12.238 s | 500 | 3.58 MB | 41 | 47.217 s | 1.1516 s | 1.71 MB |
+| L | not measured — the run was aborted during seeding | | | | | | | | | |
+
+Artifacts: [`loadtest_s.json`](harness/runs/loadtest_s.json),
+[`loadtest_m.json`](harness/runs/loadtest_m.json). Stage L exists as
+`harness/runs/loadtest_l.json` and records its own status as aborted during the seed phase, with
+an extrapolation inside it; it is **deliberately excluded** from the claims audit, because a
+number from an artifact that declares itself unfinished is a bet on the next write, not a
+measurement. Treat the L row as **not measured**, not as "it works at that size".
+
+Cleanup, stated as it happened: stage S cleaned up and verified in one pass. **Stage M did
+not** — a single delete call hit a transient HTTP 500. A retry cleaned up and verified,
+and an independent full read-back over all datasets and queries confirmed the final state. The
+first attempt is recorded as failed (`loadtest_m_cleanup_verified: false`) rather than
+overwritten by the successful retry.
+
+### The continuous watcher
+
+Started live against the real Kafka broker
+([`watcher-live.json`](harness/runs/watcher-live.json)): 80 events received, 1 relapse detected
+and correctly refused as a dry run, 0 edges reclassified.
+
+That last zero is honest and it is the weakest measured result in this repository — see the
+limitation below.
+
+### The retirement flow
+
+Live against a real DataHub instance ([`campaign.json`](harness/runs/campaign.json)):
+1 live consumer measured, parity proven (`parity_ok: true`), 1 consumer sign-off collected.
+`apply` proposes and stops; `confirm` is a separate, explicit command with human-written
+`--evidence` that Probate never calls for itself. Refusal is a result: a second table with a row
+count deviating beyond tolerance was **not** switched over.
+
+## Honest limitations
+
+All of them. If a section like this is missing from a submission that claims "no assertion
+without evidence", the submission has already contradicted itself.
+
+**About the survey that produced the "nobody else does this" claim.** These counts come from the
+competitive survey documented in the design spec, not from a run artifact — they are not covered
+by `audit_claims.py`, and they are the softest figures in this document:
+
+- The Devpost gallery is **unpublished** (2,708 participants). GitHub is only a proxy; private
+  or unlinked repositories are invisible to us.
+- Roughly 44 repositories were requested and never returned. They are **unread, not cleared**.
+  The three most alarming names were fetched individually and are cleared.
+- GitHub's repository search does not index READMEs, and code search covers default branches with
+  a page limit. Our count of neighbouring projects is a **lower bound**, not a census.
+- **"Metadata Tests" in DataHub Cloud is closed source.** The property table the docs promise does
+  not exist in the markdown source. What is documented is that usage is already a predicate there.
+  "Cloud cannot do this" is therefore **unprovable**, and we carry it as a risk, not as an
+  all-clear.
+
+**About the measurements:**
+
+- **Usage data is seeded.** The sample catalog ships none. Every number above was measured against
+  data we wrote ourselves, and every artifact says so.
+- **No real warehouse connection has ever been tested.** The entire measurement chain ran against
+  a local instance and our own fixtures.
+- **Row counts at retirement are typed in by a human.** Deliberate — an invented count would be
+  worse — but it means the single most consequential number in the retirement flow is typed, not
+  measured.
+- **Co-occurrence is undirected.** `QuerySubject` has no direction field. A `missing` edge
+  therefore records its direction as **inferred**, not measured.
+- **Load test stage L was not measured.** See above.
+- **The watcher's re-evaluation could not be shown changing a verdict.** The pipeline demonstrably
+  receives real Kafka events and detects a relapse. But running `probate ledger` before and after
+  a freshly emitted `datasetUsageStatistics` aspect returned **byte-identical** timeline and
+  coverage blocks, twice, including after a wait. The write itself is proven (`get_aspect` read
+  the new timestamp back); the GraphQL `usageStats` aggregation simply did not show it. `docker
+  ps` on the stack used here shows no separate usage-statistics indexer container. We record this
+  as "the aggregation layer lags or does not run in this GMS-only environment" — and explicitly
+  not as "the watcher reclassifies edges", which we did not observe.
+- **All containers of this quickstart stack report `unhealthy`** in `docker ps` (verbatim output
+  in the watcher artifact), while GMS answers HTTP 200 on the same stack and the four-state check
+  runs to completion. We state the flag and the working behaviour side by side. We do not claim
+  the flag is harmless, and we do not claim it explains the aggregation lag above.
+
+**A gap that remains in DataHub's model, not ours:** "which person reads which column" is not
+expressible — user counts and column counts live in separate lists with no link between them.
+Not a build item; a clean side finding for an upstream contribution.
+
+## Architecture
+
+| Module | Job |
+|---|---|
+| `probate/ledger.py` | the edge ledger: four states, coverage check, timeline (last covered, dead since, series per window) |
+| `probate/judge.py` | the only model call in the project — judges which deviation matters, under citation duty, injectable transport, hard timeout, falls back to the deterministic finding on any error |
+| `probate/correct.py` | proposals: add a missing edge, mark a dead one, enrich documentation from observed usage — never applied without confirmation |
+| `probate/targets.py` | declared lineage vs. measured usage; the difference itself is the result |
+| `probate/gms.py` | the only way out — locks two silent failure classes of DataHub's REST/GraphQL APIs |
+| `probate/writeback.py` | the only write path — dry-run by default, every write journalled, real reverse gear (deletes aspects that did not exist before instead of writing back an invented `None`) |
+| `probate/parity.py` | schema diff + row-count tolerance; abstention instead of a free pass when evidence is missing |
+| `probate/ruleset.py` | the evaluator DataHub does not have — writes `testResults`, which DataHub only displays |
+| `probate/campaign.py` | sign-off through DataHub's own form UI |
+| `probate_action/watcher.py` | relapse detection over the aspect, not the actor |
+| `ui/` | the workbench: live mode through the proxy, recorded mode without an instance |
+| `harness/audit_claims.py` | re-derives every number in this README from the run artifacts; exit 1 on drift |
+
+Two transports, on purpose: missing edges (co-occurrence) go through the MCP server, dead edges
+(N-day window) need raw GraphQL — the MCP server has no time windows, its timestamp fields are
+commented out in `gql/queries.gql`. That is a measured limit of the tool, not a preference.
+
+## License
+
+Apache 2.0 — see [`LICENSE`](LICENSE).
