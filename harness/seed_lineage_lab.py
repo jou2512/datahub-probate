@@ -115,7 +115,7 @@ NAMES: dict[str, str] = {
 }
 URNS: dict[str, str] = {k: ds_urn(v) for k, v in NAMES.items()}
 
-# --- organische Beschreibungen (Entscheid 2026-08-07, Fix-Runde 1) --------
+# --- organische Beschreibungen (Entscheid 2026-08-07, Fix-Runden 1+2) -----
 #
 # Fix-Runde 1 (Coordinator-Review, 07.08.): die erste Fassung mied nur die
 # TOKEN (confirmed/dead/missing/unknown, "Rolle=", "Ziel-Kanten-Zustand"),
@@ -123,25 +123,39 @@ URNS: dict[str, str] = {k: ds_urn(v) for k, v in NAMES.items()}
 # fikators in Klartext nach ("kein bekannter Konsument" = unknown-Definition,
 # "SQL-Query ausserhalb der Pipeline-Dokumentation" = missing-Definition,
 # "unklar ob die Tabelle noch jemand braucht" = dead-Definition) -- derselbe
-# Fehler in subtilerer Form. Regel jetzt bindend fuer jeden Satz: eine
-# Beschreibung darf sagen WAS eine Tabelle enthaelt und WARUM sie dem
-# Geschaeft wichtig ist (wer von der Zahl abhaengt, welche Entscheidung sie
-# speist) -- sie darf NICHT sagen oder andeuten, WIE die Daten ihre
-# Konsumenten erreichen (Pipeline vs. Ad-hoc-Query vs. Dashboard-Anbindung),
-# ob Dokumentation/Lineage existiert, ob ein Konsument bekannt/unbekannt
-# ist, ob sie noch genutzt/gepflegt/aufgegeben/zum Loeschen vorgesehen ist,
-# oder wie aktuell der letzte Zugriff war -- das sind exakt die Observablen,
-# die das Werkzeug aus Lineage, Nutzungs-Buckets und Query-Subjects selbst
+# Fehler in subtilerer Form.
+#
+# Fix-Runde 2 (Coordinator-Review, 07.08., zweiter Durchgang): C war in
+# Runde 1 faelschlich als "clean" eingestuft (Coordinator-Fehler, nicht
+# meiner) -- "fuer das alte BI-Dashboard gebaut" nennt einen Konsum-Kanal
+# (HOW, verbotene Kategorie), "seit der Migration ... nicht mehr angepasst"
+# nennt einen Pflegezustand. F nannte trotz entfernter SQL-Klausel weiter
+# "im Wachstums-Dashboard" -- derselbe HOW-Verstoss wie das bereits in D
+# entfernte "im Sales-Standup gezeigt". Beide jetzt bereinigt.
+#
+# Regel, bindend fuer jeden Satz: eine Beschreibung darf sagen WAS eine
+# Tabelle enthaelt und WARUM sie dem Geschaeft wichtig ist (wer von der
+# Zahl abhaengt/sie einsieht als Gremium oder Empfaenger, welche
+# Entscheidung sie speist -- "Audit-Committee", "Investor-Reporting",
+# "Reporting an die Geschaeftsleitung" sind erlaubtes WARUM). Sie darf
+# NICHT sagen oder andeuten: WIE die Daten technisch ihre Konsumenten
+# erreichen (Pipeline vs. Ad-hoc-Query vs. **benanntes Dashboard/Standup**
+# als Visualisierungs-/Anzeige-Artefakt), ob Dokumentation/Lineage
+# existiert, ob ein Konsument bekannt/unbekannt ist, ob sie noch
+# genutzt/gepflegt/aufgegeben/zum Loeschen vorgesehen ist, oder wie aktuell
+# der letzte Zugriff war -- das sind exakt die Observablen, die das
+# Werkzeug aus Lineage, Nutzungs-Buckets und Query-Subjects selbst
 # herleiten soll. Test pro Satz: "koennte ein Leser allein daraus auf den
 # Kanten-Zustand schliessen, ohne Lineage/Nutzung anzusehen?" Wenn ja: raus.
 #
 # Business-Relevanz zusaetzlich ENTKOPPELT von der 2-vs-2-Vierergruppe:
-# A/B (confirmed) weiterhin hoch, C/D (dead) hoch/mittel unveraendert
-# (Coordinator: "clean, nicht anfassen"), F (missing_downstream) hoch,
-# aber E (missing_upstream) jetzt bewusst MITTEL/trivial (rohes,
-# unverarbeitetes Log) statt "mehrere Teams haengen dran" -- sonst waere
-# "hohe Business-Relevanz" selbst wieder ein Hinweis auf "confirmed oder
-# missing". G/H (unknown) bleiben trivial, aber ohne jede Nutzungs-Aussage.
+# A/B (confirmed) hoch, C/D (dead) mittel (D sprachlich leicht abgeschwaecht
+# gegenueber F -- "Orientierungsgroesse" statt "Entscheidungsgrundlage",
+# ohne neue HOW/Pflege-Signale), F (missing_downstream) hoch, E
+# (missing_upstream) bewusst MITTEL/trivial (rohes, unverarbeitetes Log)
+# statt "mehrere Teams haengen dran" -- sonst waere "hohe Business-
+# Relevanz" selbst wieder ein Hinweis auf "confirmed oder missing". G/H
+# (unknown) bleiben trivial, aber ohne jede Nutzungs-Aussage.
 DESC_PREFIX = "[probate-seedlab -- synthetische Demonstrationsdaten]"
 
 ORGANIC_DESCRIPTIONS: dict[str, str] = {
@@ -157,13 +171,12 @@ ORGANIC_DESCRIPTIONS: dict[str, str] = {
         "Abweichungen hier sind meldepflichtig."
     ),
     "C": (
-        "Woechentlicher Snapshot der Filialumsaetze Region Ost, urspruenglich "
-        "fuer das alte BI-Dashboard gebaut. Seit der Migration auf das neue "
-        "Reporting-Tool wurde die Ablage-Logik nicht mehr angepasst."
+        "Woechentlicher Snapshot der Filialumsaetze fuer die Region Ost, "
+        "Rohbasis fuer die Auswertung der regionalen Vertriebsleistung."
     ),
     "D": (
-        "Aggregiertes Vertriebs-Ranking je Filiale, zusammengefasst aus den "
-        "Regional-Snapshots als Entscheidungsgrundlage fuer die "
+        "Aggregiertes Vertriebs-Ranking je Filiale aus den Regional-"
+        "Snapshots, dient als Orientierungsgroesse fuer die "
         "Vertriebssteuerung Region Ost."
     ),
     "E": (
@@ -171,9 +184,10 @@ ORGANIC_DESCRIPTIONS: dict[str, str] = {
         "Checkout-Service auf Einzelereignis-Ebene."
     ),
     "F": (
-        "Customer-Lifetime-Value je Kundensegment. Zentrale Kennzahl im "
-        "Wachstums-Dashboard, Grundlage fuer Marketing-Budgetentscheidungen "
-        "und Teil des monatlichen Reportings an die Geschaeftsleitung."
+        "Customer-Lifetime-Value je Kundensegment, zentrale "
+        "Wachstumskennzahl und Grundlage fuer Marketing-"
+        "Budgetentscheidungen sowie Teil des monatlichen Reportings an die "
+        "Geschaeftsleitung."
     ),
     "G": (
         "Zwischentabelle eines Deduplizierungs-Skripts, haelt das "

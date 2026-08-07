@@ -3,8 +3,8 @@
   "seeded_statement": "Laeuft gegen den geseedeten Beispielkatalog (namespace probate_seedlab, harness/seed_lineage_lab.py) -- keine echte Warehouse-Nutzung.",
   "gms_url": "http://localhost:28080",
   "manifest": "examples\\seedlab-manifest.json",
-  "generated_at": "2026-08-07T00:25:52.956362+00:00",
-  "now_ms": 1786062352956,
+  "generated_at": "2026-08-07T00:39:38.506275+00:00",
+  "now_ms": 1786063178506,
   "all_four_states_matched_expected": true,
   "pairs": {
     "confirmed": {
@@ -20,17 +20,17 @@
         "source": "declared lineage + query co-occurrence"
       },
       "queries_seen": 1,
-      "buckets_checked": 3,
+      "buckets_checked": 4,
       "coverage": {
-        "buckets_seen": 3,
+        "buckets_seen": 4,
         "oldest_bucket_ms": 1785801600000,
-        "newest_bucket_ms": 1785974400000,
-        "days_span": 2,
+        "newest_bucket_ms": 1786060800000,
+        "days_span": 3,
         "reason": ""
       },
       "timeline": {
-        "last_covered_ms": 1785974400000,
-        "dead_since_days": 1,
+        "last_covered_ms": 1786060800000,
+        "dead_since_days": 0,
         "dead_since_is_lower_bound": false,
         "series": [
           [
@@ -39,10 +39,14 @@
           ],
           [
             1785888000000,
-            35
+            28
           ],
           [
             1785974400000,
+            35
+          ],
+          [
+            1786060800000,
             40
           ]
         ]
@@ -63,20 +67,16 @@
       "buckets_checked": 31,
       "coverage": {
         "buckets_seen": 31,
-        "oldest_bucket_ms": 1783382400000,
-        "newest_bucket_ms": 1785974400000,
+        "oldest_bucket_ms": 1783468800000,
+        "newest_bucket_ms": 1786060800000,
         "days_span": 30,
         "reason": ""
       },
       "timeline": {
         "last_covered_ms": null,
-        "dead_since_days": 31,
+        "dead_since_days": 30,
         "dead_since_is_lower_bound": true,
         "series": [
-          [
-            1783382400000,
-            0
-          ],
           [
             1783468800000,
             0
@@ -196,6 +196,10 @@
           [
             1785974400000,
             0
+          ],
+          [
+            1786060800000,
+            0
           ]
         ]
       }
@@ -215,17 +219,17 @@
         "source": "query co-occurrence"
       },
       "queries_seen": 1,
-      "buckets_checked": 3,
+      "buckets_checked": 4,
       "coverage": {
-        "buckets_seen": 3,
+        "buckets_seen": 4,
         "oldest_bucket_ms": 1785801600000,
-        "newest_bucket_ms": 1785974400000,
-        "days_span": 2,
+        "newest_bucket_ms": 1786060800000,
+        "days_span": 3,
         "reason": ""
       },
       "timeline": {
-        "last_covered_ms": 1785974400000,
-        "dead_since_days": 1,
+        "last_covered_ms": 1786060800000,
+        "dead_since_days": 0,
         "dead_since_is_lower_bound": false,
         "series": [
           [
@@ -234,10 +238,14 @@
           ],
           [
             1785888000000,
-            24
+            19
           ],
           [
             1785974400000,
+            24
+          ],
+          [
+            1786060800000,
             31
           ]
         ]

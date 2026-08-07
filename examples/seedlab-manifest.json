@@ -1,7 +1,7 @@
 {
   "seeded": true,
   "seeded_statement": "Dies sind kuenstlich eingespielte Demonstrationsdaten (harness/seed_lineage_lab.py), keine echte Warehouse-Nutzung. Namespace probate_seedlab, Plattform postgres.",
-  "generated_at": "2026-08-07T00:25:51.439989+00:00",
+  "generated_at": "2026-08-07T00:39:34.406170+00:00",
   "gms_url": "http://localhost:28080",
   "namespace": "probate_seedlab",
   "edges": [
