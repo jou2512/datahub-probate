@@ -1,0 +1,282 @@
+{
+  "focus": "4 seeded focuses (see edges[].upstream)",
+  "focuses": [
+    "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
+    "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+    "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
+    "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)"
+  ],
+  "gms": "http://localhost:28080",
+  "seeded": true,
+  "recording": true,
+  "recorded_runs_at_ms": [
+    1786061496923,
+    1786061496923,
+    1786061496923,
+    1786061496923
+  ],
+  "generated_at_ms": 1786061496923,
+  "edges_total": 4,
+  "edges_confirmed": 1,
+  "edges_dead": 1,
+  "edges_missing": 1,
+  "edges_unknown": 1,
+  "coverage_buckets_seen": 37,
+  "coverage_days_span": 30,
+  "coverage_thin": true,
+  "api_calls": 14,
+  "queries_seen": 2,
+  "edges": [
+    {
+      "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)",
+      "upstream": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
+      "downstream": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)",
+      "state": "confirmed",
+      "evidence": {
+        "query_urns": [
+          "urn:li:query:probate-seedlab-confirmed"
+        ],
+        "source": "declared lineage + query co-occurrence"
+      },
+      "coverage": {
+        "buckets_seen": 3,
+        "oldest_bucket_ms": 1785801600000,
+        "newest_bucket_ms": 1785974400000,
+        "days_span": 2,
+        "reason": ""
+      },
+      "timeline": {
+        "last_covered_ms": 1785974400000,
+        "dead_since_days": 1,
+        "dead_since_is_lower_bound": false,
+        "series": [
+          [
+            1785801600000,
+            28
+          ],
+          [
+            1785888000000,
+            35
+          ],
+          [
+            1785974400000,
+            40
+          ]
+        ]
+      }
+    },
+    {
+      "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_downstream,PROD)",
+      "upstream": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+      "downstream": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_downstream,PROD)",
+      "state": "dead",
+      "evidence": {
+        "reason": "im geprueften Fenster nie gemessen",
+        "buckets_checked": 31,
+        "source": "declared lineage"
+      },
+      "coverage": {
+        "buckets_seen": 31,
+        "oldest_bucket_ms": 1783382400000,
+        "newest_bucket_ms": 1785974400000,
+        "days_span": 30,
+        "reason": ""
+      },
+      "timeline": {
+        "last_covered_ms": null,
+        "dead_since_days": 31,
+        "dead_since_is_lower_bound": true,
+        "series": [
+          [
+            1783382400000,
+            0
+          ],
+          [
+            1783468800000,
+            0
+          ],
+          [
+            1783555200000,
+            0
+          ],
+          [
+            1783641600000,
+            0
+          ],
+          [
+            1783728000000,
+            0
+          ],
+          [
+            1783814400000,
+            0
+          ],
+          [
+            1783900800000,
+            0
+          ],
+          [
+            1783987200000,
+            0
+          ],
+          [
+            1784073600000,
+            0
+          ],
+          [
+            1784160000000,
+            0
+          ],
+          [
+            1784246400000,
+            0
+          ],
+          [
+            1784332800000,
+            0
+          ],
+          [
+            1784419200000,
+            0
+          ],
+          [
+            1784505600000,
+            0
+          ],
+          [
+            1784592000000,
+            0
+          ],
+          [
+            1784678400000,
+            0
+          ],
+          [
+            1784764800000,
+            0
+          ],
+          [
+            1784851200000,
+            0
+          ],
+          [
+            1784937600000,
+            0
+          ],
+          [
+            1785024000000,
+            0
+          ],
+          [
+            1785110400000,
+            0
+          ],
+          [
+            1785196800000,
+            0
+          ],
+          [
+            1785283200000,
+            0
+          ],
+          [
+            1785369600000,
+            0
+          ],
+          [
+            1785456000000,
+            0
+          ],
+          [
+            1785542400000,
+            0
+          ],
+          [
+            1785628800000,
+            0
+          ],
+          [
+            1785715200000,
+            0
+          ],
+          [
+            1785801600000,
+            0
+          ],
+          [
+            1785888000000,
+            0
+          ],
+          [
+            1785974400000,
+            0
+          ]
+        ]
+      }
+    },
+    {
+      "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)",
+      "upstream": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
+      "downstream": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)",
+      "state": "missing",
+      "evidence": {
+        "query_urns": [
+          "urn:li:query:probate-seedlab-missing"
+        ],
+        "cooccurrence_count": 1,
+        "direction_evidence": "co-occurrence (undirected)",
+        "source": "query co-occurrence"
+      },
+      "coverage": {
+        "buckets_seen": 3,
+        "oldest_bucket_ms": 1785801600000,
+        "newest_bucket_ms": 1785974400000,
+        "days_span": 2,
+        "reason": ""
+      },
+      "timeline": {
+        "last_covered_ms": 1785974400000,
+        "dead_since_days": 1,
+        "dead_since_is_lower_bound": false,
+        "series": [
+          [
+            1785801600000,
+            19
+          ],
+          [
+            1785888000000,
+            24
+          ],
+          [
+            1785974400000,
+            31
+          ]
+        ]
+      }
+    },
+    {
+      "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_downstream,PROD)",
+      "upstream": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)",
+      "downstream": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_downstream,PROD)",
+      "state": "unknown",
+      "evidence": {
+        "reason": "keine Nutzungs-Zeitfenster im Katalog",
+        "source": "declared lineage"
+      },
+      "coverage": {
+        "buckets_seen": 0,
+        "oldest_bucket_ms": null,
+        "newest_bucket_ms": null,
+        "days_span": null,
+        "reason": "keine Nutzungs-Zeitfenster im Katalog"
+      },
+      "timeline": {
+        "last_covered_ms": null,
+        "dead_since_days": null,
+        "dead_since_is_lower_bound": false,
+        "series": []
+      }
+    }
+  ],
+  "recorded_at_iso": "2026-08-07T00:11:37.359105+00:00"
+}
