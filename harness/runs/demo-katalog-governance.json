@@ -1,0 +1,5698 @@
+{
+ "generated_at_ms": 1786131583277,
+ "generated_at_iso": "2026-08-07T19:39:43.277511+00:00",
+ "source_ledger": "harness/runs/demo-katalog-ledger.json",
+ "seconds": 40.24,
+ "catalog_datasets_total": 6205,
+ "catalog_datasets_scanned": 6205,
+ "tables_wanted": 618,
+ "tables_looked_up": 618,
+ "tables_with_domain": 614,
+ "tables_with_owner": 417,
+ "tables_not_found": [],
+ "domains_total": 7,
+ "owners_total": 10,
+ "domains": [
+  {
+   "urn": "urn:li:domain:probate_demo.finance",
+   "name": "Finance",
+   "tables": 146
+  },
+  {
+   "urn": "urn:li:domain:probate_demo.marketing",
+   "name": "Marketing",
+   "tables": 136
+  },
+  {
+   "urn": "urn:li:domain:probate_demo.product",
+   "name": "Product",
+   "tables": 124
+  },
+  {
+   "urn": "urn:li:domain:probate_demo.ops",
+   "name": "Operations",
+   "tables": 122
+  },
+  {
+   "urn": "urn:li:domain:probate_demo.hr",
+   "name": "People",
+   "tables": 82
+  },
+  {
+   "urn": "urn:li:domain:probate_seedlab.customer_analytics",
+   "name": "Customer Analytics",
+   "tables": 2
+  },
+  {
+   "urn": "urn:li:domain:probate_seedlab.finance",
+   "name": "Finance",
+   "tables": 2
+  }
+ ],
+ "owners": [
+  {
+   "urn": "urn:li:corpuser:people.ops",
+   "name": "people.ops",
+   "tables": 55
+  },
+  {
+   "urn": "urn:li:corpuser:growth.analytics",
+   "name": "growth.analytics",
+   "tables": 49
+  },
+  {
+   "urn": "urn:li:corpuser:product.analytics",
+   "name": "product.analytics",
+   "tables": 49
+  },
+  {
+   "urn": "urn:li:corpuser:ops.data",
+   "name": "ops.data",
+   "tables": 46
+  },
+  {
+   "urn": "urn:li:corpuser:p.moser",
+   "name": "p.moser",
+   "tables": 41
+  },
+  {
+   "urn": "urn:li:corpuser:l.frei",
+   "name": "l.frei",
+   "tables": 40
+  },
+  {
+   "urn": "urn:li:corpuser:finance.reporting",
+   "name": "finance.reporting",
+   "tables": 36
+  },
+  {
+   "urn": "urn:li:corpuser:m.keller",
+   "name": "m.keller",
+   "tables": 34
+  },
+  {
+   "urn": "urn:li:corpuser:r.huber",
+   "name": "r.huber",
+   "tables": 34
+  },
+  {
+   "urn": "urn:li:corpuser:s.brunner",
+   "name": "s.brunner",
+   "tables": 33
+  }
+ ],
+ "tables": {
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.dim_currency,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.dim_fiscal_period,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.fct_cash_flow_by_store,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.fct_cash_flow_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.fct_cash_flow_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.fct_gl_postings_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.fct_margin_snapshot,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.marts.mart_audit_trail_exec,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.marts.mart_audit_trail_overview,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.marts.mart_cost_control_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.marts.mart_cost_control_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.marts.mart_investor_reporting_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.marts.mart_investor_reporting_detail,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.marts.mart_revenue_bridge_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.core.fct_attrition_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.core.fct_headcount_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.core.fct_payroll_cost_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.core.fct_payroll_cost_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.marts.mart_compensation_by_market,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.marts.mart_engagement_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.marts.mart_workforce_plan_board,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.dim_partner,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.fct_attribution_touches_by_channel,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.fct_attribution_touches_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.fct_attribution_touches_weekly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.fct_audience_reach_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.fct_email_engagement_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.fct_email_engagement_weekly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.fct_lead_pipeline_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.marts.mart_attribution_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.marts.mart_brand_reach_by_market,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.marts.mart_lead_quality_exec,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.core.dim_carrier,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.core.fct_carrier_cost_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.core.fct_picking_time_weekly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.core.fct_returns_by_store,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.core.fct_returns_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.core.fct_shipment_legs_by_channel,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.core.fct_sla_compliance_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.marts.mart_supplier_scorecard_board,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.marts.mart_supplier_scorecard_exec,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.core.fct_search_results_weekly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.core.fct_subscriptions_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.core.fct_subscriptions_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.marts.mart_activation_by_market,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.marts.mart_customer_health_by_market,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.marts.mart_customer_health_trend,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.marts.mart_pricing_quarterly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.marts.mart_retention_detail,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.marts.mart_retention_exec,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.marts.mart_roadmap_signals_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_lifetime_value_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_seedlab.customer_analytics",
+   "domain_name": "Customer Analytics",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.finance_income_statement_consolidated,PROD)": {
+   "domain": "urn:li:domain:probate_seedlab.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.gl_journal_entries_daily,PROD)": {
+   "domain": "urn:li:domain:probate_seedlab.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.dim_tax_jurisdiction,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_cash_flow_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_margin_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_payables_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_payables_snapshot,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_receivables_by_channel,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_revenue_by_channel,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_write_offs_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.marts.mart_audit_trail_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.marts.mart_close_pack_by_market,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.marts.mart_cost_control_trend,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.marts.mart_revenue_bridge_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.marts.mart_working_capital_trend,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.core.fct_absence_days_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.core.fct_absence_days_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.core.fct_attrition_snapshot,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.core.fct_attrition_weekly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.core.fct_headcount_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.core.fct_hiring_pipeline_weekly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.marts.mart_compensation_exec,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.marts.mart_engagement_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.marts.mart_talent_pipeline_by_market,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.marts.mart_talent_pipeline_quarterly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.marts.mart_workforce_plan_by_market,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.marts.mart_workforce_plan_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.dim_landing_page,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.fct_audience_reach_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.fct_audience_reach_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.fct_email_engagement_by_channel,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.fct_email_engagement_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.fct_lead_pipeline_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.marts.mart_attribution_overview,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.marts.mart_lifecycle_detail,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.marts.mart_lifecycle_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.marts.mart_spend_efficiency_quarterly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.core.fct_carrier_cost_weekly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.core.fct_inventory_balance_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.core.fct_inventory_balance_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.core.fct_picking_time_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.core.fct_returns_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.core.fct_shipment_legs_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.core.fct_sla_compliance_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.marts.mart_capacity_plan_detail,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.marts.mart_capacity_plan_exec,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.marts.mart_delivery_performance_trend,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.marts.mart_network_load_overview,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.marts.mart_returns_analysis_trend,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.marts.mart_supplier_scorecard_by_market,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.core.dim_device,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.core.fct_checkout_funnel_by_channel,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.core.fct_orders_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.core.fct_subscriptions_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.core.fct_subscriptions_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.marts.mart_activation_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.marts.mart_activation_overview,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.marts.mart_growth_board,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.marts.mart_pricing_board,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.marts.mart_pricing_by_market,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.fct_gl_postings_by_store,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.fct_gl_postings_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.marts.mart_close_pack_overview,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.marts.mart_cost_control_board,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.core.dim_department,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.core.fct_attrition_by_channel,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.core.fct_hiring_pipeline_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.marts.mart_engagement_detail,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.marts.mart_workforce_plan_trend,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.dim_campaign,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.fct_attribution_touches_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.fct_audience_reach_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.marts.mart_brand_reach_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.marts.mart_channel_mix_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.marts.mart_channel_mix_trend,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.marts.mart_lead_quality_by_market,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.marts.mart_lead_quality_overview,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.marts.mart_lead_quality_trend,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.marts.mart_lifecycle_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.marts.mart_spend_efficiency_by_market,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.core.fct_carrier_cost_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.core.fct_picking_time_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.core.fct_returns_by_channel,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.core.fct_shipment_legs_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.core.fct_sla_compliance_by_channel,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.marts.mart_delivery_performance_board,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.marts.mart_delivery_performance_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.marts.mart_network_load_quarterly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.marts.mart_returns_analysis_overview,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.marts.mart_returns_analysis_quarterly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.marts.mart_supplier_scorecard_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.core.dim_cohort,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.core.dim_product,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.core.fct_feature_usage_by_store,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.core.fct_feature_usage_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.core.fct_sessions_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.core.fct_subscriptions_by_channel,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.marts.mart_growth_overview,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.marts.mart_growth_quarterly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.bank_transactions_v2,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.budget_lines,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.cost_centers,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.cost_centers_apac,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.cost_centers_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.cost_centers_log,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.credit_notes,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.credit_notes_log,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.fx_rates_stream,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.fx_rates_us,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.invoices_us,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.payments_eu,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.refunds_intraday,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.refunds_stream,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.tax_codes_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.vendor_bills_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_hr.raw.absences_journal,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_hr.raw.absences_v2,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_hr.raw.badge_swipes_events,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_hr.raw.badge_swipes_v2,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_hr.raw.interview_feedback,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_hr.raw.training_records_stream,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.ad_clicks,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.ad_impressions_us,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.affiliate_referrals_apac,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.email_sends_journal,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.push_deliveries_eu,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.push_deliveries_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.social_mentions_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.social_mentions_intraday,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.social_mentions_us,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_ops.raw.carrier_scans_apac,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_ops.raw.delivery_attempts_events,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_ops.raw.inventory_moves_eu,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_ops.raw.packing_slips_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_ops.raw.returns_eu,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_ops.raw.shipments_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_ops.raw.shipments_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_ops.raw.sla_breaches,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_ops.raw.stock_counts_events,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_ops.raw.stock_counts_journal,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_product.raw.app_crashes_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_product.raw.app_crashes_journal,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_product.raw.onboarding_steps_events,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_product.raw.page_views_apac,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_product.raw.push_permissions_log,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_product.raw.review_submissions_us,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_product.raw.search_queries_eu,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_product.raw.search_queries_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_product.raw.search_queries_journal,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_product.raw.session_starts_eu,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_product.raw.subscription_changes_apac,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_product.raw.wishlist_adds_intraday,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.bank_transactions_eu,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.cost_centers_intraday,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.credit_notes_eu,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.fx_rates_journal,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.invoices_intraday,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.journal_lines_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.payments,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.payments_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.tax_codes_journal,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.vendor_bills_intraday,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_hr.raw.badge_swipes_eu,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_hr.raw.badge_swipes_intraday,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_hr.raw.org_assignments_apac,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_hr.raw.org_assignments_events,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_hr.raw.payroll_runs_stream,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_hr.raw.time_entries_apac,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.ad_clicks_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.affiliate_referrals_journal,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.affiliate_referrals_v2,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.campaign_members_apac,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.email_opens_us,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.email_sends_log,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.form_submissions_stream,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.form_submissions_v2,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.landing_page_hits_apac,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.push_deliveries_journal,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.social_mentions_journal,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_ops.raw.delivery_attempts_apac,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_ops.raw.inventory_moves_events,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_ops.raw.inventory_moves_journal,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_ops.raw.returns_v2,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_ops.raw.route_legs_apac,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_ops.raw.sla_breaches_eu,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_ops.raw.sla_breaches_events,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_ops.raw.support_tickets_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_ops.raw.warehouse_picks_v2,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_product.raw.cart_updates_journal,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_product.raw.checkout_events,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_product.raw.feature_flags,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_product.raw.feature_flags_stream,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_product.raw.onboarding_steps_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_product.raw.onboarding_steps_intraday,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_product.raw.onboarding_steps_log,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_product.raw.search_queries,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_product.raw.search_queries_intraday,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_product.raw.session_starts,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_product.raw.subscription_changes,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_product.raw.wishlist_adds_log,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_product.raw.wishlist_adds_us,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.checkout_events_raw,PROD)": {
+   "domain": "urn:li:domain:probate_seedlab.customer_analytics",
+   "domain_name": "Customer Analytics",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_cash_flow_by_channel,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_margin_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_margin_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_payables_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_receivables_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_revenue_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_revenue_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_write_offs_by_channel,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_write_offs_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.marts.mart_close_pack_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.marts.mart_revenue_bridge_trend,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.marts.mart_working_capital_detail,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_adyen_bank_transactions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_adyen_budget_lines,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_adyen_invoices,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_greenhouse_payments,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_greenhouse_refunds,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_hubspot_journal_lines,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_hubspot_refunds,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_jira_cost_centers,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_jira_vendor_bills,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_klaviyo_vendor_bills,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_mixpanel_invoices,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_netsuite_vendor_bills,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_salesforce_bank_transactions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_salesforce_cost_centers,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_salesforce_invoices,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_sap_journal_lines,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_sap_payments,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_sap_refunds,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_segment_bank_transactions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_segment_budget_lines,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_shopify_tax_codes,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_shopify_vendor_bills,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_stripe_bank_transactions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_stripe_fx_rates,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_stripe_payments,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_stripe_tax_codes,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_workday_budget_lines,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:m.keller",
+     "name": "m.keller",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_workday_gl_entries,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_workday_payments,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:s.brunner",
+     "name": "s.brunner",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_zendesk_credit_notes,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_zendesk_invoices,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_zendesk_journal_lines,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:finance.reporting",
+     "name": "finance.reporting",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.core.dim_location,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.core.fct_absence_days_by_store,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.core.fct_absence_days_snapshot,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.marts.mart_compensation_trend,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_adyen_payroll_runs,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_adyen_training_records,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_greenhouse_badge_swipes,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_jira_time_entries,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_mixpanel_absences,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_mixpanel_interview_feedback,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_netsuite_time_entries,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_salesforce_payroll_runs,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_salesforce_time_entries,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_sap_payroll_runs,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_sap_time_entries,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_segment_absences,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_segment_org_assignments,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_stripe_time_entries,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_workday_payroll_runs,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:people.ops",
+     "name": "people.ops",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.dim_audience_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.fct_ad_spend_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.fct_ad_spend_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.fct_audience_reach_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.fct_campaign_cost_by_store,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.fct_campaign_cost_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.fct_lead_pipeline_by_channel,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.fct_lead_pipeline_snapshot,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.marts.mart_brand_reach_trend,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.marts.mart_spend_efficiency_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_adyen_ad_impressions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_adyen_newsletter_signups,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_braze_form_submissions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_greenhouse_ad_impressions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_greenhouse_form_submissions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_greenhouse_landing_page_hits,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_greenhouse_push_deliveries,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_hubspot_ad_impressions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_klaviyo_campaign_members,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_mixpanel_ad_clicks,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_netsuite_push_deliveries,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_netsuite_utm_touches,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_segment_ad_impressions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_segment_campaign_members,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_segment_email_opens,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_shopify_ad_clicks,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_shopify_ad_impressions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_shopify_email_opens,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_shopify_email_sends,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_stripe_campaign_members,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_stripe_email_opens,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_stripe_social_mentions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_workday_affiliate_referrals,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:l.frei",
+     "name": "l.frei",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_zendesk_affiliate_referrals,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_zendesk_utm_touches,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:growth.analytics",
+     "name": "growth.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.core.fct_carrier_cost_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.core.fct_carrier_cost_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.core.fct_picking_time_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.core.fct_sla_compliance_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.marts.mart_delivery_performance_quarterly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_braze_carrier_scans,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_braze_stock_counts,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_hubspot_delivery_attempts,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_hubspot_inventory_moves,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_jira_inventory_moves,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_jira_route_legs,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_jira_support_tickets,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_klaviyo_stock_counts,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_netsuite_delivery_attempts,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_netsuite_purchase_orders,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_netsuite_route_legs,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_netsuite_warehouse_picks,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_salesforce_support_tickets,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_segment_inventory_moves,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_shopify_inventory_moves,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_shopify_packing_slips,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_stripe_inventory_moves,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_stripe_packing_slips,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_stripe_stock_counts,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_workday_warehouse_picks,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_zendesk_purchase_orders,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:ops.data",
+     "name": "ops.data",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.core.fct_checkout_funnel_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.core.fct_checkout_funnel_by_store,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.core.fct_feature_usage_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.core.fct_orders_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.core.fct_orders_weekly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.core.fct_search_results_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.core.fct_subscriptions_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.core.fct_subscriptions_weekly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.marts.mart_activation_board,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.marts.mart_pricing_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.marts.mart_retention_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.marts.mart_roadmap_signals_trend,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_adyen_app_crashes,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_braze_app_crashes,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_braze_onboarding_steps,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_braze_page_views,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_greenhouse_search_queries,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_greenhouse_session_starts,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_hubspot_page_views,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_hubspot_wishlist_adds,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_jira_feature_flags,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_klaviyo_onboarding_steps,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_klaviyo_page_views,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_mixpanel_review_submissions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_netsuite_page_views,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_netsuite_push_permissions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_segment_cart_updates,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_segment_feature_flags,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_segment_wishlist_adds,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_shopify_checkout_events,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_shopify_session_starts,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_stripe_checkout_events,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:product.analytics",
+     "name": "product.analytics",
+     "type": "BUSINESS_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_stripe_onboarding_steps,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_workday_page_views,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_workday_session_starts,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_workday_subscription_changes,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_workday_wishlist_adds,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:p.moser",
+     "name": "p.moser",
+     "type": "DATAOWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_revenue_weekly_east,PROD)": {
+   "domain": null,
+   "domain_name": null,
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_sales_ranking_east,PROD)": {
+   "domain": null,
+   "domain_name": null,
+   "owners": [
+    {
+     "urn": "urn:li:corpuser:r.huber",
+     "name": "r.huber",
+     "type": "TECHNICAL_OWNER"
+    }
+   ]
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.fct_gl_postings_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.fct_margin_by_store,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.fct_payables_by_store,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.fct_payables_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.fct_revenue_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.marts.mart_audit_trail_detail,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.marts.mart_close_pack_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.core.fct_absence_days_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.core.fct_hiring_pipeline_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.core.fct_payroll_cost_snapshot,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.marts.mart_compensation_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.fct_audience_reach_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.fct_campaign_cost_weekly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.fct_lead_pipeline_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.fct_lead_pipeline_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.fct_lead_pipeline_weekly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.marts.mart_channel_mix_overview,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.core.fct_carrier_cost_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.marts.mart_returns_analysis_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.core.fct_checkout_funnel_snapshot,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.core.fct_feature_usage_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.core.fct_feature_usage_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.core.fct_orders_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_receivables_by_store,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.marts.mart_revenue_bridge_overview,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.marts.mart_working_capital_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.core.fct_hiring_pipeline_by_channel,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.core.fct_payroll_cost_weekly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.marts.mart_engagement_board,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.dim_channel,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.marts.mart_attribution_by_market,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.marts.mart_brand_reach_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.marts.mart_channel_mix_exec,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.marts.mart_spend_efficiency_board,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.core.fct_carrier_cost_by_channel,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.core.fct_picking_time_by_store,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.core.fct_returns_snapshot,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.core.fct_shipment_legs_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.marts.mart_delivery_performance_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.marts.mart_returns_analysis_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.core.fct_sessions_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.marts.mart_customer_health_board,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.fct_cash_flow_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.fct_gl_postings_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.fct_gl_postings_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.fct_gl_postings_snapshot,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.core.fct_receivables_weekly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.marts.mart_investor_reporting_trend,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_finance.marts.mart_working_capital_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.core.fct_absence_days_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.marts.mart_talent_pipeline_detail,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_hr.marts.mart_workforce_plan_overview,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.fct_attribution_touches_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.core.fct_lead_pipeline_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_marketing.marts.mart_channel_mix_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.core.dim_sku,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.core.fct_inventory_balance_snapshot,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.core.fct_picking_time_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.marts.mart_capacity_plan_overview,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_ops.marts.mart_supplier_scorecard_detail,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.core.fct_feature_usage_snapshot,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.core.fct_orders_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.core.fct_search_results_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.marts.mart_growth_by_market,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:bigquery,probate_demo_product.marts.mart_retention_overview,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.credit_notes_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.payments_journal,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.payments_stream,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_finance.raw.tax_codes_v2,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_hr.raw.badge_swipes_stream,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_hr.raw.interview_feedback_stream,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_hr.raw.org_assignments_log,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_hr.raw.time_entries_intraday,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_hr.raw.training_records_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.ad_impressions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.campaign_members_intraday,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.email_opens_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.email_opens_v2,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.email_sends_stream,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.form_submissions_journal,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.landing_page_hits_intraday,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.push_deliveries_log,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_marketing.raw.push_deliveries_stream,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_ops.raw.carrier_scans_log,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_ops.raw.delivery_attempts,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_ops.raw.purchase_orders_intraday,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_ops.raw.purchase_orders_v2,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_ops.raw.returns_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_ops.raw.returns_stream,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_ops.raw.stock_counts_v2,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_product.raw.feature_flags_log,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_product.raw.onboarding_steps_us,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_product.raw.page_views_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_product.raw.search_queries_apac,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:kafka,probate_demo_product.raw.wishlist_adds_apac,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.bank_transactions_intraday,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.budget_lines_events,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.fx_rates_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.fx_rates_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.gl_entries_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.gl_entries_log,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.refunds_events,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.refunds_log,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.tax_codes_events,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_finance.raw.vendor_bills,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_hr.raw.applications_log,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_hr.raw.badge_swipes_journal,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_hr.raw.org_assignments_eu,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_hr.raw.payroll_runs_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_hr.raw.time_entries_us,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.ad_impressions_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.email_opens_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.email_opens_log,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.landing_page_hits_feed,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.social_mentions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.utm_touches,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_marketing.raw.utm_touches_apac,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_ops.raw.carrier_scans_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_ops.raw.delivery_attempts_intraday,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_ops.raw.inventory_moves,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_ops.raw.packing_slips_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_ops.raw.purchase_orders_log,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_ops.raw.route_legs_us,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_ops.raw.support_tickets_journal,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_ops.raw.support_tickets_log,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_product.raw.cart_updates_log,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_product.raw.checkout_events_intraday,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_product.raw.review_submissions_journal,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_demo_product.raw.session_starts_hourly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.core.fct_margin_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.marts.mart_cost_control_overview,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.marts.mart_cost_control_quarterly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.marts.mart_revenue_bridge_quarterly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_adyen_credit_notes,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_braze_bank_transactions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_braze_tax_codes,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_greenhouse_credit_notes,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_mixpanel_tax_codes,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_netsuite_credit_notes,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_shopify_credit_notes,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_shopify_invoices,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_zendesk_cost_centers,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_finance.staging.stg_zendesk_gl_entries,PROD)": {
+   "domain": "urn:li:domain:probate_demo.finance",
+   "domain_name": "Finance",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_braze_absences,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_braze_interview_feedback,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_braze_training_records,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_salesforce_absences,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_sap_absences,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_shopify_interview_feedback,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_hr.staging.stg_stripe_applications,PROD)": {
+   "domain": "urn:li:domain:probate_demo.hr",
+   "domain_name": "People",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.fct_ad_spend_by_region,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.fct_ad_spend_daily,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.core.fct_audience_reach_weekly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.marts.mart_attribution_board,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.marts.mart_brand_reach_exec,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.marts.mart_lifecycle_trend,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_adyen_email_sends,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_adyen_push_deliveries,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_braze_ad_clicks,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_hubspot_newsletter_signups,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_jira_push_deliveries,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_klaviyo_affiliate_referrals,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_klaviyo_newsletter_signups,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_mixpanel_affiliate_referrals,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_sap_landing_page_hits,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_shopify_form_submissions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_stripe_ad_clicks,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_zendesk_ad_clicks,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_marketing.staging.stg_zendesk_social_mentions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.marketing",
+   "domain_name": "Marketing",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.core.fct_sla_compliance_rolling_28d,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.marts.mart_delivery_performance_by_market,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.marts.mart_returns_analysis_by_market,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_adyen_packing_slips,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_adyen_route_legs,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_braze_returns,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_greenhouse_sla_breaches,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_hubspot_returns,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_hubspot_support_tickets,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_klaviyo_purchase_orders,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_mixpanel_packing_slips,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_netsuite_packing_slips,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_sap_route_legs,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_segment_delivery_attempts,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_shopify_warehouse_picks,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_ops.staging.stg_zendesk_packing_slips,PROD)": {
+   "domain": "urn:li:domain:probate_demo.ops",
+   "domain_name": "Operations",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.core.dim_plan,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.core.fct_search_results_by_segment,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.marts.mart_roadmap_signals_monthly,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_jira_wishlist_adds,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_klaviyo_review_submissions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_sap_cart_updates,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_segment_push_permissions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_shopify_feature_flags,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_shopify_page_views,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_stripe_app_crashes,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_stripe_feature_flags,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_stripe_review_submissions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_stripe_session_starts,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:snowflake,probate_demo_product.staging.stg_workday_review_submissions,PROD)": {
+   "domain": "urn:li:domain:probate_demo.product",
+   "domain_name": "Product",
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.crm_migration_staging,PROD)": {
+   "domain": null,
+   "domain_name": null,
+   "owners": []
+  },
+  "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_dedup_stage,PROD)": {
+   "domain": null,
+   "domain_name": null,
+   "owners": []
+  }
+ }
+}

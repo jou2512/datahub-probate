@@ -145,9 +145,15 @@ const state = {
   filters: {
     states: new Set(),
     platform: '', database: '', table: '', q: '',
+    // Domaene/Besitzer kommen aus dem Governance-Artefakt, `idle` ist die
+    // Stillstandsdauer in Tagen (siehe console_api.filter_sort_page).
+    domain: '', owner: '', idle: '',
     judged: false, abstained: false,
     sort: 'state', dir: 'asc', start: 0,
   },
+  // Beschriftungen der Auswahllisten, gemerkt fuer die Chips: der Chip soll
+  // "Finance (probate_demo)" zeigen, nicht die URN.
+  facetLabels: { domain: new Map(), owner: new Map(), database: new Map() },
   catalog: { q: '', start: 0, total: 0 },
 };
 
@@ -356,6 +362,9 @@ function filterQuery() {
   if (f.states.size) p.set('state', [...f.states].join(','));
   if (f.platform) p.set('platform', f.platform);
   if (f.database) p.set('database', f.database);
+  if (f.domain) p.set('domain', f.domain);
+  if (f.owner) p.set('owner', f.owner);
+  if (f.idle) p.set('idle', f.idle);
   if (f.table) p.set('table', f.table);
   if (f.q) p.set('q', f.q);
   if (f.judged) p.set('judged', '1');
@@ -377,6 +386,58 @@ function cellRef(ref) {
   name.title = ref.urn;
   cell.append(name);
   return cell;
+}
+
+// --- Die Spalte "Zuletzt belegt" ---------------------------------------
+//
+// Gemessener Widerspruch (07.08., 513-Kanten-Register): 32 der 73 TOTEN
+// Kanten zeigten hier ein frisches Datum -- "7 August (today)". Technisch
+// richtig, in der Zeile aber unlesbar: tot, aber heute gemessen? Das
+// Datum gehoert den TABELLEN, das Urteil gehoert der KANTE, und die
+// Spalte zeigte nur das eine.
+//
+// Dazu kam ein zweiter, groesserer Fehlgriff: 55 Zeilen (41 tote, 12
+// bestaetigte, 2 fehlende) hatten sehr wohl Messfenster, in denen JEDES
+// Fenster NULL gemessen hat -- und die Spalte schrieb "not measured".
+// Eine gemessene Null als fehlende Messung auszugeben ist genau der
+// Verstoss gegen die Null-Regel, gegen den dieses Produkt antritt, nur in
+// der eigenen Tabelle.
+//
+// Deshalb drei Faelle, die verschieden aussehen, und der Server sagt
+// welcher (`row.measurement`), damit der Browser nichts ableiten muss:
+//
+//   traffic (399) -- es gibt ein Datum. Bei einer TOTEN Kante steht davor,
+//                    was die Kante betrifft, und das Datum darunter als
+//                    das, was es ist: Verkehr der Tabellen.
+//   zero    ( 55) -- Fenster liefen, alle massen null. Gemessene Null.
+//   none    ( 59) -- gar kein Fenster. Erst hier ist "nicht gemessen" wahr.
+function lastMeasuredCell(row) {
+  const td = el('td', 'lastcell');
+  const days = row.window_days;
+  const span = days ? `${days} days` : 'the checked window';
+
+  if (row.measurement === 'none') {
+    td.append(el('span', 'notmeasured', 'not measured'));
+    td.append(el('span', 'lastcell__why', 'no usage window in the catalog'));
+    return td;
+  }
+
+  if (row.measurement === 'zero') {
+    // Die Ziffer 0 steht da, nicht ein leeres Feld: gemessene Null.
+    td.append(el('span', 'numbers', `0 traffic in ${plural(row.buckets_seen, 'window', 'windows')}`));
+    td.append(el('span', 'lastcell__why', 'measured zero — not a gap'));
+    return td;
+  }
+
+  const stamp = `${dayStamp(row.last_covered_ms)} (${agoPhrase(row.dead_since_days)})`;
+  if (row.dead_kind === 'no-pair') {
+    // Die Aussage der Zeile betrifft die KANTE, nicht die Tabellen.
+    td.append(el('span', 'lastcell__edge', `no query joined them in ${span}`));
+    td.append(el('span', 'lastcell__why', `both tables active · last ${dayStamp(row.last_covered_ms)}`));
+    return td;
+  }
+  td.append(el('span', 'numbers', stamp));
+  return td;
 }
 
 function splitUrnClient(urn) {
@@ -414,8 +475,13 @@ async function renderConnections() {
   renderStateChips(data.state_counts);
   fillFacets(data.facets);
 
+  // `unaged`: Kanten, die der Stillstands-Filter mangels Messung nicht
+  // beurteilen kann. Sie werden GENANNT statt stillschweigend
+  // weggefiltert -- ein Filter, der etwas wortlos verschwinden laesst, ist
+  // derselbe Fehlertyp wie eine leere Ansicht ohne Grund.
   document.getElementById('connections-count').textContent = data.has_run
     ? `${data.total} of ${data.total_unfiltered} checked connections`
+      + (data.unaged ? ` · ${data.unaged} never measured, so they cannot be aged` : '')
       + (state.catalogTotal ? ` · catalog holds ${num(state.catalogTotal)} datasets` : '')
     : 'no check has run yet';
   document.getElementById('nav-count-connections').textContent =
@@ -436,6 +502,11 @@ async function renderConnections() {
     body.append(blankRow(6, data.has_run ? {
       what: 'No connection matches these filters.',
       why: `${data.total_unfiltered} connection(s) were checked in this run.`
+         + (data.unaged
+             ? ` ${data.unaged} of them were never measured, so no idle time can be`
+               + ' computed for them — they are not hidden by accident, they are'
+               + ' unanswerable for this filter.'
+             : '')
          + ' Clear a filter above to see them.',
     } : {
       what: 'No connection has been checked yet.',
@@ -465,12 +536,10 @@ async function renderConnections() {
     tr.append(ev);
 
     // Null-Regel: eine gemessene Null ist eine Ziffer, "nicht gemessen"
-    // ist ein WORT -- nie ein leeres Feld.
-    const last = el('td');
-    last.append(row.measured && row.last_covered_ms
-      ? el('span', 'numbers', `${dayStamp(row.last_covered_ms)} (${agoPhrase(row.dead_since_days)})`)
-      : el('span', 'notmeasured', 'not measured'));
-    tr.append(last);
+    // ist ein WORT -- nie ein leeres Feld. Und bei einer toten Kante mit
+    // Tabellenverkehr spricht die Zelle ueber die KANTE, nicht ueber die
+    // Tabellen (siehe lastMeasuredCell).
+    tr.append(lastMeasuredCell(row));
 
     const j = el('td');
     const tag = { model: 'model cited', abstained: 'abstained', none: 'not asked' }[row.judgement];
@@ -518,11 +587,21 @@ function renderConnectionsLocal() {
     ev.append(measured ? el('div', null, `${cov.buckets_seen} usage windows`)
                         : el('div', 'notmeasured', 'no usage window'));
     tr.append(ev);
-    const last = el('td');
-    last.append(measured && tl.last_covered_ms
-      ? el('span', 'numbers', `${dayStamp(tl.last_covered_ms)} (${agoPhrase(tl.dead_since_days)})`)
-      : el('span', 'notmeasured', 'not measured'));
-    tr.append(last);
+    // Dieselbe Zelle wie im Server-Weg -- die drei Sorten Messung und die
+    // zwei Sorten `dead` duerfen nicht davon abhaengen, ob gerade ein
+    // Server antwortet. Die Herleitung entspricht
+    // console_api.measurement_kind/DEAD_KIND; sie ist hier nachgebaut,
+    // weil eine Aufzeichnung ohne Server keinen hat, der sie mitliefert.
+    const measureKind = !measured ? 'none' : (tl.last_covered_ms ? 'traffic' : 'zero');
+    tr.append(lastMeasuredCell({
+      measurement: measureKind,
+      dead_kind: e.state === 'dead'
+        ? ({ zero: 'no-window', traffic: 'no-pair' }[measureKind] || '') : '',
+      buckets_seen: cov.buckets_seen || 0,
+      window_days: cov.window_days || (e.evidence || {}).window_days,
+      last_covered_ms: tl.last_covered_ms,
+      dead_since_days: tl.dead_since_days,
+    }));
     const j = judgementFor(e.edge);
     const kind = !j ? 'none' : (j.used_model ? 'model' : 'abstained');
     const td = el('td');
@@ -559,21 +638,63 @@ function renderStateChips(counts) {
   }
 }
 
+// Jede Zahl in einer Auswahlliste ist die Anzahl der ZEILEN, die man nach
+// dem Anklicken sieht (console_api.facets). Bis 07.08. zaehlte sie
+// Kanten-ENDEN: `probate_seedlab` stand mit "8" da und lieferte 4 Zeilen.
 function fillFacets(facets) {
   if (!facets) return;
-  for (const [id, list] of [['filter-platform', facets.platforms],
-                            ['filter-database', facets.databases]]) {
+  const gov = facets.governance || {};
+  for (const [id, list, key] of [['filter-platform', facets.platforms, null],
+                                 ['filter-database', facets.databases, 'database'],
+                                 ['filter-domain', facets.domains, 'domain'],
+                                 ['filter-owner', facets.owners, 'owner']]) {
     const sel = document.getElementById(id);
-    if (sel.dataset.filled === String((list || []).length)) continue;
-    const current = sel.value;
-    sel.innerHTML = '<option value="">all</option>';
-    for (const f of list || []) {
-      const o = el('option', null, `${f.value} (${f.count})`);
-      o.value = f.value;
-      sel.append(o);
+    const rows = list || [];
+    // `probate_seedlab` heisst so, weil es das Labor IST -- der Zusatz
+    // kommt aus den Artefakten (console_api.lab_notes), nicht aus einem
+    // getippten Satz. Ohne ihn sieht der Name in einer Liste aus fuenf
+    // `probate_demo_*` wie ein Ausrutscher im Namensschema.
+    const stamp = rows.map((f) => `${f.value}:${f.count}:${f.note || ''}`).join('|');
+    if (sel.dataset.filled !== stamp) {
+      const current = sel.value;
+      sel.innerHTML = '<option value="">all</option>';
+      for (const f of rows) {
+        const label = f.label || f.value;
+        const o = el('option', null, f.note ? `${label} — ${f.note} (${f.count})`
+                                            : `${label} (${f.count})`);
+        o.value = f.value;
+        if (f.note) o.title = (facets.database_notes || {})[f.value]?.note || f.note;
+        sel.append(o);
+      }
+      sel.value = current;
+      sel.dataset.filled = stamp;
     }
-    sel.value = current;
-    sel.dataset.filled = String((list || []).length);
+    if (key) {
+      const map = state.facetLabels[key];
+      map.clear();
+      for (const f of rows) map.set(f.value, f.label || f.value);
+    }
+    // Domaene/Besitzer ohne gemessenes Artefakt: gesperrt, nicht leer
+    // angeboten. Eine offene Liste, die nur "all" kann, behauptet, es gebe
+    // nichts zu filtern -- das ist eine Aussage, die niemand gemessen hat.
+    if (id === 'filter-domain' || id === 'filter-owner') {
+      sel.disabled = !gov.measured;
+    }
+  }
+
+  const note = document.getElementById('filters-note');
+  if (!gov.measured) {
+    note.hidden = false;
+    note.className = 'filters__note filters__note--gap';
+    note.textContent = gov.reason || 'Domain and owner were never looked up.';
+  } else {
+    note.hidden = false;
+    note.className = 'filters__note';
+    note.textContent =
+      `Domain and owner read from the catalog for ${num(gov.tables_looked_up)} tables`
+      + ` — ${num(gov.tables_with_domain)} carry a domain, ${num(gov.tables_with_owner)} an owner`
+      + `. “Idle for at least” counts days since this connection last carried anything;`
+      + ` connections that were never measured cannot be aged and are reported separately.`;
   }
 }
 
@@ -583,8 +704,16 @@ function renderActiveFilters() {
   const f = state.filters;
   const chips = [];
   for (const s of f.states) chips.push([`verdict: ${STATE_WORD[s]}`, () => f.states.delete(s)]);
+  const labelled = (key, value) => state.facetLabels[key].get(value) || value;
   if (f.platform) chips.push([`platform: ${f.platform}`, () => { f.platform = ''; }]);
-  if (f.database) chips.push([`database: ${f.database}`, () => { f.database = ''; }]);
+  if (f.database) chips.push([`database: ${labelled('database', f.database)}`,
+                              () => { f.database = ''; }]);
+  // Der Chip zeigt die Beschriftung, nicht die URN -- "Finance
+  // (probate_demo)" statt "urn:li:domain:probate_demo.finance".
+  if (f.domain) chips.push([`domain: ${labelled('domain', f.domain)}`, () => { f.domain = ''; }]);
+  if (f.owner) chips.push([`owner: ${labelled('owner', f.owner)}`, () => { f.owner = ''; }]);
+  if (f.idle) chips.push([`idle ≥ ${plural(Number(f.idle), 'day', 'days')}`,
+                          () => { f.idle = ''; }]);
   if (f.table) chips.push([`table: ${f.table.split('.').pop()}`, () => { f.table = ''; }]);
   if (f.q) chips.push([`contains: ${f.q}`, () => { f.q = ''; }]);
   if (f.judged) chips.push(['with model judgement', () => { f.judged = false; }]);
@@ -602,12 +731,36 @@ function renderActiveFilters() {
   }
 }
 
+const IDLE_PRESETS = new Set(['7', '30', '90']);
+
 function syncControls() {
-  document.getElementById('filter-platform').value = state.filters.platform;
-  document.getElementById('filter-database').value = state.filters.database;
-  document.getElementById('filter-q').value = state.filters.q;
-  document.getElementById('filter-judged').checked = state.filters.judged;
-  document.getElementById('filter-abstained').checked = state.filters.abstained;
+  const f = state.filters;
+  document.getElementById('filter-platform').value = f.platform;
+  document.getElementById('filter-database').value = f.database;
+  document.getElementById('filter-domain').value = f.domain;
+  document.getElementById('filter-owner').value = f.owner;
+  document.getElementById('filter-q').value = f.q;
+  document.getElementById('filter-judged').checked = f.judged;
+  document.getElementById('filter-abstained').checked = f.abstained;
+
+  // "eigener" Zeitraum: die Auswahlliste steht auf `custom`, das Zahlenfeld
+  // traegt den Wert. Ein Wert, der zufaellig 7/30/90 ist, waehlt den
+  // Voreinsteller -- sonst stuenden zwei Bedienelemente fuer denselben
+  // Zustand.
+  const sel = document.getElementById('filter-idle');
+  const box = document.getElementById('filter-idle-custom-field');
+  const inp = document.getElementById('filter-idle-custom');
+  if (!f.idle) {
+    sel.value = '';
+    box.hidden = true;
+  } else if (IDLE_PRESETS.has(f.idle)) {
+    sel.value = f.idle;
+    box.hidden = true;
+  } else {
+    sel.value = 'custom';
+    box.hidden = false;
+    if (inp.value !== f.idle) inp.value = f.idle;
+  }
 }
 
 function renderPager(hostId, start, count, total, go) {
@@ -1266,6 +1419,7 @@ document.getElementById('time-offset-reset').addEventListener('click', async () 
 });
 
 for (const [id, key] of [['filter-platform', 'platform'], ['filter-database', 'database'],
+                          ['filter-domain', 'domain'], ['filter-owner', 'owner'],
                           ['filter-sort', 'sort']]) {
   document.getElementById(id).addEventListener('change', (ev) => {
     state.filters[key] = ev.target.value;
@@ -1273,6 +1427,38 @@ for (const [id, key] of [['filter-platform', 'platform'], ['filter-database', 'd
     renderConnections();
   });
 }
+
+// Stillstandsdauer: die Voreinsteller setzen direkt, "custom…" klappt das
+// Zahlenfeld auf und filtert erst, wenn dort eine Zahl steht.
+document.getElementById('filter-idle').addEventListener('change', (ev) => {
+  const box = document.getElementById('filter-idle-custom-field');
+  const inp = document.getElementById('filter-idle-custom');
+  if (ev.target.value === 'custom') {
+    box.hidden = false;
+    state.filters.idle = inp.value.trim();
+    inp.focus();
+  } else {
+    box.hidden = true;
+    state.filters.idle = ev.target.value;
+  }
+  state.filters.start = 0;
+  renderConnections();
+});
+
+let idleTimer = null;
+document.getElementById('filter-idle-custom').addEventListener('input', (ev) => {
+  clearTimeout(idleTimer);
+  const raw = ev.target.value.trim();
+  // Eine leere oder unsinnige Eingabe schaltet den Filter AB, statt still
+  // auf 0 zu fallen -- "0 Tage" waere ein echter Filter mit ganz anderem
+  // Ergebnis.
+  const value = /^\d+$/.test(raw) ? raw : '';
+  idleTimer = setTimeout(() => {
+    state.filters.idle = value;
+    state.filters.start = 0;
+    renderConnections();
+  }, 250);
+});
 for (const [id, key] of [['filter-judged', 'judged'], ['filter-abstained', 'abstained']]) {
   document.getElementById(id).addEventListener('change', (ev) => {
     state.filters[key] = ev.target.checked;

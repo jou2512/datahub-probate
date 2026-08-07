@@ -686,6 +686,37 @@ button.chip { cursor: pointer; }
 
 .field--check { flex-direction: row; align-items: center; gap: var(--space-2); font-size: 0.8rem; }
 
+/* Das Zahlenfeld fuer den eigenen Zeitraum steht neben seiner
+   Auswahlliste und darf ihr keinen Platz wegnehmen. */
+.field--tight { max-width: 7.5rem; }
+
+/* `display: flex` auf .field schlaegt das HTML-Attribut `hidden` --
+   gemessen am 07.08.: das Feld fuer den eigenen Zeitraum stand sichtbar
+   in der Filterzeile, obwohl die Auswahlliste auf "any" stand. Ein
+   Bedienelement ohne Funktion ist ein Versprechen, das die Seite nicht
+   haelt. */
+.field[hidden] { display: none; }
+
+/* Eine gesperrte Auswahlliste sieht gesperrt aus -- sonst wirkt sie wie
+   eine leere, und "es gibt nichts zu filtern" waere eine Aussage, die
+   niemand gemessen hat. */
+.field__input:disabled {
+  opacity: 0.55;
+  cursor: not-allowed;
+}
+
+/* Woher Domaene und Besitzer kommen -- oder warum es sie nicht gibt. Ein
+   gesperrter Filter ohne Begruendung ist von einem kaputten nicht zu
+   unterscheiden (Null-Regel, auf die Filterzeile angewandt). */
+.filters__note {
+  font-size: 0.72rem;
+  line-height: 1.5;
+  color: var(--ink-faint);
+  max-width: 100ch;
+}
+
+.filters__note--gap { color: var(--ink-muted); font-style: italic; }
+
 .tablebar {
   display: flex;
   align-items: flex-end;
@@ -783,6 +814,33 @@ button.chip { cursor: pointer; }
   font-size: 0.76rem;
   font-style: italic;
   color: var(--ink-muted);
+}
+
+/* Die Spalte "Zuletzt belegt" traegt drei verschiedene Aussagen, und sie
+   duerfen nicht gleich aussehen (siehe lastMeasuredCell in werkbank.js):
+   ein Datum, eine gemessene Null, eine fehlende Messung -- und bei einer
+   toten Kante mit Tabellenverkehr eine Aussage ueber die KANTE, mit dem
+   Tabellendatum klein darunter. Ohne die zweite Zeile las sich die
+   Zelle als Widerspruch: tot, aber heute gemessen?
+
+   Bewusst KEINE Zustandsfarbe hier: Rot gibt es nur an den vier in der
+   Spec genannten Stellen. Der Unterschied traegt sich ueber Gewicht und
+   Groesse, nicht ueber Farbe. */
+.lastcell { display: flex; flex-direction: column; gap: 1px; min-width: 0; }
+
+.lastcell__edge {
+  font-size: 0.78rem;
+  font-weight: 600;
+  color: var(--ink);
+  overflow-wrap: anywhere;
+}
+
+.lastcell__why {
+  font-family: var(--font-mono);
+  font-size: 0.66rem;
+  letter-spacing: 0.04em;
+  color: var(--ink-faint);
+  overflow-wrap: anywhere;
 }
 
 .judge-tag {

@@ -960,8 +960,16 @@ def build_handler(gms_url: str, focus: str, log: list):
             judged = {j["edge"]: j for j in judge_snapshot()["judgements"]}
 
             if kind == "connections":
-                out = api.filter_sort_page(edges, judged, params)
-                out["facets"] = api.facets(edges)
+                # Domaene und Besitzer stehen im Katalog, nicht im
+                # Register -- sie kommen aus dem gemessenen
+                # Governance-Artefakt (`harness/fetch_governance.py`).
+                # EINMAL geladen und an beide Aufrufe gereicht: sonst
+                # liest der zweite die Datei noch einmal, und Filter und
+                # Auswahlliste koennten aus zwei verschiedenen Staenden
+                # stammen.
+                gov = api.load_governance()
+                out = api.filter_sort_page(edges, judged, params, gov)
+                out["facets"] = api.facets(edges, gov)
                 out.update(_provenance(ledger))
                 return self._json(out)
 

@@ -224,6 +224,35 @@
               <span class="field__label">Database</span>
               <select id="filter-database" class="field__input"><option value="">all</option></select>
             </label>
+            <!-- Domaene und Besitzer stehen im Katalog, nicht im Register.
+                 Sie kommen aus einem GEMESSENEN Artefakt
+                 (harness/fetch_governance.py). Fehlt es, bleiben beide
+                 Auswahllisten gesperrt und sagen warum -- eine offene
+                 Liste mit nur "all" saehe aus, als gaebe es nichts zu
+                 filtern, und das waere eine Behauptung ohne Messung. -->
+            <label class="field">
+              <span class="field__label">Domain</span>
+              <select id="filter-domain" class="field__input"><option value="">all</option></select>
+            </label>
+            <label class="field">
+              <span class="field__label">Owner</span>
+              <select id="filter-owner" class="field__input"><option value="">all</option></select>
+            </label>
+            <label class="field">
+              <span class="field__label">Idle for at least</span>
+              <select id="filter-idle" class="field__input">
+                <option value="">any</option>
+                <option value="7">7 days</option>
+                <option value="30">30 days</option>
+                <option value="90">90 days</option>
+                <option value="custom">custom…</option>
+              </select>
+            </label>
+            <label class="field field--tight" id="filter-idle-custom-field" hidden>
+              <span class="field__label">…days</span>
+              <input type="number" id="filter-idle-custom" class="field__input"
+                     min="0" step="1" inputmode="numeric" placeholder="e.g. 14" />
+            </label>
             <label class="field">
               <span class="field__label">Table contains</span>
               <input type="search" id="filter-q" class="field__input" placeholder="name fragment" />
@@ -246,6 +275,12 @@
               </select>
             </label>
           </div>
+
+          <!-- Was die Filterzeile ueber sich selbst weiss: woher Domaene
+               und Besitzer stammen, oder warum es sie nicht gibt. Ein
+               gesperrter Filter ohne Begruendung ist von einem kaputten
+               nicht zu unterscheiden. -->
+          <p class="filters__note" id="filters-note" hidden></p>
 
           <div class="tablebar">
             <p class="tablebar__count" id="connections-count">no check has run yet</p>
