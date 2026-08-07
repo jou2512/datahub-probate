@@ -3,8 +3,8 @@
   "seeded_statement": "Laeuft gegen den geseedeten Beispielkatalog (namespace probate_seedlab, harness/seed_lineage_lab.py) -- keine echte Warehouse-Nutzung.",
   "gms_url": "http://localhost:28080",
   "manifest": "examples\\seedlab-manifest.json",
-  "generated_at": "2026-08-07T02:26:17.836758+00:00",
-  "now_ms": 1786069577836,
+  "generated_at": "2026-08-07T04:48:21.683553+00:00",
+  "now_ms": 1786078101683,
   "all_four_states_matched_expected": true,
   "pairs": {
     "confirmed": {
@@ -26,7 +26,10 @@
         "oldest_bucket_ms": 1785888000000,
         "newest_bucket_ms": 1786060800000,
         "days_span": 2,
-        "reason": ""
+        "reason": "",
+        "window_start_ms": 1783313301768,
+        "window_end_ms": 1786164501768,
+        "window_days": 33
       },
       "timeline": {
         "last_covered_ms": 1786060800000,
@@ -57,6 +60,9 @@
       "evidence": {
         "reason": "im geprueften Fenster nie gemessen",
         "buckets_checked": 4,
+        "window_days": 33,
+        "window_start_ms": 1783313301826,
+        "window_end_ms": 1786164501826,
         "source": "declared lineage"
       },
       "queries_seen": 0,
@@ -66,7 +72,10 @@
         "oldest_bucket_ms": 1783468800000,
         "newest_bucket_ms": 1786060800000,
         "days_span": 30,
-        "reason": ""
+        "reason": "",
+        "window_start_ms": 1783313301826,
+        "window_end_ms": 1786164501826,
+        "window_days": 33
       },
       "timeline": {
         "last_covered_ms": null,
@@ -113,7 +122,10 @@
         "oldest_bucket_ms": 1785888000000,
         "newest_bucket_ms": 1786060800000,
         "days_span": 2,
-        "reason": ""
+        "reason": "",
+        "window_start_ms": 1783313301890,
+        "window_end_ms": 1786164501890,
+        "window_days": 33
       },
       "timeline": {
         "last_covered_ms": 1786060800000,
@@ -152,7 +164,10 @@
         "oldest_bucket_ms": null,
         "newest_bucket_ms": null,
         "days_span": null,
-        "reason": "keine Nutzungs-Zeitfenster im Katalog"
+        "reason": "keine Nutzungs-Zeitfenster im Katalog",
+        "window_start_ms": 1783313301961,
+        "window_end_ms": 1786164501961,
+        "window_days": 33
       },
       "timeline": {
         "last_covered_ms": null,
