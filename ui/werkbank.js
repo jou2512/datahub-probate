@@ -266,8 +266,77 @@ export function render(ledger) {
   // Live-Protokoll-Polling ist Task 19 (die Knoepfe schreiben wirklich).
 }
 
+// --- Die sechs Knoepfe -- Task 19 --------------------------------------
+// Falle 1 gilt auch hier, indirekt: der Fetch ruft nur /api/action/<name>,
+// das eigentliche wb.aspect()/gms.upsert() passiert serverseitig in
+// ui/serve.py::do_action -- der Browser sieht die Liste-vs-Objekt-Falle
+// nie, weil er sie nie selbst baut.
+//
+// X-Probate + Content-Type: application/json sind kein Zufall (Security-
+// Checkliste Punkt 1/2): der Header erzwingt einen CORS-Preflight, den
+// dieser Server nie beantwortet -- ein Cross-Origin-Formular oder
+// <img>/<script>-Trick kann diesen Header nicht mitschicken. Ohne ihn
+// weist der Server jeden POST mit 403 ab, bevor er do_action() erreicht.
+function appendLogLine(t, text) {
+  const host = document.getElementById('live-log');
+  const stale = host.querySelector('.empty-state');
+  if (stale) stale.remove();
+  host.classList.add('log');
+  const line = document.createElement('div');
+  line.className = 'log-entry';
+  const time = document.createElement('span');
+  time.className = 'log-entry__time';
+  time.textContent = new Date(t).toLocaleTimeString();
+  const body = document.createElement('span');
+  body.className = 'log-entry__text';
+  body.textContent = text;
+  line.append(time, body);
+  host.prepend(line);  // neueste oben
+}
+
+let logCursor = 0;
+async function pumpLog() {
+  const r = await fetch(`/api/log?since=${logCursor}`, { cache: 'no-store' });
+  if (!r.ok) return;
+  const { entries, cursor } = await r.json();
+  logCursor = cursor;
+  for (const e of entries) {
+    appendLogLine(e.t, e.n != null ? `${e.text} (${e.n})` : e.text);
+  }
+}
+
+document.getElementById('controls').addEventListener('click', async (ev) => {
+  const btn = ev.target.closest('button[data-action]');
+  if (!btn || btn.disabled) return;
+  // Aufzeichnungsmodus: Knoepfe sind bereits deaktiviert (boot() unten),
+  // dieser zweite Riegel ist reine Verteidigung gegen einen zukuenftigen
+  // Aufrufer, der .disabled vergisst -- der Sinn des Satzes "in recorded
+  // mode the buttons must not pretend to write" gilt fuer JEDEN Pfad.
+  if (document.body.dataset.mode !== 'live') return;
+  btn.disabled = true;
+  try {
+    const r = await fetch(`/api/action/${btn.dataset.action}`, {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json', 'X-Probate': '1' },
+      body: '{}',
+    });
+    if (!r.ok) {
+      const body = await r.json().catch(() => ({}));
+      appendLogLine(Date.now(), `action rejected — ${body.error || r.status}`);
+      return;
+    }
+    render(await loadLedger('live'));
+    await pumpLog();
+  } finally {
+    btn.disabled = false;
+  }
+});
+
+setInterval(() => { if (document.body.dataset.mode === 'live') pumpLog(); }, 1500);
+
 async function boot() {
   const mode = await detectMode();
+  document.body.dataset.mode = mode;
   const badge = document.getElementById('mode-badge');
   badge.dataset.mode = mode;
   badge.textContent = mode === 'live'
@@ -278,6 +347,7 @@ async function boot() {
 
   const ledger = await loadLedger(mode);
   render(ledger);
+  if (mode === 'live') await pumpLog();
 }
 
 boot();

@@ -263,6 +263,15 @@ button {
   background: var(--surface-sunk);
 }
 
+.controls button:disabled {
+  opacity: 0.5;
+  cursor: not-allowed;
+}
+
+.controls button:disabled:hover {
+  background: var(--surface);
+}
+
 .controls button[data-action="run-ledger"] {
   border-color: var(--measured);
   color: var(--measured);
