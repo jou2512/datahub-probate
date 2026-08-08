@@ -119,7 +119,9 @@
   --accent-soft: var(--accent-soft-light);
 
   /* Form: bewusst NICHT ueberall dieselbe grosse Rundung. */
-  --r-card:  5px;
+  /* Referenz: "kleiner Radius (~8 px), kein Schlagschatten". Bis 08.08.
+     standen hier 5px -- naeher am Kasten als an der Karte. */
+  --r-card:  8px;
   --r-chip:  3px;
   --r-input: 4px;
 
@@ -340,13 +342,18 @@ html, body { height: 100%; }
 
 /* Der einzige gefuellte Knopf der Seite -- im EINEN Akzentton
    (Referenz: eine farbig gefuellte Hauptaktion, sonst nichts). Rot
-   bleibt den Kanten vorbehalten, Gruen den Messwerten. */
+   bleibt den Kanten vorbehalten, Gruen den Messwerten.
+
+   Bis 08.08. trug dieser Knopf seinen Umfangssatz IN sich und war
+   dadurch zweizeilig -- doppelt so hoch wie alles daneben, waehrend
+   "+ Neues Projekt" in der Referenz ein normal grosser, einzeiliger
+   Knopf ist. Der Satz ist nicht weg, er steht jetzt LINKS daneben
+   (`.runscope`): ein Knopf, dessen Wirkung man erst nach dem Druecken
+   erfaehrt, bleibt verboten. */
 .btn--primary {
   display: inline-flex;
-  flex-direction: column;
-  align-items: flex-start;
-  gap: 1px;
-  padding: 5px var(--space-3);
+  align-items: center;
+  padding: 5px var(--space-4);
   background: var(--accent);
   border-color: var(--accent);
   color: var(--accent-ink);
@@ -355,9 +362,19 @@ html, body { height: 100%; }
 
 .btn--primary:hover:not(:disabled) { background: var(--accent); filter: brightness(1.08); }
 
-/* Was der Knopf messen WIRD, bevor man ihn drueckt. Ohne diese Zeile
-   waere er genau der Fall, den die Spec verbietet. */
-.btn__scope { font-size: 0.68rem; font-weight: 400; opacity: 0.85; }
+/* Was der Knopf messen WIRD, bevor man ihn drueckt -- neben ihm, nicht
+   in ihm. Ohne diese Zeile waere er genau der Fall, den die Spec
+   verbietet. */
+.runscope {
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+  font-variant-numeric: tabular-nums;
+  text-align: right;
+  max-width: 34ch;
+  line-height: 1.3;
+}
+
+.runscope:empty { display: none; }
 
 /* Der Fortschritt eines laufenden Registerlaufs -- ein duenner Balken
    (Referenz), kein Klotz. Volle Breite unter der Kopfzeile. */
@@ -552,7 +569,7 @@ html, body { height: 100%; }
   align-items: baseline;
   gap: 0 var(--space-2);
   text-align: left;
-  padding: var(--space-2);
+  padding: 6px var(--space-2);
   color: var(--nav-ink);
   background: none;
   border: none;
@@ -570,11 +587,16 @@ html, body { height: 100%; }
 
 .sidenav__name { font-size: 0.85rem; font-weight: 600; }
 
+/* Die Referenz haelt ihre Navigationspunkte EINZEILIG. Unsere tragen
+   zusaetzlich die Frage, die der Bereich beantwortet (Spec, Tabelle "Die
+   fuenf Bereiche") -- benannte Abweichung, sie ist der Grund, warum ein
+   Fremder ohne Erklaerung navigieren kann. Sie wird aber gedrueckt
+   gesetzt statt als zweite volle Zeile: dieselbe Auskunft, halbe Hoehe. */
 .sidenav__hint {
   grid-column: 1 / -1;
-  font-size: 0.68rem;
+  font-size: 0.66rem;
   color: var(--nav-ink-muted);
-  line-height: 1.35;
+  line-height: 1.25;
 }
 
 /* Die Zahl rechts an jedem Punkt (Referenz). Sie steht NIE erfunden da:
@@ -639,23 +661,39 @@ html, body { height: 100%; }
    bei 150px Breite unlesbar und bei 108px gar nicht mehr unterzubringen
    -- eine Ehrlichkeits-Angabe, die bei schmalem Fenster verschwindet, ist
    keine. Jetzt: eine Stelle, volle Breite, immer da.
+
+   EINE ZEILE, kein Block (08.08.): bis dahin spannte sich der Streifen
+   zweizeilig ueber die volle Breite und war das Erste, was das Auge
+   traf -- in der Referenz steht ueber dem Inhalt gar nichts. Er bleibt
+   (Wahrheitspflicht), aber als schmale Zeile: beide Saetze
+   nebeneinander, Trennung durch einen Mittelpunkt, umbrechend statt
+   stapelnd.
    --------------------------------------------------------------------- */
 
 .notice {
   display: flex;
-  flex-direction: column;
-  gap: 2px;
-  padding: var(--space-2) var(--space-4);
+  flex-flow: row wrap;
+  align-items: baseline;
+  gap: 0 var(--space-2);
+  padding: 3px var(--space-4);
   border-bottom: 1px solid var(--line);
   background: var(--surface-sunk);
+  line-height: 1.5;
 }
 
 .notice[hidden] { display: none; }
 .notice p[hidden] { display: none; }
 
-.notice__replay { font-size: 0.78rem; color: var(--ink); }
-.notice__replay strong { font-weight: 700; }
-.notice__seeded { font-size: 0.7rem; color: var(--ink-faint); line-height: 1.4; }
+.notice__replay { font-size: 0.72rem; color: var(--ink-muted); }
+.notice__replay strong { font-weight: 700; color: var(--ink); }
+
+/* Der zweite Satz steht in derselben Zeile, durch einen Mittelpunkt
+   abgesetzt -- sichtbar getrennt, ohne eine zweite Zeile zu kosten. */
+.notice__seeded { font-size: 0.72rem; color: var(--ink-faint); }
+.notice__replay + .notice__seeded:not([hidden])::before {
+  content: "· ";
+  color: var(--line);
+}
 
 /* ---------------------------------------------------------------------
    Inhaltsbereich
@@ -669,14 +707,24 @@ html, body { height: 100%; }
    Durchgang der Konsole). */
 .pane[hidden] { display: none; }
 
-.pane { padding: var(--space-4); display: flex; flex-direction: column; gap: var(--space-4); }
+/* DICHTE ist die Tabelle, nicht der Abstand zwischen Abschnitten
+   (08.08.). Bis dahin klebten Kennzahlen, Karten und Legende mit
+   denselben 20px aneinander, mit denen innerhalb einer Karte gearbeitet
+   wird -- die Referenz laesst zwischen Abschnitten spuerbar Luft und
+   bleibt trotzdem dicht, wo Zeilen stehen. Der Abstand ZWISCHEN
+   Abschnitten steigt deshalb auf 32px, die Zeilenhoehen bleiben. */
+.pane { padding: var(--space-4) var(--space-4) var(--space-6); display: flex; flex-direction: column; gap: var(--space-5); }
 
 .pane__head { display: flex; flex-direction: column; gap: var(--space-2); }
 
+/* Der Seitentitel ist in der Referenz DEUTLICH groesser und schwerer als
+   alles darunter. Bei uns stand er mit 1.05rem fast auf
+   Fliesstextgroesse -- eine Hierarchie, die keine ist. */
 .pane__title {
-  font-size: 1.05rem;
-  font-weight: 600;
-  letter-spacing: -0.01em;
+  font-size: 1.55rem;
+  font-weight: 700;
+  line-height: 1.15;
+  letter-spacing: -0.02em;
 }
 
 .pane__caption { color: var(--ink-muted); font-size: 0.85rem; max-width: 80ch; }
@@ -709,7 +757,18 @@ html, body { height: 100%; }
 /* Karten statt einer durchlaufenden Zeile (Referenz): grosse Zahl oben,
    gedaempfte Beschriftung mit Nenner darunter, weiss, 1px Kante,
    kleiner Radius, KEIN Schlagschatten. */
-.kpis { display: flex; flex-direction: column; gap: var(--space-2); }
+/* KARTENINHALT, 08.08. auf das Referenzmass zurueckgeschnitten: dort
+   traegt eine Kennzahlkarte GROSSE ZAHL und darunter eine kleine,
+   gedaempfte Beschriftung -- mehr nicht, bei Bedarf ein duenner Balken.
+   Unsere trug vier Dinge: Zahl, Zustands-Pille, Nenner, Balken UND eine
+   Notizzeile. Weggefallen sind Pille und Notiz.
+   Die Pille war ausserdem eine FUENFTE Stelle mit Zustandsfarbe -- die
+   Spec zaehlt genau vier auf (Punkt in der Tabelle, Chip im Filter, Wort
+   in der Detailspalte, Balken im Verlauf). Den Zustandston traegt jetzt
+   allein der duenne Balken.
+   Die vier Notizsaetze sind nicht verloren: sie stehen ausfuehrlicher in
+   "What the four verdicts mean" zwei Abschnitte tiefer. */
+.kpis { display: flex; flex-direction: column; gap: var(--space-3); }
 
 .kpis__cards {
   display: grid;
@@ -721,30 +780,34 @@ html, body { height: 100%; }
   border: 1px solid var(--line);
   border-radius: var(--r-card);
   background: var(--surface);
-  padding: var(--space-3);
+  padding: var(--space-4);
   display: flex;
   flex-direction: column;
-  gap: var(--space-1);
+  gap: var(--space-2);
   min-width: 0;
 }
 
 .kpi__value {
-  font-size: clamp(1.5rem, 2.4vw, 2rem);
+  font-size: clamp(1.75rem, 2.8vw, 2.3rem);
   font-weight: 700;
   line-height: 1.05;
   font-variant-numeric: tabular-nums;
   letter-spacing: -0.02em;
 }
 
-.kpi__label { display: flex; align-items: baseline; gap: var(--space-2); flex-wrap: wrap; }
+/* Eine Zeile, klein und gedaempft -- aber MIT Nenner. Eine nackte
+   Kennzahl bleibt nicht interpretierbar (Spec). */
+.kpi__label {
+  font-size: 0.76rem;
+  color: var(--ink-muted);
+  line-height: 1.35;
+}
 
-.kpi__denominator { font-size: 0.74rem; color: var(--ink-muted); }
-
-.kpi__note { font-size: 0.72rem; color: var(--ink-faint); }
+.kpi__state { color: var(--ink); font-weight: 600; }
 
 /* Der duenne Balken IN der Karte (Referenz: "bei Bedarf ein duenner
    Fortschrittsbalken in der Karte"), im Zustandston der Karte. */
-.kpi__bar { height: 3px; background: var(--surface-sunk); border-radius: 2px; overflow: hidden; }
+.kpi__bar { height: 3px; margin-top: auto; background: var(--surface-sunk); border-radius: 2px; overflow: hidden; }
 .kpi__bar span { display: block; height: 100%; background: var(--shape-ink); }
 
 .kpi--confirmed { --shape-ink: var(--state-confirmed); }
@@ -764,7 +827,7 @@ html, body { height: 100%; }
 .cardgrid {
   display: grid;
   grid-template-columns: repeat(2, minmax(0, 1fr));
-  gap: var(--space-3);
+  gap: var(--space-4);
   align-items: start;
 }
 
@@ -772,7 +835,7 @@ html, body { height: 100%; }
   border: 1px solid var(--line);
   border-radius: var(--r-card);
   background: var(--surface);
-  padding: var(--space-3);
+  padding: var(--space-4);
   display: flex;
   flex-direction: column;
   gap: var(--space-2);
@@ -864,6 +927,20 @@ html, body { height: 100%; }
    in derselben Zeile traegt (Referenz: "Naechste Schritte" mit "Lauf
    starten" je Zeile). Genau das war Joels Befund -- sechs losgeloeste
    Knoepfe sind der Hauptgrund, warum niemand weiss, was einer tut. */
+/* Die Ein-Datei-Ausgabe (harness/export_static.py): ihre schreibenden
+   Knoepfe sind SICHTBAR ausser Betrieb, nicht heimlich wirkungslos. Der
+   Satz steht ueber der Liste, an der Karte, zu der die Knoepfe gehoeren. */
+.offline-note {
+  border-left: 3px solid var(--ink-faint);
+  padding: var(--space-2) var(--space-3);
+  background: var(--sunk-wash);
+  font-size: 0.78rem;
+  color: var(--ink-muted);
+  line-height: 1.45;
+}
+
+.offline-note strong { color: var(--ink); font-weight: 600; }
+
 .actionrows { display: flex; flex-direction: column; }
 
 .actionrow {

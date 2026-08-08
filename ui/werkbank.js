@@ -181,13 +181,32 @@ const state = {
 const STATE_WORD = { confirmed: 'CONFIRMED', dead: 'DEAD', missing: 'MISSING', unknown: 'NOT JUDGED' };
 const STATE_ORDER = ['dead', 'missing', 'unknown', 'confirmed'];
 
+// --- Drei Betriebsarten, nicht zwei -------------------------------------
+//
+// `live`      -- ein Server, ein Katalog, die Knoepfe schreiben.
+// `static`    -- die Ein-Datei-Ausgabe (`harness/export_static.py`). Alle
+//                Lesewege antworten, aber aus einem EINGEBACKENEN Lauf;
+//                geschrieben wird nichts, und die Knoepfe sagen das.
+// `recording` -- gar kein Antwortender (werkbank.html per file:// ohne
+//                Ausgabe-Schritt). Nur der abgespeicherte Registerstand.
+//
+// Zwei verschiedene Fragen, die vorher dieselbe waren: "antwortet ein
+// Leseweg?" (dann darf gefiltert, sortiert, geblaettert werden) und "darf
+// geschrieben werden?". `static` beantwortet die erste mit ja und die
+// zweite mit nein -- ohne die Trennung waere die Ein-Datei-Ausgabe auf den
+// verkuemmerten Aufzeichnungs-Pfad gefallen und haette Filter, Gruppen und
+// Seiten verloren.
+const API_MODES = new Set(['live', 'static']);
+const apiBacked = () => API_MODES.has(state.mode);
+const writesAllowed = () => state.mode === 'live';
+
 // --- Datenzugang --------------------------------------------------------
 
 async function fetchModeInfo() {
   // Kein Server = Aufzeichnung. Der sichere Rueckfall, nie stillschweigend live.
   try {
     const body = await getJson('/api/mode');
-    return body.mode === 'live' ? body : { mode: 'recording' };
+    return API_MODES.has(body.mode) ? body : { mode: 'recording' };
   } catch {
     return { mode: 'recording' };
   }
@@ -200,10 +219,13 @@ async function fetchModeInfo() {
 // Platte, ausdruecklich als Aufzeichnung markiert. Gemessen wird erst,
 // wenn jemand einen Knopf drueckt.
 async function loadLedger(mode, { measure = false } = {}) {
-  if (mode !== 'live') {
+  if (!API_MODES.has(mode)) {
     return (await fetch('./recorded/ledger.json', { cache: 'no-store' })).json();
   }
-  return getJson(measure ? '/api/ledger' : '/api/current');
+  // `/api/ledger` MISST. Das darf nur die Live-Betriebsart -- die
+  // Ein-Datei-Ausgabe hat keinen Katalog hinter sich und wuerde hier eine
+  // Messung behaupten, die nicht stattfinden kann.
+  return getJson(measure && mode === 'live' ? '/api/ledger' : '/api/current');
 }
 
 async function loadJudgements(mode) {
@@ -211,7 +233,7 @@ async function loadJudgements(mode) {
   // Fehlt die Datei, ist das kein Fehler -- es heisst "dieser Aufzeichnung
   // liegt kein Modell-Lauf bei".
   try {
-    if (mode === 'live') return await getJson('/api/judgements');
+    if (API_MODES.has(mode)) return await getJson('/api/judgements');
     const r = await fetch('./recorded/replay.json', { cache: 'no-store' });
     return r.ok ? await r.json() : null;
   } catch {
@@ -234,27 +256,26 @@ function judgementFor(edgeKey) {
 // und muss als Ziffer dastehen. Ihn wegzulassen (so war es bis heute:
 // `if (!count) continue`) macht aus der gemessenen Null ein Schweigen --
 // genau die Verwechslung, gegen die dieses Produkt antritt.
-const KPI_NOTE = {
-  confirmed: 'real traffic on both sides',
-  dead: 'claimed, but nothing flowed',
-  missing: 'queries join them, nobody declared it',
-  unknown: 'no usage data — we do not judge',
-};
-
-function kpiCard(stateName, count, total, note) {
+//
+// 08.08.: die Karte traegt nur noch, was die Referenz traegt -- grosse
+// Zahl, kleine gedaempfte Beschriftung, duenner Balken. Weg sind die
+// Zustands-Pille (sie war eine fuenfte Stelle mit Zustandsfarbe, die Spec
+// zaehlt vier) und die Notizzeile. Die vier Notizsaetze standen ohnehin
+// zweimal auf demselben Schirm: ausfuehrlicher in "What the four verdicts
+// mean" zwei Abschnitte tiefer. Der Nenner bleibt -- ohne ihn ist die
+// Zahl nicht interpretierbar.
+function kpiCard(stateName, count, total) {
   const card = el('div', `kpi kpi--${stateName}`);
   card.append(el('p', 'kpi__value', num(count)));
   const label = el('p', 'kpi__label');
-  label.append(el('span', `chip chip--${stateName}`, STATE_WORD[stateName]));
-  // Jede Zahl MIT Nenner -- eine nackte Kennzahl ist nicht
-  // interpretierbar (Spec).
-  label.append(el('span', 'kpi__denominator', `of ${num(total)} checked`));
+  label.append(el('span', 'kpi__state', STATE_WORD[stateName]));
+  label.append(document.createTextNode(` of ${num(total)} checked`));
   card.append(label);
   const bar = el('div', 'kpi__bar');
   const fill = el('span');
   fill.style.width = total ? `${Math.round((count / total) * 100)}%` : '0';
   bar.append(fill);
-  card.append(bar, el('p', 'kpi__note', note));
+  card.append(bar);
   return card;
 }
 
@@ -323,10 +344,10 @@ function renderOverview() {
   } else {
     const total = l.edges.length;
     host.append(
-      kpiCard('confirmed', l.edges_confirmed, total, KPI_NOTE.confirmed),
-      kpiCard('dead', l.edges_dead, total, KPI_NOTE.dead),
-      kpiCard('missing', l.edges_missing, total, KPI_NOTE.missing),
-      kpiCard('unknown', l.edges_unknown, total, KPI_NOTE.unknown));
+      kpiCard('confirmed', l.edges_confirmed, total),
+      kpiCard('dead', l.edges_dead, total),
+      kpiCard('missing', l.edges_missing, total),
+      kpiCard('unknown', l.edges_unknown, total));
     reading.textContent = overviewReading(l);
   }
 
@@ -443,17 +464,22 @@ function renderNotice() {
   const isReplay = !!(l && l.recording);
   replay.hidden = !isReplay;
   if (isReplay) {
+    // Eine Zeile, kein Absatz (08.08.). Dieselben Tatsachen -- dass es
+    // eine Aufzeichnung ist, wann sie gemessen wurde, aus welchem
+    // Artefakt --, nur ohne die beiden Saetze, die daneben schon
+    // dastehen: "nicht live" sagt das Wort "Recorded" selbst, und was
+    // "Run a check" tut, steht neben dem Knopf.
     replay.innerHTML = '';
     const when = l.recorded_at_iso ? new Date(l.recorded_at_iso) : new Date(l.generated_at_ms);
     replay.append(
-      el('strong', null, 'Recorded run, not a live measurement.'),
-      el('span', null, ` Measured ${when.toLocaleString()}`
+      el('strong', null, state.mode === 'static'
+        ? 'Exported single file · recorded run' : 'Recorded run'),
+      el('span', null, ` · measured ${when.toLocaleString()}`
         + (l.recorded_from ? ` · ${l.recorded_from}` : '')
         + (l.focus_mismatch
-           ? '. It covers tables this server does not currently observe —'
-             + ' they were renamed after the recording was made.'
-           : '')
-        + ' Press “Run a check” to measure this catalog now.'));
+           ? ' · covers tables this server does not currently observe'
+             + ' (renamed after the recording)'
+           : '')));
   }
 
   const statement = (l && l.seeded)
@@ -572,7 +598,7 @@ function splitUrnClient(urn) {
 async function renderConnections() {
   const body = document.getElementById('edge-rows');
 
-  if (state.mode !== 'live') return renderConnectionsLocal();
+  if (!apiBacked()) return renderConnectionsLocal();
 
   let data;
   try {
@@ -1166,7 +1192,7 @@ function renderDetail() {
 async function renderCatalog() {
   const host = document.getElementById('catalog-tree');
   const countEl = document.getElementById('catalog-count');
-  if (state.mode !== 'live') {
+  if (!apiBacked()) {
     blankInto(host, {
       what: 'The catalog tree needs a live instance.',
       why: 'A recording carries only the connections it measured, not the'
@@ -1250,13 +1276,13 @@ async function renderRuns() {
   body.innerHTML = '';
   let data = { runs: [] };
   try {
-    if (state.mode === 'live') data = await getJson('/api/runs');
+    if (apiBacked()) data = await getJson('/api/runs');
   } catch { /* leere Liste ist unten ein eigener, benannter Zustand */ }
 
   setNavCount('nav-count-runs', data.runs.length, 'run artifacts on disk');
 
   if (!data.runs.length) {
-    body.append(blankRow(6, state.mode === 'live' ? {
+    body.append(blankRow(6, apiBacked() ? {
       what: 'No run artifact on disk yet.',
       why: data.empty_reason
          || 'A run only counts here once it has left a file under harness/runs —'
@@ -1292,7 +1318,7 @@ async function renderEvidence() {
   const q = document.getElementById('evidence-q').value || '';
   let items = [];
   let meta = {};
-  if (state.mode === 'live') {
+  if (apiBacked()) {
     try {
       meta = await getJson(`/api/evidence?q=${encodeURIComponent(q)}`);
       items = meta.items;
@@ -1414,14 +1440,19 @@ function renderModeBadge(info) {
   // 210px breit, ein Satz waere dort abgeschnitten und damit unwahr.
   const badge = document.getElementById('mode-badge');
   badge.dataset.mode = info.mode;
-  badge.textContent = info.mode === 'live' ? 'live — buttons write' : 'recording';
-  badge.title = info.mode === 'live'
-    ? `Live — buttons write to ${info.gms}`
-    : 'Recording — replaying a stored run, buttons disabled';
+  badge.textContent = { live: 'live — buttons write',
+                        static: 'single file — nothing writes',
+                        recording: 'recording' }[info.mode] || info.mode;
+  badge.title = { live: `Live — buttons write to ${info.gms}`,
+                  static: 'A single exported file. Every view reads a recorded'
+                        + ' run baked into this document; no catalog is behind it.',
+                  recording: 'Recording — replaying a stored run, buttons disabled',
+                }[info.mode] || '';
   const instance = document.getElementById('instance-label');
-  instance.textContent = info.mode === 'live'
-    ? String(info.gms).replace(/^https?:\/\//, '') : 'recorded run';
-  instance.title = info.mode === 'live' ? info.gms : 'recorded run, no live instance';
+  instance.textContent = { live: String(info.gms || '').replace(/^https?:\/\//, ''),
+                           static: 'no instance — exported copy',
+                           recording: 'recorded run' }[info.mode] || 'unknown';
+  instance.title = info.mode === 'live' ? info.gms : 'no live instance behind this page';
   // Was ein Lauf messen WUERDE -- nicht, was `--focus` nennt. Bis heute
   // stand hier "4 observed source tables", waehrend 513 Kanten auf dem
   // Schirm waren und der Knopf tatsaechlich nur vier gemessen hat. Die
@@ -1430,7 +1461,9 @@ function renderModeBadge(info) {
   document.getElementById('status-instance').textContent = info.mode === 'live'
     ? `${info.gms} · a check measures ${num(info.scope_focuses)} source tables`
       + (info.scope_edges != null ? ` / ${num(info.scope_edges)} connections` : '')
-    : 'recorded run';
+    : info.mode === 'static'
+      ? `exported single file · ${info.recorded_from || 'recorded run'}`
+      : 'recorded run';
 
   const offset = document.getElementById('time-offset');
   if (info.mode !== 'live') { offset.hidden = true; return; }
@@ -1440,6 +1473,44 @@ function renderModeBadge(info) {
   offset.querySelector('.time-offset__value').textContent =
     days > 0 ? `Clock moved +${plural(days, 'day', 'days')}` : 'Clock: now';
   offset.querySelector('.time-offset__reset').disabled = days === 0;
+}
+
+// --- Die Ein-Datei-Ausgabe sagt, dass sie nicht schreiben kann ----------
+//
+// Ein Knopf, der nichts tut und dabei aussieht, als taete er etwas, ist
+// genau die stille Falschaussage, gegen die dieses Werkzeug antritt. Die
+// schreibenden Knoepfe sind hier deshalb nicht heimlich wirkungslos,
+// sondern SICHTBAR ausser Betrieb -- mit dem Satz, warum, an der Karte,
+// zu der sie gehoeren.
+function applyStaticMode(info) {
+  const card = document.getElementById('controls');
+  if (card) {
+    const why = el('p', 'offline-note');
+    why.append(
+      el('strong', null, 'These buttons are out of service in this copy.'),
+      document.createTextNode(
+        ' This copy has no catalog behind it — run it locally'
+        + ' (python -m ui.serve) to write. Everything below is the recorded run'
+        + (info && info.recorded_from ? ` from ${info.recorded_from}` : '')
+        + ', read exactly as the server would read it.'));
+    card.parentNode.insertBefore(why, card);
+    for (const btn of card.querySelectorAll('button')) {
+      btn.disabled = true;
+      btn.title = 'no catalog behind this copy — run it locally to write';
+    }
+  }
+  const run = document.getElementById('run-check');
+  if (run) run.title = 'no catalog behind this copy — run it locally to measure';
+
+  // Der Katalogbereich sagt in der Live-Fassung "Everything the instance
+  // holds". Diese Datei hat keine Instanz -- sie traegt die Tabellen, die
+  // der aufgezeichnete Lauf beruehrt hat. Die Ueberschrift stehen zu
+  // lassen waere die bequemste Art, mehr zu behaupten als da ist.
+  const note = info && info.catalog_note;
+  if (note) {
+    const caption = document.querySelector('.pane[data-view="catalog"] .pane__caption');
+    if (caption) caption.textContent = note;
+  }
 }
 
 function applyTheme(theme) {
@@ -1552,6 +1623,10 @@ function renderRunScope() {
   const host = document.getElementById('run-check-scope');
   if (!host) return;
   const l = state.ledger;
+  if (state.mode === 'static') {
+    host.textContent = 'exported copy — this button cannot measure';
+    return;
+  }
   if (state.mode !== 'live') {
     host.textContent = 'recording — measures nothing';
     return;
@@ -1600,7 +1675,10 @@ function watchRunProgress() {
 }
 
 async function runAction(name, btn) {
-  if (state.mode !== 'live') return;
+  // Nur `live` schreibt. Die Ein-Datei-Ausgabe hat keinen Katalog
+  // dahinter -- ihre Knoepfe sind sichtbar gesperrt (`applyStaticMode`),
+  // diese Zeile ist die zweite Schranke dahinter.
+  if (!writesAllowed()) return;
   if (btn) btn.disabled = true;
   // Jede Aktion endet in einem Registerlauf (die fuenf schreibenden
   // ueber `full_run`, "Run a check" direkt) -- der Balken gehoert also an
@@ -1676,6 +1754,7 @@ document.getElementById('detail-close').addEventListener('click', () => {
 });
 
 document.getElementById('time-offset-reset').addEventListener('click', async () => {
+  if (!writesAllowed()) return;
   await fetch('/api/view/reset', {
     method: 'POST',
     headers: { 'Content-Type': 'application/json', ...API_HEADERS },
@@ -1811,6 +1890,7 @@ async function boot() {
   const live = info.mode === 'live';
   document.querySelectorAll('#controls button').forEach((b) => { b.disabled = !live; });
   document.getElementById('run-check').disabled = !live;
+  if (info.mode === 'static') applyStaticMode(info);
   // Solange nichts gezaehlt ist, steht an jedem Punkt ein Gedankenstrich
   // MIT Grund -- nie eine 0, die wie eine Messung aussieht.
   for (const [id, what] of [['nav-count-connections', 'checked connections'],
@@ -1821,7 +1901,7 @@ async function boot() {
   }
 
   await refresh();
-  if (live) {
+  if (apiBacked()) {
     await pumpLog();
     if (state.judge && state.judge.running) watchJudgements();
     // Die Gesamtzahl des Katalogs steht in der Seitenleiste, bevor jemand

@@ -761,6 +761,122 @@ def _validate_gms_target(gms_url: str) -> None:
         )
 
 
+# --- Eine Adresse, ein Prozess ------------------------------------------
+#
+# Der Befund vom 07./08.08.: zeitweise lauschten ZWEI Prozesse mit
+# verschiedenem Stand auf 8899, und ein Vorschalt-Dienst auf 8898 kam dazu.
+# Wer dann etwas geaendert hat und neu geladen hat, sah je nach Zufall den
+# alten oder den neuen Code -- die teuerste Sorte Fehler, weil sie wie ein
+# Bug im Code aussieht und keiner ist.
+#
+# Zwei Ursachen, beide hier behoben:
+#   1. `HTTPServer.allow_reuse_address = 1` (Stdlib-Vorgabe) setzt unter
+#      Windows SO_REUSEADDR, und SO_REUSEADDR heisst dort NICHT "warte auf
+#      TIME_WAIT" wie unter Linux, sondern "binde denselben Port ein
+#      zweites Mal, auch wenn schon jemand lauscht". Der zweite Start ist
+#      dann still erfolgreich und stiehlt einen Teil der Verbindungen.
+#   2. Selbst wenn das Binden scheitert, war die Meldung ein Traceback.
+#
+# Jetzt: vorher nachsehen, dann klar sagen, was Sache ist -- und niemals
+# stillschweigend danebensetzen.
+_PROBE_TIMEOUT_S = 0.6
+
+
+def _port_owner(port: int) -> str:
+    """Wer lauscht auf `port`? Leerer String heisst: niemand.
+
+    Die Antwort unterscheidet ausdruecklich zwei Faelle, die gleich
+    aussehen, aber verschiedene Handgriffe brauchen: eine bereits laufende
+    Werkbank (dann ist nichts zu tun ausser die Seite zu oeffnen) und ein
+    fremder Dienst (dann muss er weichen oder der Port wechseln). Ein
+    blosses "Port belegt" haette beide in einen Topf geworfen.
+    """
+    import socket
+
+    answer = b""
+    try:
+        with socket.create_connection(("127.0.0.1", port), _PROBE_TIMEOUT_S) as sock:
+            # Ein Verbindungsaufbau allein sagt nur "da lauscht etwas". Ob
+            # es DIESE Werkbank ist, sagt erst eine Antwort -- eine
+            # gescheiterte Abfrage ist keine Abwesenheit
+            # (.claude/rules/verification.md).
+            try:
+                sock.settimeout(_PROBE_TIMEOUT_S)
+                # Host MIT Port und X-Probate: 1 -- die Zugriffspruefung
+                # der Werkbank (Punkt 1) verlangt beides. Ohne den Port im
+                # Host-Kopf antwortet die eigene Werkbank mit 403, und die
+                # Probe haette den eigenen Dienst fuer einen fremden
+                # gehalten. Genau einmal gemessen, deshalb steht es hier.
+                sock.sendall(
+                    f"GET /api/mode HTTP/1.0\r\nHost: 127.0.0.1:{port}\r\n"
+                    "X-Probate: 1\r\nConnection: close\r\n\r\n".encode("ascii"))
+                # Bis zum Schliessen lesen, nicht EIN recv: Kopf und
+                # Koerper kamen gemessen in ZWEI Segmenten, und ein
+                # einzelnes recv() sah nur den Kopf -- die Probe hielt die
+                # eigene Werkbank dadurch fuer einen fremden Dienst.
+                answer = b""
+                while len(answer) < 8192:
+                    chunk = sock.recv(4096)
+                    if not chunk:
+                        break
+                    answer += chunk
+            except OSError:
+                pass
+    except OSError:
+        return ""
+    if b'"mode"' in answer and b'"gms"' in answer:
+        return "werkbank"
+    return "fremd"
+
+
+def _pids_on_port(port: int) -> list[str]:
+    """Die PIDs, die auf `port` lauschen -- oder eine leere Liste.
+
+    Bewusst ueber `netstat`, nicht ueber eine Zusatz-Bibliothek: das
+    Projekt haengt fuer eine Fehlermeldung nicht von psutil ab. Faellt der
+    Aufruf aus, bleibt die Liste leer und die Meldung sagt trotzdem, was
+    los ist -- sie wird nur ungenauer, nicht falsch.
+    """
+    import re as _re
+    import subprocess
+
+    try:
+        out = subprocess.run(["netstat", "-ano", "-p", "TCP"], capture_output=True,
+                             text=True, timeout=8).stdout
+    except (OSError, subprocess.SubprocessError):
+        return []
+    # KEIN Match auf das Wort "LISTENING": netstat uebersetzt den Zustand
+    # (auf dieser Maschine gemessen: "ABHOEREN", daneben "WARTEND" fuer
+    # TIME_WAIT). Ein englisches Schluesselwort haette hier immer null
+    # PIDs geliefert und die Meldung stillschweigend entwertet. Stattdessen
+    # nach der Form gesucht: lokale Adresse mit unserem Port, entfernte
+    # Adresse 0.0.0.0:0 (= lauschend, in jeder Sprache gleich), PID am Ende.
+    pids = []
+    for line in out.splitlines():
+        m = _re.search(rf"\s127\.0\.0\.1:{port}\s+0\.0\.0\.0:0\s+\S+\s+(\d+)\s*$", line)
+        if m and m.group(1) not in pids:
+            pids.append(m.group(1))
+    return pids
+
+
+def preflight_port(port: int) -> str:
+    """`""` wenn frei, sonst der fertige Satz, warum nicht gestartet wird."""
+    owner = _port_owner(port)
+    if not owner:
+        return ""
+    pids = _pids_on_port(port)
+    who = f" (PID {', '.join(pids)})" if pids else ""
+    url = f"http://127.0.0.1:{port}"
+    if owner == "werkbank":
+        return (f"werkbank laeuft bereits auf {url}{who} -- nicht zweimal starten.\n"
+                f"  Seite oeffnen: {url}/werkbank.html\n"
+                f"  Neu starten:   erst diesen Prozess beenden, dann diesen Befehl.")
+    return (f"port {port} ist belegt{who}, und was dort lauscht ist keine werkbank.\n"
+            f"  Diesen Prozess beenden oder --port <andere> waehlen.\n"
+            f"  Nicht danebensetzen: zwei Prozesse auf einem Port liefern"
+            f" abwechselnd alten und neuen Code.")
+
+
 class ApiError(Exception):
     """Ein absichtlich abgelehnter Request. `text` ist IMMER ein fester,
     vorformulierter Satz -- nie eine interpolierte Exception-Nachricht
@@ -1209,9 +1325,33 @@ def main(argv=None) -> int:
             f"{MANIFEST_PATH}. Ein Register ueber nichts waere eine leere Behauptung."
         )
 
+    # VOR dem Binden nachsehen und klar sagen, was Sache ist. Sich
+    # stillschweigend danebenzusetzen ist unter Windows moeglich (siehe
+    # `preflight_port`) und war der Grund, warum zeitweise zwei Staende
+    # derselben Oberflaeche auf 8899 antworteten.
+    busy = preflight_port(args.port)
+    if busy:
+        print(f"werkbank: {busy}", file=sys.stderr)
+        return 1
+
     log: list = []
     handler_cls = build_handler(args.gms, focuses, log)  # validiert --gms (Punkt 7)
-    server = ThreadingHTTPServer(("127.0.0.1", args.port), handler_cls)
+
+    # Zweite Schranke fuer den Fall, dass jemand im Sekundenfenster
+    # zwischen Probe und Bind startet: ohne diese Zeile setzt Windows den
+    # zweiten Server LAUTLOS daneben, statt zu scheitern.
+    class _OneAtATime(ThreadingHTTPServer):
+        allow_reuse_address = False
+
+    try:
+        server = _OneAtATime(("127.0.0.1", args.port), handler_cls)
+    except OSError as exc:
+        print(f"werkbank: port {args.port} liess sich nicht binden -- {exc}\n"
+              f"  Vermutlich hat sich zwischen Pruefung und Start jemand"
+              f" daraufgesetzt. Nochmal versuchen oder --port waehlen.",
+              file=sys.stderr)
+        return 1
+
     print(f"werkbank live: http://127.0.0.1:{args.port} -- gms {args.gms}")
     print(f"  {len(focuses)} focus dataset(s): " + ", ".join(_short(f) for f in focuses))
     print(f"  buttons write on: {_short(DEMO_FOCUS)} -> {_short(DEMO_PARTNER)}")

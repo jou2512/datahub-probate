@@ -164,14 +164,16 @@
         </span>
         <button type="button" id="theme-toggle" class="badge theme-toggle">Dark theme</button>
         <!-- DIE Hauptaktion, genau eine, gefuellt (Spec: "keine zweite
-             Hauptaktion daneben"). Der Hinweis darunter sagt VOR dem
-             Druecken, was gemessen wird und wie lange es zuletzt
-             gedauert hat -- ein Knopf, dessen Wirkung man erst danach
-             erfaehrt, ist laut Spec verboten, und genau so einer war es:
-             er mass vier Kanten, wo 513 auf dem Schirm standen. -->
+             Hauptaktion daneben") und EINZEILIG wie "+ Neues Projekt" in
+             der Referenz. Der Satz davor sagt VOR dem Druecken, was
+             gemessen wird und wie lange es zuletzt gedauert hat -- ein
+             Knopf, dessen Wirkung man erst danach erfaehrt, ist laut Spec
+             verboten, und genau so einer war es: er mass vier Kanten, wo
+             513 auf dem Schirm standen. Bis 08.08. stand der Satz IM
+             Knopf und machte ihn doppelt so hoch wie alles daneben. -->
+        <span class="runscope" id="run-check-scope">scope not known yet</span>
         <button type="button" id="run-check" class="btn btn--primary" data-action="run-ledger">
           <span class="btn__name">Run a check</span>
-          <span class="btn__scope" id="run-check-scope">scope not known yet</span>
         </button>
       </div>
       <div class="progress" id="run-progress" hidden>

@@ -679,3 +679,69 @@ def test_the_view_only_buttons_need_no_target_and_still_write_nothing(tmp_path, 
     assert out["now_ms_offset_days"] > 0
     assert journal.read_bytes() == b""
     serve_module.reset_view_offset(lambda *a, **kw: None)
+
+
+# --- Eine Adresse, ein Prozess (08.08.) ---------------------------------
+#
+# Der Befund: zeitweise lauschten ZWEI Prozesse mit verschiedenem Stand auf
+# 8899. Unter Windows setzt `HTTPServer.allow_reuse_address = 1` (die
+# Stdlib-Vorgabe) SO_REUSEADDR, und das heisst dort NICHT "warte auf
+# TIME_WAIT" wie unter Linux, sondern "binde denselben Port ein zweites Mal
+# auch wenn schon jemand lauscht". Der zweite Start war dadurch still
+# erfolgreich, und wer danach neu lud, sah je nach Zufall alten oder neuen
+# Code.
+
+
+def test_a_free_port_says_nothing_and_lets_the_server_start():
+    """Der Wert ist der leere String, nicht None -- "frei" muss sich von
+    "konnte nicht nachsehen" unterscheiden lassen."""
+    with socket.socket() as probe:
+        probe.bind(("127.0.0.1", 0))
+        free = probe.getsockname()[1]
+    # Der Socket ist zu, der Port damit frei.
+    assert serve_module.preflight_port(free) == ""
+
+
+def test_an_occupied_port_is_named_instead_of_silently_shared():
+    """Ein fremder Lauscher fuehrt zu einem Satz, der sagt was los ist --
+    nicht zu einem stillen zweiten Bind daneben."""
+    with socket.socket() as squatter:
+        squatter.bind(("127.0.0.1", 0))
+        squatter.listen(1)
+        port = squatter.getsockname()[1]
+        message = serve_module.preflight_port(port)
+    assert message, "ein belegter port muss gemeldet werden"
+    assert str(port) in message
+    # Ein FREMDER Dienst und eine laufende Werkbank brauchen verschiedene
+    # Handgriffe -- die Meldung darf sie nicht in einen Topf werfen.
+    assert "keine werkbank" in message
+
+
+def test_main_refuses_the_port_instead_of_sitting_next_to_it(monkeypatch, capsys):
+    """`main()` startet NICHT, wenn der Port belegt ist -- Rueckgabe 1,
+    Meldung auf stderr, kein Traceback."""
+    monkeypatch.setattr(serve_module, "preflight_port",
+                        lambda port: "werkbank laeuft bereits auf http://127.0.0.1:8899")
+    code = serve_module.main(["--port", "8899"])
+    assert code == 1
+    assert "laeuft bereits" in capsys.readouterr().err
+
+
+def test_a_running_workbench_is_recognised_as_one(tmp_path):
+    """Die Probe unterscheidet die eigene Werkbank von einem fremden
+    Dienst -- ueber eine ECHTE Antwort auf /api/mode, nicht ueber die
+    blosse Tatsache, dass da etwas lauscht. Zwei Fallen stecken darin,
+    beide gemessen: der Host-Kopf braucht den PORT (sonst antwortet die
+    eigene Werkbank mit 403), und Kopf und Koerper kommen in ZWEI
+    Segmenten (ein einzelnes recv() sah nur den Kopf).
+    """
+    handler = build_handler("http://127.0.0.1:28080", ["urn:focus"], [])
+    server = ThreadingHTTPServer(("127.0.0.1", 0), handler)
+    threading.Thread(target=server.serve_forever, daemon=True).start()
+    try:
+        port = server.server_address[1]
+        assert serve_module._port_owner(port) == "werkbank"
+        assert "laeuft bereits" in serve_module.preflight_port(port)
+    finally:
+        server.shutdown()
+        server.server_close()

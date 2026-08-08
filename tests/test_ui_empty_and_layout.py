@@ -178,7 +178,11 @@ def test_the_seeded_statement_survives_a_narrow_window():
     assert "sidenav__foot" not in html
     js = JS.read_text(encoding="utf-8")
     assert "renderNotice" in js
-    assert "Recorded run, not a live measurement." in js
+    # 08.08.: der Streifen ist eine schmale ZEILE geworden, kein Block.
+    # Der Satz wurde dabei gekuerzt -- die Tatsache "das hier ist eine
+    # Aufzeichnung" bleibt, "nicht live" sagt das Wort selbst.
+    assert "'Recorded run'" in js
+    assert "measured ${when.toLocaleString()}" in js
 
 
 # --- Punkt 3: was am Takt und am Protokoll haerter gemacht wurde ---------

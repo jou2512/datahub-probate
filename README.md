@@ -106,7 +106,7 @@ needs 3.10+. Every command below is verified to run as written.
 ```bash
 # The edge ledger: declared lineage vs. measured usage, per edge, with timeline
 uv run --python 3.11 probate ledger \
-  --focus 'urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)' \
+  --focus 'urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_revenue_weekly_east,PROD)' \
   --gms http://localhost:28080
 
 # ... with the model judging which deviations matter (the only model call in the project)
@@ -117,9 +117,11 @@ uv run --python 3.11 probate ledger --focus '<dataset-urn>' --judge --judge-limi
 # for what each costs and why the age judgement stays on GraphQL.
 uv run --python 3.11 probate ledger --focus '<dataset-urn>' --cooccurrence-source mcp
 
-# The workbench: serves ui/ and proxies writes through the single write path
-uv run --python 3.11 python -m ui.serve --gms http://localhost:28080 --focus '<dataset-urn>'
-# then open http://localhost:8899
+# The workbench: serves ui/ and proxies writes through the single write path.
+# No flags needed — see "Starting it" under "The workbench" for the one command
+# and the one address.
+uv run --python 3.11 python -m ui.serve
+# then open http://127.0.0.1:8899/werkbank.html
 
 # The retirement flow that can follow from a ledger full of dead edges
 uv run --python 3.11 probate start   --from '<predecessor-urn>' --to '<successor-urn>'
@@ -156,9 +158,41 @@ Against a secured instance: `--token <PAT>` or `DATAHUB_TOKEN`. Without a token 
 ## The workbench
 
 A dashboard that only shows numbers proves nothing — you cannot tell whether it computed them or
-someone typed them in. So the UI is a lab, not a report: four panes (declared / measured / edge
-ledger / live log) and six buttons that change the two truth sources for real, through the same
-journalled write path as the CLI.
+someone typed them in. So the UI is a lab, not a report: five sections (overview / connections /
+catalog / runs / evidence) and buttons that change the two truth sources for real, through the
+same journalled write path as the CLI.
+
+### Starting it
+
+**One command, one address. There is no second one.**
+
+```bash
+uv run --python 3.11 python -m ui.serve
+```
+
+Then open **<http://127.0.0.1:8899/werkbank.html>**. No flags are needed: the GMS defaults to
+`http://localhost:28080` and the observed tables come from `examples/seedlab-manifest.json`.
+
+If something is already on that port, the server **says so and refuses to start** instead of
+sitting down next to it:
+
+```
+werkbank: werkbank laeuft bereits auf http://127.0.0.1:8899 (PID 208104) -- nicht zweimal starten.
+werkbank: port 8899 ist belegt (PID 4711), und was dort lauscht ist keine werkbank.
+```
+
+That guard exists because it happened: on Windows the stdlib's `allow_reuse_address` lets a
+second server bind a port that is already being listened on, so two builds of the same page
+answered in turn and a reload showed whichever one won the race.
+
+There is also a **single-file copy** of the whole console — no server, no Python, no network:
+
+```bash
+uv run --python 3.11 python harness/export_static.py
+```
+
+writes `docs/werkbank-static.html`. It carries a recorded run baked in, says so at the top, and
+shows its writing buttons visibly out of service rather than pretending they still work.
 
 The demo, forty seconds, three directions:
 

@@ -392,6 +392,28 @@ def _idle_days(row: dict):
     return row.get("dead_since_days")
 
 
+def all_rows(edges: list[dict], judgements: dict, gov: dict | None = None) -> list[dict]:
+    """JEDE Kante als Tabellen-Zeile, ungefiltert und unsortiert.
+
+    Herausgezogen aus `filter_sort_page`, damit die Ein-Datei-Ausgabe
+    (`harness/export_static.py`) exakt dieselben Zeilen einbaeckt, die der
+    Server ausliefert. Ein zweiter Bauweg fuer dieselbe Zeile waere eine
+    zweite Wahrheit -- und die faellt genau dann auf, wenn niemand mehr
+    nachrechnet.
+    """
+    gov = gov if gov is not None else load_governance()
+    rows = [edge_row(e, gov) for e in edges]
+    for r in rows:
+        j = judgements.get(r["edge"])
+        r["judgement"] = (
+            "none" if j is None
+            else "model" if j.get("used_model")
+            else "abstained"
+        )
+        r["important"] = bool(j.get("important")) if j else False
+    return rows
+
+
 def filter_sort_page(edges: list[dict], judgements: dict, params: dict,
                      gov: dict | None = None) -> dict:
     """Filtern, sortieren, seitenweise schneiden -- alles hier, nichts im
@@ -405,16 +427,7 @@ def filter_sort_page(edges: list[dict], judgements: dict, params: dict,
     `gov`: das Governance-Artefakt (`load_governance()`). Ohne es bleiben
     Domaenen- und Besitzer-Filter wirkungslos statt zu raten.
     """
-    gov = gov if gov is not None else load_governance()
-    rows = [edge_row(e, gov) for e in edges]
-    for r in rows:
-        j = judgements.get(r["edge"])
-        r["judgement"] = (
-            "none" if j is None
-            else "model" if j.get("used_model")
-            else "abstained"
-        )
-        r["important"] = bool(j.get("important")) if j else False
+    rows = all_rows(edges, judgements, gov)
 
     total_unfiltered = len(rows)
 
