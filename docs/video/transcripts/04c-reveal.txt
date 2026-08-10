@@ -1,0 +1,11 @@
+$ probate ledger --focus '…probate_seedlab.gl_journal_entries_daily…'
+
+  "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.gl_journal_entries_daily,PROD)",
+  "edges_total": 1,
+  "edges_confirmed": 0,
+  "edges_dead": 0,
+  "edges_missing": 0,
+  "edges_unknown": 1,
+  "coverage_buckets_seen": 0,
+
+  → exit 0 · 5.53 s · 2026-08-10T16:30:01+00:00

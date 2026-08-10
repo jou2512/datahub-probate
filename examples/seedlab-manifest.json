@@ -1,7 +1,7 @@
 {
   "seeded": true,
   "seeded_statement": "Synthetic demonstration data (harness/seed_lineage_lab.py) - not real warehouse usage. Namespace probate_seedlab, platform postgres.",
-  "generated_at": "2026-08-10T15:55:57.347818+00:00",
+  "generated_at": "2026-08-10T16:32:03.444971+00:00",
   "gms_url": "http://localhost:28080",
   "namespace": "probate_seedlab",
   "naming_note": "Die Tabellennamen tragen bewusst KEINEN Hinweis auf den erwarteten Kanten-Zustand. 'expected_edge_state' unten ist die Test-Erwartung dieses Labors und wird nirgends in der Oberflaeche angezeigt -- sie existiert, damit harness/seedlab_verdicts.py das gemessene Urteil dagegen halten kann. Wuerde der Name den Zustand ansagen ('dead_upstream -> dead_downstream: dead'), waere der Vier-Zustaende-Beleg zirkulaer. Die acht Namen bilden stattdessen den Katalog eines Handelsunternehmens (Hauptbuch/Abschluss, Filialumsatz/Ranking, Checkout-Events/Customer-Lifetime-Value, zwei Zwischentabellen).",

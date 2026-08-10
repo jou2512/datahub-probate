@@ -4,9 +4,9 @@ $ probate ledger --focus '…probate_seedlab.gl_journal_entries_daily…' --cooc
   "edges_total": 1,
   "edges_confirmed": 1,
 
-  → exit 0 · 1.23 s · 2026-08-10T14:51:39+00:00
+  → exit 0 · 2.26 s · 2026-08-10T16:28:09+00:00
 
-$ type harness\runs\mcp-probe.json      # beide Wege, gemessen
+$ type harness\runs\mcp-probe.json      # both transports, measured
 
   "mcp_session_boot_seconds_warm": 9.4,
   "timestamps": {
@@ -14,4 +14,4 @@ $ type harness\runs\mcp-probe.json      # beide Wege, gemessen
   "mcp_totals_identical_all_four_states": true,
   "end_to_end_verdicts_identical": true,
 
-  → exit 0 · 0.90 s · 2026-08-10T14:51:40+00:00
+  → exit 0 · 1.73 s · 2026-08-10T16:28:11+00:00

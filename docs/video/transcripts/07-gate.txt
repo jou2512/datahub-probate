@@ -1,19 +1,19 @@
 $ uv run --python 3.11 python harness/audit_claims.py
 
-  OK    transitions_all_proven   behauptet True, gemessen True
-  OK    transitions_attempted    behauptet 7, gemessen 7
-  OK    transitions_cleanup_verified behauptet True, gemessen True
-  OK    transitions_journal_lines_added behauptet 3, gemessen 3
-  OK    transitions_journal_lines_reverted behauptet 3, gemessen 3
-  OK    transitions_proven       behauptet 7, gemessen 7
-  OK    transitions_settle_seconds_minimum behauptet 15.0, gemessen 15.0
-  OK    transitions_states_reached behauptet confirmed,missing,confirmed,dead,unknown,confirmed,unknown, gemessen confirmed,missing,confirmed,dead,unknown,confirmed,unknown
-  OK    transitions_usage_rows_cut_and_restored behauptet 3, gemessen 3
-  OK    transitions_usage_timeseries_identical_after_restore behauptet True, gemessen True
-  OK    watcher_events_seen      behauptet 80, gemessen 80
-  OK    watcher_reclassified_edges behauptet 0, gemessen 0
-  OK    watcher_relapses_detected behauptet 1, gemessen 1
-  OK    watcher_started          behauptet True, gemessen True
-  Alle 140 Zahlen decken sich mit den Laeufen.
+  OK    transitions_all_proven   claimed True, measured True
+  OK    transitions_attempted    claimed 7, measured 7
+  OK    transitions_cleanup_verified claimed True, measured True
+  OK    transitions_journal_lines_added claimed 3, measured 3
+  OK    transitions_journal_lines_reverted claimed 3, measured 3
+  OK    transitions_proven       claimed 7, measured 7
+  OK    transitions_settle_seconds_minimum claimed 15.0, measured 15.0
+  OK    transitions_states_reached claimed confirmed,missing,confirmed,dead,unknown,confirmed,unknown, measured confirmed,missing,confirmed,dead,unknown,confirmed,unknown
+  OK    transitions_usage_rows_cut_and_restored claimed 3, measured 3
+  OK    transitions_usage_timeseries_identical_after_restore claimed True, measured True
+  OK    watcher_events_seen      claimed 80, measured 80
+  OK    watcher_reclassified_edges claimed 0, measured 0
+  OK    watcher_relapses_detected claimed 1, measured 1
+  OK    watcher_started          claimed True, measured True
+  All 140 numbers match the recorded runs.
 
-  → exit 0 · 0.86 s · 2026-08-10T14:52:09+00:00
+  → exit 0 · 1.67 s · 2026-08-10T16:28:07+00:00

@@ -3,8 +3,8 @@
   "seeded_statement": "Laeuft gegen den geseedeten Beispielkatalog (namespace probate_seedlab, harness/seed_lineage_lab.py) -- keine echte Warehouse-Nutzung.",
   "gms_url": "http://localhost:28080",
   "manifest": "examples\\seedlab-manifest.json",
-  "generated_at": "2026-08-10T16:04:22.799363+00:00",
-  "now_ms": 1786377862799,
+  "generated_at": "2026-08-10T16:38:45.946429+00:00",
+  "now_ms": 1786379925946,
   "all_four_states_matched_expected": true,
   "pairs": {
     "confirmed": {
@@ -27,8 +27,8 @@
         "newest_bucket_ms": 1786320000000,
         "days_span": 2,
         "reason": "",
-        "window_start_ms": 1783613062898,
-        "window_end_ms": 1786464262898,
+        "window_start_ms": 1783615126014,
+        "window_end_ms": 1786466326014,
         "window_days": 33
       },
       "timeline": {
@@ -61,8 +61,8 @@
         "reason": "im geprueften Fenster nie gemessen",
         "buckets_checked": 4,
         "window_days": 33,
-        "window_start_ms": 1783613062978,
-        "window_end_ms": 1786464262978,
+        "window_start_ms": 1783615126070,
+        "window_end_ms": 1786466326070,
         "source": "declared lineage"
       },
       "queries_seen": 0,
@@ -73,8 +73,8 @@
         "newest_bucket_ms": 1786320000000,
         "days_span": 30,
         "reason": "",
-        "window_start_ms": 1783613062978,
-        "window_end_ms": 1786464262978,
+        "window_start_ms": 1783615126070,
+        "window_end_ms": 1786466326070,
         "window_days": 33
       },
       "timeline": {
@@ -123,8 +123,8 @@
         "newest_bucket_ms": 1786320000000,
         "days_span": 2,
         "reason": "",
-        "window_start_ms": 1783613063063,
-        "window_end_ms": 1786464263063,
+        "window_start_ms": 1783615126130,
+        "window_end_ms": 1786466326130,
         "window_days": 33
       },
       "timeline": {
@@ -165,8 +165,8 @@
         "newest_bucket_ms": null,
         "days_span": null,
         "reason": "keine Nutzungs-Zeitfenster im Katalog",
-        "window_start_ms": 1783613063131,
-        "window_end_ms": 1786464263131,
+        "window_start_ms": 1783615126182,
+        "window_end_ms": 1786466326182,
         "window_days": 33
       },
       "timeline": {

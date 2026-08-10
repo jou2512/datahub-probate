@@ -51,7 +51,22 @@ Write-Host "  Benachrichtigungen aus? Nur der Werkbank-Tab offen?" -ForegroundCo
 
 Write-Host "`n== 2. Endkarte und Mitschriften =="
 uv run --python 3.11 python docs/video/tools/endcard.py --repo-url $RepoUrl
-uv run --python 3.11 python docs/video/tools/transcripts.py --which 06,07,07b
+if ($LASTEXITCODE -ne 0) { throw "endcard.py fehlgeschlagen (exit $LASTEXITCODE)" }
+
+# Die Anfuehrungszeichen um '06,07,07b' sind NICHT Geschmack. Ohne sie liest
+# PowerShell den Ausdruck als ARRAY (das Komma ist ein Operator), wandelt
+# `06`/`07` dabei in die Zahlen 6/7 um und reicht die fuehrende Null nicht
+# weiter -- transcripts.py bekommt "6" und bricht mit `unbekannt: 6` ab.
+# Gemessen 10.08.2026, zweimal: der Abbruch blieb UNBEMERKT, weil
+# `$ErrorActionPreference = "Stop"` auf native Programme nicht greift. Das
+# Skript filmte danach die Mitschriften, die zufaellig auf der Platte lagen
+# -- im ersten Fall eine 07-gate.txt von vor der Uebersetzung, also 22
+# Sekunden Deutsch im Bild, obwohl der Quelltext laengst englisch war.
+# Ein Aufnahmeskript, das stillschweigend Altes filmt, ist schlimmer als
+# eins, das abbricht: deshalb hier UND bei jedem anderen nativen Aufruf
+# eine explizite $LASTEXITCODE-Pruefung.
+uv run --python 3.11 python docs/video/tools/transcripts.py --which '06,07,07b'
+if ($LASTEXITCODE -ne 0) { throw "transcripts.py fehlgeschlagen (exit $LASTEXITCODE) - es wuerden alte Mitschriften gefilmt" }
 
 Write-Host "`n== 3. Aufnahme (ein Durchgang, ein Fenster) =="
 $pre = if ($SkipPrerun) { @("--no-prerun") } else { @() }
@@ -62,6 +77,7 @@ if ($LASTEXITCODE -ne 0) { throw "Aufnahme fehlgeschlagen (exit $LASTEXITCODE)" 
 
 Write-Host "`n== 4. Aufraeumen: Demo-Labor wiederherstellen =="
 uv run --python 3.11 python harness/seed_lineage_lab.py | Select-Object -Last 1
+if ($LASTEXITCODE -ne 0) { throw "seed_lineage_lab.py fehlgeschlagen (exit $LASTEXITCODE)" }
 uv run --python 3.11 python harness/seedlab_verdicts.py | Out-Null
 if ($LASTEXITCODE -ne 0) { throw "seedlab_verdicts.py != 0 - das Labor ist NICHT wiederhergestellt" }
 Write-Host "  seedlab_verdicts.py: exit 0"
@@ -72,6 +88,7 @@ if ($LASTEXITCODE -ne 0) { throw "Zusammenlegen fehlgeschlagen" }
 
 Write-Host "`n== 6. Sichtpruefung =="
 uv run --python 3.11 python docs/video/tools/proof_frames.py
+if ($LASTEXITCODE -ne 0) { throw "proof_frames.py fehlgeschlagen (exit $LASTEXITCODE)" }
 
 Write-Host "`nFertig. Stummes Bild: docs/video/probate-demo-silent.mp4"
 Write-Host "Bilder zum Durchsehen: docs/video/proof/ - ANSEHEN, bevor irgendetwas hochgeht."
