@@ -58,13 +58,14 @@ statsSummary.queryCountLast30Days     →  103      ← correct
 statsSummary.uniqueUserCountLast30Days→  0        ← same wrong 0, and this one is on the UI
 ```
 
-Reproduced on three independent datasets in the same instance:
+Reproduced on two independent datasets in the same instance (re-measured 2026-08-10; the
+`confirmed_upstream`/`dead_upstream` fixtures of 2026-08-07 had lost their rows by then, so
+these are the datasets that still carry history):
 
 | Dataset | per-bucket `uniqueUserCount` | `aggregations.uniqueUserCount` | `aggregations.totalSqlQueries` |
 |---|---|---|---|
-| `confirmed_upstream` | 3, 4, 5 | **0** | 103 ✓ |
-| `dead_upstream` | 4, 3, 0, 0, 0, 0, 0, 0 | **0** | 52 ✓ |
-| `missing_upstream` | 2, 3, 4 | **0** | 74 ✓ |
+| 8 rows, gappy | 4, 3, 0, 0, 0, 0, 0, 0 | **0** | 52 ✓ |
+| 3 rows, consecutive | 1, 1, 1 | **0** | 103 ✓ |
 
 The stored rows really do carry the field — this is the raw aspect straight out of
 `getTimeseriesAspectValues`, no GraphQL involved:

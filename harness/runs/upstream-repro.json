@@ -1,13 +1,13 @@
 {
-  "generated_at": "2026-08-07T11:06:29.638981+00:00",
+  "generated_at": "2026-08-10T14:21:01.006293+00:00",
   "gms_url": "http://localhost:28080",
   "datahub_version": "v1.5.0.6",
   "namespace": "probate_upstream",
-  "anchor_utc_midnight_ms": 1786060800000,
+  "anchor_utc_midnight_ms": 1786320000000,
   "probes": [
     {
       "finding": "01-usagestats-range-argument-required-but-nullable",
-      "probed_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+      "probed_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_revenue_weekly_east,PROD)",
       "claim": "All arguments of Dataset.usageStats are nullable in the schema, yet any call that omits `range` fails with HTTP 500 'Name is null' instead of a 400-class validation error.",
       "schema_arg_kinds": {
         "resource": "SCALAR",
@@ -36,7 +36,7 @@
       "mcp_server_datahub_version": "0.6.0",
       "client_documents": {
         "queries.gql": {
-          "path": "C:\\Users\\joel2\\AppData\\Local\\uv\\cache\\archive-v0\\fG-ZqRBYnB6dVFay\\Lib\\site-packages\\mcp_server_datahub\\gql\\queries.gql",
+          "path": "C:\\Users\\joel2\\AppData\\Local\\uv\\cache\\archive-v0\\bkehGvYvwXWqPsxd\\Lib\\site-packages\\mcp_server_datahub\\gql\\queries.gql",
           "commented_out_lines": [
             "# created {",
             "#   time",
@@ -50,7 +50,7 @@
           "time_appears_only_in_comments": true
         },
         "query_entity.gql": {
-          "path": "C:\\Users\\joel2\\AppData\\Local\\uv\\cache\\archive-v0\\fG-ZqRBYnB6dVFay\\Lib\\site-packages\\mcp_server_datahub\\gql\\query_entity.gql",
+          "path": "C:\\Users\\joel2\\AppData\\Local\\uv\\cache\\archive-v0\\bkehGvYvwXWqPsxd\\Lib\\site-packages\\mcp_server_datahub\\gql\\query_entity.gql",
           "commented_out_lines": [],
           "effective_requests_created": false,
           "effective_requests_time": false,
@@ -75,20 +75,20 @@
       "server_returns_timestamps_live": true,
       "server_sample": [
         {
-          "urn": "urn:li:query:bdc4b851a09917e3",
+          "urn": "urn:li:query:probate-demo-f36123a6568039fc",
           "properties": {
             "created": {
-              "time": 1754300000000,
-              "actor": "urn:li:corpuser:datahub"
+              "time": 1786101530130,
+              "actor": "urn:li:corpuser:__datahub_system"
             },
             "lastModified": {
-              "time": 1754300000000,
-              "actor": "urn:li:corpuser:datahub"
+              "time": 1786101530130,
+              "actor": "urn:li:corpuser:__datahub_system"
             }
           }
         },
         {
-          "urn": "urn:li:query:probate-seedlab-confirmed",
+          "urn": "urn:li:query:bdc4b851a09917e3",
           "properties": {
             "created": {
               "time": 1754300000000,
@@ -106,7 +106,7 @@
     {
       "finding": "02-gettimeseriesaspectvalues-limit-null-pointer",
       "claim": "POST /aspects?action=getTimeseriesAspectValues without the optional-looking `limit` field returns HTTP 500 NullPointerException instead of applying a default or returning 400.",
-      "probed_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+      "probed_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_revenue_weekly_east,PROD)",
       "status_without_limit": 500,
       "error_without_limit": "{\"exceptionClass\":\"com.linkedin.restli.server.RestLiServiceException\",\"stackTrace\":\"com.linkedin.restli.server.RestLiServiceException [HTTP Status:500]: java.lang.NullPointerException: Cannot invoke \\\"java.lang.Integer.intValue()\\\" because \\\"limit\\\" is null\\n\\tat com.linkedin.metadata.resources.restli.RestliUtils.toTask(RestliUtils.java:49)\\n\\tat com.linkedin.metadata.resources.restli.RestliUtils.",
       "status_with_limit": 200,
@@ -119,7 +119,7 @@
       "claim": "Dataset.usageStats.aggregations.uniqueUserCount returns 0 while the buckets in the same response report non-zero uniqueUserCount, and statsSummary.uniqueUserCountLast30Days repeats the 0. totalSqlQueries, the sibling scalar on the same aspect, aggregates correctly from the same rows. A writer that sets DatasetUsageStatistics.uniqueUserCount -- the field the Python SDK exposes -- gets it echoed back per bucket but silently zeroed in every aggregate.",
       "datasets": [
         {
-          "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+          "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_revenue_weekly_east,PROD)",
           "bucket_unique_user_counts": [
             4,
             3,
@@ -144,18 +144,18 @@
           "contradiction": true
         },
         {
-          "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
+          "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_upstream.dense_control,PROD)",
           "bucket_unique_user_counts": [
-            3,
-            4,
-            5
+            1,
+            1,
+            1
           ],
-          "max_bucket_unique_user_count": 5,
+          "max_bucket_unique_user_count": 1,
           "aggregations_uniqueUserCount": 0,
           "aggregations_users": [],
           "aggregations_totalSqlQueries": 103,
           "primary_store_totalSqlQueries": 103,
-          "primary_store_max_uniqueUserCount": 5,
+          "primary_store_max_uniqueUserCount": 1,
           "stats_summary": {
             "queryCountLast30Days": 103,
             "uniqueUserCountLast30Days": 0
@@ -173,13 +173,13 @@
       "finding": "04-usagestats-buckets-are-a-dense-calendar-grid",
       "claim": "usageStats.buckets is a DENSE per-day calendar grid spanning the oldest to the newest really-written row, not the list of measurements. Days that were never written are present as buckets with null metrics. len(buckets) is therefore a calendar span, not a count of measurements -- here 125 buckets for 8 rows. None of this is stated in the schema description or the docs, and the null-vs-zero distinction (never written vs measured zero traffic) is the only thing separating the two.",
       "sparse": {
-        "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+        "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_revenue_weekly_east,PROD)",
         "rows_in_primary_store": 8,
         "buckets_from_aggregation": 125,
         "predicted_span_days": 125,
         "interpolated_buckets": 117,
-        "oldest_row_ms": 1775347200000,
-        "newest_row_ms": 1786060800000,
+        "oldest_row_ms": 1775606400000,
+        "newest_row_ms": 1786320000000,
         "zero_rows_in_primary_store": 6,
         "zero_buckets_in_aggregation": 6,
         "null_metric_buckets_in_aggregation": 117,
@@ -189,7 +189,7 @@
         "role": "gappy history -- expect buckets > rows"
       },
       "dense_control": {
-        "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
+        "urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_upstream.dense_control,PROD)",
         "rows_in_primary_store": 3,
         "buckets_from_aggregation": 3,
         "predicted_span_days": 3,
@@ -226,11 +226,11 @@
     {
       "finding": "05-openapi-v3-get-aspect-returns-newest-timeseries-row-only",
       "claim": "GET /openapi/v3/entity/dataset/<urn>/datasetusagestatistics returns a single aspect value -- the newest row -- shaped exactly like a non-timeseries aspect. Nothing in the response says a history exists, so a client reading a timeseries aspect through the generic entity route silently sees 1 of N rows.",
-      "probed_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+      "probed_urn": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_revenue_weekly_east,PROD)",
       "rows_in_primary_store": 8,
       "get_aspect_returned_rows": 1,
-      "get_aspect_timestamp": 1786060800000,
-      "newest_timestamp_in_store": 1786060800000,
+      "get_aspect_timestamp": 1786320000000,
+      "newest_timestamp_in_store": 1786320000000,
       "get_aspect_matches_newest_row": true,
       "response_mentions_history": true,
       "on_dataset_without_rows": null,

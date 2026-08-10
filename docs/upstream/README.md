@@ -26,7 +26,25 @@ evidence is not a claim.
 | GMS | `http://localhost:28080` |
 | Client | Python 3.11.9, `acryl-datahub` 1.6.0.17, plus raw HTTP via `curl`/`urllib` |
 | Auth | none (local quickstart, no access control) |
-| Measured | 2026-08-07 |
+| Measured | 2026-08-07, **re-verified 2026-08-10** — all six probes `OK`, exit 0 |
+
+> **Re-verification note (2026-08-10).** The fixtures of 2026-08-07
+> (`probate_seedlab.confirmed_upstream`, `…dead_upstream`) had lost their timeseries rows by
+> then, so the first re-run reported findings 03–05 as *not reproduced*. That was an absent
+> dataset, not a refuted claim: pointed at datasets that still carry history
+> (`probate_seedlab.store_revenue_weekly_east`, 8 rows / 125-day span, and
+> `probate_upstream.dense_control`, 3 consecutive days), all six reproduce unchanged. The
+> numbers in the submission-ready bodies under [`einreichung/`](einreichung/) are today's, not
+> Thursday's.
+
+## Ready to file
+
+[`einreichung/`](einreichung/) holds one submission-ready body per finding plus
+[`einreichung/ABSCHICKEN.md`](einreichung/ABSCHICKEN.md) with the exact `gh` commands, in order.
+**Finding 02 is not filed as its own issue** — it was reported independently on 2026-08-09 as
+[datahub-project/datahub#19016](https://github.com/datahub-project/datahub/issues/19016), so our
+version became a comment adding the root cause (`AspectResource`, `response.setLimit(limit)`
+unboxing a null while the neighbouring `startTimeMillis`/`endTimeMillis` are null-guarded).
 
 ## The findings
 
