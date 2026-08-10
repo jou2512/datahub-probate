@@ -116,9 +116,28 @@ Hold on the detail panel. Point the cursor at **Last measured**, then at the per
 > statement. Every other tool I found calls that dead and invites you to delete the table. And that
 > button wrote to a live catalog — same journalled path as the command line.
 
-**Camera note:** this transition measured ~2 s live and 1.309 s in
-`harness/runs/warehouse-cut-latency.json`. If it lands slower than about three seconds, **reshoot —
-do not cut.** A cut here destroys the only claim the video cannot make any other way.
+**Camera note — corrected 10.08., read this before you shoot.** An earlier version of this line
+claimed *"~2 s live and 1.309 s"*. **That number does not exist.**
+`harness/runs/warehouse-cut-latency.json` polls the state six times after the purge and records:
+still `confirmed` at 0.064 s, 0.623 s, 1.188 s, 1.764 s and **2.33 s**, first seen as `unknown` at
+**2.896 s** — which is the artifact's own
+`elapsed_seconds_purge_to_correct_classification`. So the honest expectation is **about three
+seconds, not one.**
+
+Two consequences for the shoot:
+- **Do not reshoot at three seconds.** The old threshold would have had you repeating a take that
+  was already correct. Reshoot only if it takes **noticeably longer than ~5 s** or never flips.
+- The 3-second silent beat in the spoken text is not padding, it is exactly the measured wait.
+  Say *"Watch what does not happen"*, then hold. The state lands while you are silent.
+
+Still binding: **no cut, no speed-up.** A cut here destroys the only claim the video cannot make
+any other way.
+
+*Caveat on the artifact:* it was measured 07.08. against the **old** lab names
+(`probate_seedlab.confirmed_upstream`), before the rename to business names. The mechanism and the
+route are unchanged, but the exact figure is from the pre-rename lab — treat ~3 s as the
+expectation, not as a guarantee to quote on camera. **Do not say this number out loud in the
+video;** it is not in the audited list below.
 
 ---
 
