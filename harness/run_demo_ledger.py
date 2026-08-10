@@ -78,7 +78,7 @@ _UNPREFIXED_TO_CLAIMABLE = {
 _CLAIM_PREFIXES = ("demo_ledger_", "demo_catalog_", "manifest_", "console_")
 
 SEEDED_STATEMENT = (
-    "Aufzeichnung eines echten Laufs gegen kuenstlich eingespielte "
+    "A real run against synthetic "
     "Demonstrationsdaten (harness/seed_demo_catalog.py, Namensraum "
     "probate_demo_*, plus das Vier-Zustaende-Labor probate_seedlab) -- keine "
     "echte Warehouse-Nutzung."

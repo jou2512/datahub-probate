@@ -82,7 +82,7 @@ def run_matrix(gms_url: str, judge_limit: int = 5) -> dict:
 
     return {
         "seeded": True,
-        "seeded_statement": ("Alle vier Fokusse sind die kuenstlich eingespielten "
+        "seeded_statement": ("All four focuses are the synthetic "
                              "Seedlab-Datensaetze (harness/seed_lineage_lab.py), "
                              "keine echte Warehouse-Nutzung."),
         "run_at_iso": time.strftime("%Y-%m-%dT%H:%M:%SZ", time.gmtime()),

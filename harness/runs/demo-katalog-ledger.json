@@ -23975,7 +23975,7 @@
     }
   ],
   "recorded_at_iso": "2026-08-07T16:35:35.124203+00:00",
-  "seeded_statement": "Aufzeichnung eines echten Laufs gegen kuenstlich eingespielte Demonstrationsdaten (harness/seed_demo_catalog.py, Namensraum probate_demo_*, plus das Vier-Zustaende-Labor probate_seedlab) -- keine echte Warehouse-Nutzung.",
+  "seeded_statement": "A real run against synthetic demonstration data (harness/seed_demo_catalog.py, namespace probate_demo_*, plus the four-state lab probate_seedlab) - no real warehouse usage.",
   "demo_ledger_seconds": 21.75,
   "demo_ledger_focuses": 330,
   "demo_ledger_focuses_demo_catalog": 326,

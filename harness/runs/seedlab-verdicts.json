@@ -3,8 +3,8 @@
   "seeded_statement": "Laeuft gegen den geseedeten Beispielkatalog (namespace probate_seedlab, harness/seed_lineage_lab.py) -- keine echte Warehouse-Nutzung.",
   "gms_url": "http://localhost:28080",
   "manifest": "examples\\seedlab-manifest.json",
-  "generated_at": "2026-08-10T12:57:00.493587+00:00",
-  "now_ms": 1786366620493,
+  "generated_at": "2026-08-10T15:07:42.046303+00:00",
+  "now_ms": 1786374462046,
   "all_four_states_matched_expected": true,
   "pairs": {
     "confirmed": {
@@ -23,29 +23,29 @@
       "buckets_checked": 3,
       "coverage": {
         "buckets_seen": 3,
-        "oldest_bucket_ms": 1785888000000,
-        "newest_bucket_ms": 1786060800000,
+        "oldest_bucket_ms": 1786147200000,
+        "newest_bucket_ms": 1786320000000,
         "days_span": 2,
         "reason": "",
-        "window_start_ms": 1783601820613,
-        "window_end_ms": 1786453020613,
+        "window_start_ms": 1783609662119,
+        "window_end_ms": 1786460862119,
         "window_days": 33
       },
       "timeline": {
-        "last_covered_ms": 1786060800000,
-        "dead_since_days": 3,
+        "last_covered_ms": 1786320000000,
+        "dead_since_days": 0,
         "dead_since_is_lower_bound": false,
         "series": [
           [
-            1785888000000,
+            1786147200000,
             28
           ],
           [
-            1785974400000,
+            1786233600000,
             35
           ],
           [
-            1786060800000,
+            1786320000000,
             40
           ]
         ]
@@ -59,39 +59,43 @@
       "matches_expected": true,
       "evidence": {
         "reason": "im geprueften Fenster nie gemessen",
-        "buckets_checked": 3,
+        "buckets_checked": 4,
         "window_days": 33,
-        "window_start_ms": 1783601820699,
-        "window_end_ms": 1786453020699,
+        "window_start_ms": 1783609662181,
+        "window_end_ms": 1786460862181,
         "source": "declared lineage"
       },
       "queries_seen": 0,
-      "buckets_checked": 3,
+      "buckets_checked": 4,
       "coverage": {
-        "buckets_seen": 3,
-        "oldest_bucket_ms": 1784851200000,
-        "newest_bucket_ms": 1786060800000,
-        "days_span": 14,
+        "buckets_seen": 4,
+        "oldest_bucket_ms": 1783728000000,
+        "newest_bucket_ms": 1786320000000,
+        "days_span": 30,
         "reason": "",
-        "window_start_ms": 1783601820699,
-        "window_end_ms": 1786453020699,
+        "window_start_ms": 1783609662181,
+        "window_end_ms": 1786460862181,
         "window_days": 33
       },
       "timeline": {
         "last_covered_ms": null,
-        "dead_since_days": 17,
+        "dead_since_days": 30,
         "dead_since_is_lower_bound": true,
         "series": [
           [
-            1784851200000,
+            1783728000000,
             0
           ],
           [
-            1785456000000,
+            1785110400000,
             0
           ],
           [
-            1786060800000,
+            1785715200000,
+            0
+          ],
+          [
+            1786320000000,
             0
           ]
         ]
@@ -115,29 +119,29 @@
       "buckets_checked": 3,
       "coverage": {
         "buckets_seen": 3,
-        "oldest_bucket_ms": 1785888000000,
-        "newest_bucket_ms": 1786060800000,
+        "oldest_bucket_ms": 1786147200000,
+        "newest_bucket_ms": 1786320000000,
         "days_span": 2,
         "reason": "",
-        "window_start_ms": 1783601820793,
-        "window_end_ms": 1786453020793,
+        "window_start_ms": 1783609662254,
+        "window_end_ms": 1786460862254,
         "window_days": 33
       },
       "timeline": {
-        "last_covered_ms": 1786060800000,
-        "dead_since_days": 3,
+        "last_covered_ms": 1786320000000,
+        "dead_since_days": 0,
         "dead_since_is_lower_bound": false,
         "series": [
           [
-            1785888000000,
+            1786147200000,
             19
           ],
           [
-            1785974400000,
+            1786233600000,
             24
           ],
           [
-            1786060800000,
+            1786320000000,
             31
           ]
         ]
@@ -161,8 +165,8 @@
         "newest_bucket_ms": null,
         "days_span": null,
         "reason": "keine Nutzungs-Zeitfenster im Katalog",
-        "window_start_ms": 1783601820871,
-        "window_end_ms": 1786453020871,
+        "window_start_ms": 1783609662329,
+        "window_end_ms": 1786460862329,
         "window_days": 33
       },
       "timeline": {

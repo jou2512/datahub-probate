@@ -1,6 +1,6 @@
 {
   "seeded": true,
-  "seeded_statement": "Aufzeichnung eines echten Laufs gegen kuenstlich eingespielte Demonstrationsdaten (harness/seed_demo_catalog.py, Namensraum probate_demo_*, plus das Vier-Zustaende-Labor probate_seedlab) -- keine echte Warehouse-Nutzung.",
+  "seeded_statement": "A real run against synthetic demonstration data (harness/seed_demo_catalog.py, namespace probate_demo_*, plus the four-state lab probate_seedlab) - no real warehouse usage.",
   "generated_at": "2026-08-07T16:35:35.124203+00:00",
   "demo_catalog_datasets": 610,
   "demo_catalog_edges_planned": 509,

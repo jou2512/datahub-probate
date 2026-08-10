@@ -336,7 +336,7 @@ def main() -> int:
         "gms": args.gms,
         "seeded": True,
         "seeded_statement": (
-            "Gemessen gegen den kuenstlich eingespielten Beispielkatalog "
+            "Measured against the synthetic sample catalog "
             "(harness/seed_lineage_lab.py, Namespace probate_seedlab), nicht "
             "gegen echte Warehouse-Nutzung."
         ),

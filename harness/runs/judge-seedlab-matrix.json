@@ -1,6 +1,6 @@
 {
   "seeded": true,
-  "seeded_statement": "Alle vier Fokusse sind die kuenstlich eingespielten Seedlab-Datensaetze (harness/seed_lineage_lab.py), keine echte Warehouse-Nutzung.",
+  "seeded_statement": "Alle vier Fokusse sind die synthetic seedlab datasets (harness/seed_lineage_lab.py) - not real warehouse usage.",
   "run_at_iso": "2026-08-07T01:42:57Z",
   "gms": "http://localhost:28080",
   "judge_limit": 5,

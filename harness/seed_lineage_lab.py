@@ -987,8 +987,8 @@ def write_manifest(cooccurrence: dict[str, int]) -> None:
     manifest = {
         "seeded": True,
         "seeded_statement": (
-            "Dies sind kuenstlich eingespielte Demonstrationsdaten (harness/seed_lineage_lab.py), "
-            "keine echte Warehouse-Nutzung. Namespace probate_seedlab, Plattform postgres."
+            "Synthetic demonstration data (harness/seed_lineage_lab.py) - "
+            "not real warehouse usage. Namespace probate_seedlab, platform postgres."
         ),
         "generated_at": datetime.now(timezone.utc).isoformat(),
         "gms_url": GMS_DEFAULT,

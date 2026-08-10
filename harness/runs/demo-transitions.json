@@ -1,6 +1,6 @@
 {
   "seeded": true,
-  "seeded_statement": "Dies sind kuenstlich eingespielte Demonstrationsdaten (harness/seed_lineage_lab.py), keine echte Warehouse-Nutzung. Namespace probate_seedlab, Plattform postgres.",
+  "seeded_statement": "Synthetic demonstration data (harness/seed_lineage_lab.py) - not real warehouse usage. Namespace probate_seedlab, platform postgres.",
   "gms_url": "http://localhost:28080",
   "generated_at": "2026-08-07T14:30:09.407265+00:00",
   "transitions_manifest": "examples/seedlab-manifest.json",

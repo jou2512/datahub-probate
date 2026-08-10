@@ -2,7 +2,7 @@
   "probe_generated_at_ms": 1786100050975,
   "gms": "http://localhost:28080",
   "seeded": true,
-  "seeded_statement": "Gemessen gegen den kuenstlich eingespielten Beispielkatalog (harness/seed_lineage_lab.py, Namespace probate_seedlab), nicht gegen echte Warehouse-Nutzung.",
+  "seeded_statement": "Gemessen gegen den synthetic sample catalog (harness/seed_lineage_lab.py, namespace probate_seedlab), not against real warehouse usage.",
   "mcp_server_version_pinned": "0.6.0",
   "latest_resolution": {
     "mit_python_pin": {
