@@ -3,8 +3,8 @@
   "seeded_statement": "Laeuft gegen den geseedeten Beispielkatalog (namespace probate_seedlab, harness/seed_lineage_lab.py) -- keine echte Warehouse-Nutzung.",
   "gms_url": "http://localhost:28080",
   "manifest": "examples\\seedlab-manifest.json",
-  "generated_at": "2026-08-07T14:32:37.762287+00:00",
-  "now_ms": 1786113157762,
+  "generated_at": "2026-08-10T12:57:00.493587+00:00",
+  "now_ms": 1786366620493,
   "all_four_states_matched_expected": true,
   "pairs": {
     "confirmed": {
@@ -27,13 +27,13 @@
         "newest_bucket_ms": 1786060800000,
         "days_span": 2,
         "reason": "",
-        "window_start_ms": 1783348357838,
-        "window_end_ms": 1786199557838,
+        "window_start_ms": 1783601820613,
+        "window_end_ms": 1786453020613,
         "window_days": 33
       },
       "timeline": {
         "last_covered_ms": 1786060800000,
-        "dead_since_days": 0,
+        "dead_since_days": 3,
         "dead_since_is_lower_bound": false,
         "series": [
           [
@@ -59,33 +59,29 @@
       "matches_expected": true,
       "evidence": {
         "reason": "im geprueften Fenster nie gemessen",
-        "buckets_checked": 4,
+        "buckets_checked": 3,
         "window_days": 33,
-        "window_start_ms": 1783348357894,
-        "window_end_ms": 1786199557894,
+        "window_start_ms": 1783601820699,
+        "window_end_ms": 1786453020699,
         "source": "declared lineage"
       },
       "queries_seen": 0,
-      "buckets_checked": 4,
+      "buckets_checked": 3,
       "coverage": {
-        "buckets_seen": 4,
-        "oldest_bucket_ms": 1783468800000,
+        "buckets_seen": 3,
+        "oldest_bucket_ms": 1784851200000,
         "newest_bucket_ms": 1786060800000,
-        "days_span": 30,
+        "days_span": 14,
         "reason": "",
-        "window_start_ms": 1783348357894,
-        "window_end_ms": 1786199557894,
+        "window_start_ms": 1783601820699,
+        "window_end_ms": 1786453020699,
         "window_days": 33
       },
       "timeline": {
         "last_covered_ms": null,
-        "dead_since_days": 30,
+        "dead_since_days": 17,
         "dead_since_is_lower_bound": true,
         "series": [
-          [
-            1783468800000,
-            0
-          ],
           [
             1784851200000,
             0
@@ -123,13 +119,13 @@
         "newest_bucket_ms": 1786060800000,
         "days_span": 2,
         "reason": "",
-        "window_start_ms": 1783348357961,
-        "window_end_ms": 1786199557961,
+        "window_start_ms": 1783601820793,
+        "window_end_ms": 1786453020793,
         "window_days": 33
       },
       "timeline": {
         "last_covered_ms": 1786060800000,
-        "dead_since_days": 0,
+        "dead_since_days": 3,
         "dead_since_is_lower_bound": false,
         "series": [
           [
@@ -165,8 +161,8 @@
         "newest_bucket_ms": null,
         "days_span": null,
         "reason": "keine Nutzungs-Zeitfenster im Katalog",
-        "window_start_ms": 1783348358016,
-        "window_end_ms": 1786199558016,
+        "window_start_ms": 1783601820871,
+        "window_end_ms": 1786453020871,
         "window_days": 33
       },
       "timeline": {

@@ -228,7 +228,7 @@ own code behind a plausible external one.
 
 **4. Index drift made a `missing` edge read as `confirmed`.** At 04:30 on 2026-08-07 the claims
 audit exited 1, and the cause was not a reporting error — it was a wrong verdict. Primary store: 0
-declared edges on the `missing_downstream` dataset, which is correct. Graph index: 1 edge.
+declared edges on the `customer_lifetime_value_by_segment` dataset, which is correct. Graph index: 1 edge.
 `fetch_declared_edges` asks the downstream direction, and that direction can only be answered by
 the index, so the drift went straight into the classification. `POST
 /operations?action=restoreIndices` on that single URN resynced 8 rows and the verdict was correct

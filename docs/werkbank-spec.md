@@ -205,6 +205,102 @@ Alle gesammelten Belege durchsuchbar: wörtliche Zitate mit Quelldatei und Feld,
 Abfrage-Texte, Nutzungsfenster. Das ist der Bereich, den ein Prüfer aufschlägt,
 wenn er dem Werkzeug nicht glaubt. Er muss existieren.
 
+## Die Referenz — Item-Studio (Nachtrag 07.08.2026, bindend)
+
+Joel hat am 07.08.2026 den Stand als *„immernoch bischen verwirrend und nicht
+SaaS like"* zurückgewiesen und **eine Referenz gezeigt**: sein eigenes Produkt
+Item-Studio (`localhost:5250/flow.html`, aufgenommen bei 1600 × 1100 →
+`docs/screenshots/referenz-item-studio.png`).
+
+Damit gilt `.claude/rules/design-reference.md`: Die Referenz wird auf drei Ebenen
+gelesen, **Struktur zuerst**. Die Liste unten ist **abgelesen, nicht erfunden**.
+Wer davon abweicht, benennt die Abweichung und begründet sie — stillschweigend
+etwas „Sinnvolleres" zu bauen ist Themaverfehlung.
+
+### Ebene 1 — was die Referenz strukturell anders macht
+
+**Die Seitenleiste ist dunkel, gegliedert und trägt Zahlen.**
+
+| Element | In der Referenz | Bei uns heute |
+|---|---|---|
+| Markenblock oben | Quadratische Kachel „IS" + Produktname + Firma darunter | Reine Textzeile in der Kopfzeile |
+| Navigationspunkte | **Zahl rechts an jedem Punkt** (Projekte 20, Chemie 5, Biologie 7 …) | Zahl nur bei zweien |
+| Gliederung | Abschnittsüberschriften in Grossbuchstaben (`PROGRAMME`, `EINSTELLUNGEN`) | keine |
+| Baum | Aufklappbar (`▸`) **in der Seitenleiste** | Katalogbaum lebt im Inhaltsbereich |
+| Fuss | Am unteren Rand verankert, durch Haarlinie getrennt: Systemzustand („Baustand 18/33") und **Benutzer mit Avatar** | fehlt ganz |
+| Hinzufügen | `+ Neues Programm` als gedämpfte Zeile am Listenende | fehlt |
+
+**Der Inhaltsbereich beginnt nüchtern, nicht mit einem Werbesatz.**
+
+Die Referenz startet mit dem Seitentitel („Übersicht"), einem erklärenden
+Zweizeiler — und **oben rechts einer einzigen, farbig gefüllten Hauptaktion**
+(`+ Neues Projekt`). Unsere Übersicht startet mit einer zweizeiligen
+Schlagzeile („Your catalog claims these tables feed each other. Nobody re-checks
+those claims.") Das liest sich wie eine Landeseite, nicht wie ein Produkt. **Der
+Satz ist gut — er gehört ins README und ins Video, nicht als Überschrift über
+das Arbeitsgerät.**
+
+**Kennzahlen sind Karten mit einer grossen Zahl, kein Fliesstext.**
+
+Referenz: vier weisse Karten nebeneinander, je **grosse Zahl oben, kleine
+gedämpfte Beschriftung darunter**, bei Bedarf ein dünner Fortschrittsbalken in
+der Karte. Bei uns steht dieselbe Information als durchlaufende Zeile
+(„513 connections checked · CONFIRMED 266 confirmed of 513 · DEAD 73 …"). Das
+ist dichter, aber man kann es nicht überfliegen. **Vier Karten, eine je Zustand,
+mit dem Nenner in der Beschriftung.**
+
+**Aktionen sitzen in der Zeile, zu der sie gehören.**
+
+Referenz: In „Nächste Schritte" hat jede Zeile **rechts ihren eigenen Knopf**
+(„Lauf starten"). Bei uns liegen sechs gleich schwere Knöpfe als Block herum,
+losgelöst von dem, worauf sie wirken. Das ist der Hauptgrund, warum niemand
+weiss, was ein Knopf tut.
+
+**Zahlen werden im Text gedeutet.**
+
+Referenz: Unter dem Trichter steht *„Grösster Abfall: von ‚Fakten verbürgt' zu
+‚Aufgaben begonnen' — 69 Kompetenzen. Dort ist der Engpass."* Eine Zahl, die
+sich selbst erklärt. Wir haben solche Sätze, aber verstreut. **Jede
+Kennzahlgruppe bekommt einen Deutungssatz.**
+
+**Tabellen sind gruppiert.**
+
+Referenz: „Projekte nach Programm" — fette Gruppenzeile mit Summen, darunter
+eingerückte Kinderzeilen, Zustand als Pille, Fortschritt als dünner Balken,
+Zahlen rechtsbündig. Bei 513 Kanten ist die naheliegende Gruppierung
+**Plattform → Datenbank**, mit Zustandssummen in der Gruppenzeile.
+
+**Abschnitte haben eine Nebenaktion als Textlink.**
+
+Referenz: `Alle Projekte →` rechts neben der Abschnittsüberschrift. Gedämpft,
+kein Knopf.
+
+### Ebene 2 — Interaktion
+
+Aufklappen in der Seitenleiste · Knopf je Listenzeile · **eine** gefüllte
+Hauptaktion oben rechts · Textlink „alle anzeigen" je Abschnitt · Tabelle mit
+Eltern-/Kind-Einrückung.
+
+### Ebene 3 — Stil der Referenz
+
+- **Dunkle Seitenleiste** (tiefes Marineblau), **heller Inhaltsbereich**. Das
+  allein macht den grössten Teil des „SaaS"-Eindrucks.
+- Karten: **weiss, 1 px helle Kante, kleiner Radius (~8 px), kein Schlagschatten.**
+- **Ein** Akzentton (Blau) für Hauptaktion, Balken und Links. Zustandsfarben
+  bleiben den Zuständen vorbehalten.
+- Kartenüberschriften: klein, Grossbuchstaben, gesperrt, gedämpft.
+- Zustände als **Pillen mit Kontur**, nicht als gefüllte Blöcke.
+- Fortschritt als **dünner Balken**, nicht als Klotz.
+- Haarlinien zwischen Listenzeilen statt Rahmen um jede Zeile.
+- Zahlen rechtsbündig und tabellarisch.
+
+### Was NICHT übernommen wird — und warum
+
+- **Kein `+ Neues Projekt`-Äquivalent als Hauptaktion.** Unsere Hauptaktion ist
+  „Run a check". Sie steht schon in der Kopfzeile und bleibt dort.
+- **Der Markenblock trägt kein erfundenes Logo.** Eine Buchstabenkachel wie „LT"
+  ist in Ordnung; ein Emoji ist es nicht (Joels AI-Slop-Verbot).
+
 ## Ebene 3 — Stil (erst jetzt)
 
 Joels Vorgabe, wörtlich bindend:

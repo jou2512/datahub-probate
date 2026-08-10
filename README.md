@@ -1,11 +1,29 @@
 # Probate — an agent that tests lineage instead of trusting it
 
-Probate reads the lineage a [DataHub](https://datahub.com) catalog **declares**, reads the query
-usage the catalog **measured**, and reports the difference **per edge** — with a date attached:
-covered until when, dead since when, and where no statement is possible at all.
+**Your [DataHub](https://datahub.com) catalog claims which table feeds which. Nobody re-checks
+those claims, so they rot — and every migration, deprecation and impact analysis inherits the rot.**
 
-Built for *Build with DataHub: The Agent Hackathon*, track **Agents That Do Real Work**
-(*"reads DataHub…, takes action, and writes results back"*).
+Probate re-checks them, one edge at a time, and attaches a date to every verdict. One run against
+the demo catalog in this repo — 618 tables, 4 platforms, 6 databases, 1,476 API calls:
+
+| Verdict | Edges | What you do about it |
+|---|---|---|
+| `confirmed` | **266** | declared *and* measured — leave it alone |
+| `dead` | **73** | declared, zero traffic in the window — **and it tells you since when** |
+| `missing` | **29** | real query traffic, never declared — lineage your catalog doesn't know it has |
+| `unknown` | **145** | no usage data at all — **no statement made** |
+| **total** | **513** | |
+
+That last row is the point. Every lineage-cleanup tool we could find would report those 145 edges
+as dead and invite you to delete the tables behind them. Probate refuses: *we could not look* is
+not *nothing happened*.
+
+**Try it in two commands, without installing DataHub** → [Quickstart](#quickstart). Every number on
+this page is re-derived from a committed run artifact by `harness/audit_claims.py`, which exits 1 on
+any drift — 140 numbers are under that gate right now.
+
+Built for *Build with DataHub: The Agent Hackathon*, category **Agents That Do Real Work**
+(*"reads DataHub…, takes action, and writes results back"*). Apache 2.0 — see [`LICENSE`](LICENSE).
 
 ## What separates this from everything else
 
@@ -100,8 +118,40 @@ Checked in source and against a live instance, not assumed.
 
 ## Quickstart
 
-Python on this machine must be pinned — a bare `python` hits a broken 3.9 alias, and DataHub
-needs 3.10+. Every command below is verified to run as written.
+### Prerequisites
+
+- **[`uv`](https://docs.astral.sh/uv/) is the only thing you must install.** It fetches Python 3.11
+  and every dependency on first run. Never invoke a bare `python`: on the build machine that
+  resolves to a broken 3.9 store alias, and DataHub needs 3.10+. Every command on this page is
+  verified to run exactly as written.
+- **Only for the live half:** a DataHub OSS quickstart stack answering on `http://localhost:28080`
+  (`datahub docker quickstart`). Everything under *Without a DataHub instance* needs no stack, no
+  network and no credentials.
+
+### Without a DataHub instance — start here
+
+```bash
+git clone <REPO-URL> && cd datahub-probate
+
+# 1. The test suite — runs green in about 30 s, no network
+#    (we deliberately do not quote a test count here: it moves with every commit, and a
+#     number in prose that nothing checks is the exact thing this project argues against)
+uv run --python 3.11 --with pytest --with acryl-datahub-actions python -m pytest tests/ -q
+
+# 2. The evidence gate — re-derives all 140 numbers in this README from harness/runs/,
+#    prints each one, exits 1 on any drift
+uv run --python 3.11 python harness/audit_claims.py
+```
+
+Want to see the console without running anything? **Open
+[`docs/werkbank-static.html`](docs/werkbank-static.html) in a browser** — the whole thing in one
+self-contained file, all 513 connections from a recorded run with their evidence, no server and
+no network. It says *recorded* at the top and shows its writing buttons visibly out of service
+rather than pretending they still work. Regenerate it with
+`uv run --python 3.11 python harness/export_static.py`. Twenty-one sample outputs from real runs are
+in [`examples/`](examples/).
+
+### Against a live DataHub instance
 
 ```bash
 # The edge ledger: declared lineage vs. measured usage, per edge, with timeline
@@ -135,12 +185,22 @@ uv run --python 3.11 --with acryl-datahub-actions \
   datahub-actions --debug actions -c probate_action/recipe.yml
 ```
 
-Offline, against the committed artifacts, without a DataHub instance:
+**If a live run fails with `Failed to execute search … Connection refused`, your search backend is
+down, not Probate.** GMS keeps answering HTTP 200 and its container keeps reporting `healthy` while
+this is true, so the stack looks fine and every search-dependent path — co-occurrence, the `missing`
+verdict, the console's *Connections* view — fails anyway. Measured on 2026-08-10: the OpenSearch
+container had exited three hours earlier and nothing surfaced it.
 
 ```bash
-uv run --python 3.11 --with pytest --with acryl-datahub-actions python -m pytest tests/ -q
-uv run --python 3.11 python harness/audit_claims.py
+docker ps -a | grep opensearch          # look for an Exited container
+docker start <opensearch-container>     # then wait for the cluster to leave status "red"
+docker exec <opensearch-container> curl -s localhost:9200/_cluster/health
 ```
+
+`yellow` is normal and sufficient on a single node — replica shards stay unassigned by design.
+Recovery took about a minute here. If verdicts stay wrong after that, the graph index disagrees
+with the primary store; `POST /operations?action=restoreIndices` on the affected URN resyncs it,
+and `check_es_drift()` detects the condition rather than letting it into a classification.
 
 Two notes that cost us time and are therefore written down:
 `python -m probate.cli` runs to completion and does **nothing** — `cli.py` has no
@@ -194,13 +254,16 @@ uv run --python 3.11 python harness/export_static.py
 writes `docs/werkbank-static.html`. It carries a recorded run baked in, says so at the top, and
 shows its writing buttons visibly out of service rather than pretending they still work.
 
-The demo, forty seconds, three directions:
+The demo, forty seconds, three directions. All three buttons sit in the *What you can do to this
+catalog* card on **Overview**; the verdict changes in **Connections**:
 
-1. **Add edge** — the edge appears as `dead` (declared, no traffic).
-2. **Seed query** — the same edge turns `confirmed` (traffic now measured).
-3. **Cut warehouse** — it turns `unknown`, **not** `dead`. This is the button that carries the
-   demo: it shows in five seconds that the tool really distinguishes "nothing measured" from
-   "nothing happened".
+1. **Declare** (*declare an edge*) — the edge appears as `dead` (declared, no traffic). ~20 s, it
+   waits on DataHub's lineage index.
+2. **Run** (*run a query*) — the same edge turns `confirmed` (traffic now measured). ~30 s, same
+   reason.
+3. **Disconnect** (*disconnect the warehouse*) — it turns `unknown` — labelled **Not judged** in
+   the UI — and **not** `dead`. This is the button that carries the demo: in about two seconds it
+   shows that the tool really distinguishes "nothing measured" from "nothing happened".
 
 Opened without the proxy, `ui/werkbank.html` falls back to the recorded run in
 [`ui/recorded/ledger.json`](ui/recorded/) and labels itself as a recording rather than
@@ -506,10 +569,17 @@ by `audit_claims.py`, and they are the softest figures in this document:
   ps` on the stack used here shows no separate usage-statistics indexer container. We record this
   as "the aggregation layer lags or does not run in this GMS-only environment" — and explicitly
   not as "the watcher reclassifies edges", which we did not observe.
-- **All containers of this quickstart stack report `unhealthy`** in `docker ps` (verbatim output
-  in the watcher artifact), while GMS answers HTTP 200 on the same stack and the four-state check
-  runs to completion. We state the flag and the working behaviour side by side. We do not claim
-  the flag is harmless, and we do not claim it explains the aggregation lag above.
+- **Container health flags on this quickstart stack are not a usable signal — in both directions,
+  and we have now seen both.** During the watcher run, every container reported `unhealthy` in
+  `docker ps` (verbatim output in the watcher artifact) while GMS answered HTTP 200 and the
+  four-state check ran to completion. On 2026-08-10 the reverse happened: `docker ps` reported
+  every running container `healthy`, GMS answered HTTP 200 — and the OpenSearch container had
+  exited three hours earlier, so every search-dependent path was failing silently. We are
+  correcting the earlier phrasing here rather than deleting it: what we wrote then ("all containers
+  report `unhealthy`") was true of that run and is no longer true as a present-tense statement. The
+  finding that survives both observations is narrower and more useful: **`docker ps` health and GMS
+  returning 200 are both compatible with a broken stack.** See the search-backend note under
+  *Quickstart*. We do not claim either flag explains the aggregation lag above.
 
 **A gap that remains in DataHub's model, not ours:** "which person reads which column" is not
 expressible — user counts and column counts live in separate lists with no link between them.
