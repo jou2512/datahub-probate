@@ -1001,7 +1001,32 @@ function selectEdge(key) {
   if (state.view === 'connections') renderConnections();
 }
 
-function sentenceFor(edge) {
+// Ein Tabellenname ist ein BEZEICHNER, kein Wort. Bis 10.08. lief er im
+// Satz der Detailspalte in derselben Schrift, demselben Gewicht und
+// derselben Farbe mit -- bei Namen wie `mart_spend_efficiency_by_market`
+// entsteht daraus ein Block, in dem niemand sieht, wo der Name aufhoert und
+// der Satz anfaengt. Joel woertlich: "man sieht nicht, was ist eine Tabelle,
+// Namen oder so, was ist Normaltext".
+//
+// Ausgezeichnet wird deshalb wie ein Code-Schnipsel im Fliesstext:
+// Festbreitenschrift plus ein sehr dezenter Grund. KEINE Farbe aus der
+// Zustandspalette -- Rot bleibt den vier Stellen vorbehalten, die die Spec
+// nennt (Punkt in der Tabelle, Chip im Filter, Wort in der Detailspalte,
+// Balken im Verlauf).
+function dsNameNode(ref) {
+  const n = el('code', 'dsname', ref.table || ref.urn || '');
+  // Der Ort im Katalog haengt am Namen, statt den Satz zu verlaengern --
+  // "ein Name ohne seinen Ort ist bei 5.594 Datensaetzen wertlos" (Spec).
+  const where = [ref.platform, ref.qualified].filter(Boolean).join(' · ');
+  if (where) n.title = where;
+  else if (ref.urn) n.title = ref.urn;
+  return n;
+}
+
+// Der Satz als TEILE: Zeichenketten sind Fliesstext, Objekte sind
+// Datensatz-Verweise. So steht die Auszeichnung an genau einer Stelle
+// (`sentenceInto`) und kann in keiner Satzvariante vergessen werden.
+function sentenceParts(edge) {
   const from = splitUrnClient(edge.upstream);
   const to = splitUrnClient(edge.downstream);
   const cov = edge.coverage || {}, tl = edge.timeline || {};
@@ -1011,28 +1036,83 @@ function sentenceFor(edge) {
   const buckets = cov.buckets_seen || 0;
 
   if (edge.state === 'confirmed') {
-    return `${to.table} draws from ${from.table} according to the catalog, and`
-      + ` ${plural(queries, 'query touches', 'queries touch')} both tables.`
-      + ` ${to.table} ran ${plural(traffic, 'query', 'queries')} across`
+    return [to, ' draws from ', from, ' according to the catalog, and'
+      + ` ${plural(queries, 'query touches', 'queries touch')} both tables. `,
+      to, ` ran ${plural(traffic, 'query', 'queries')} across`
       + ` ${plural(buckets, 'measured window', 'measured windows')},`
-      + ` most recently ${agoPhrase(tl.dead_since_days)}. The connection is alive.`;
+      + ` most recently ${agoPhrase(tl.dead_since_days)}. The connection is alive.`];
   }
   if (edge.state === 'dead') {
     const last = dayStamp(tl.last_covered_ms);
-    return `${to.table} draws from ${from.table} according to the catalog.`
+    return [to, ' draws from ', from, ' according to the catalog.'
       + ` Across ${plural(buckets, 'measured window', 'measured windows')}`
       + ` (${plural(cov.days_span || 0, 'day', 'days')}), not one query touched both tables`
       + (traffic ? `, although the tables themselves were used (${traffic} queries)` : '')
-      + `.${last ? ` Last measured traffic: ${last}.` : ''} The connection is dead.`;
+      + `.${last ? ` Last measured traffic: ${last}.` : ''} The connection is dead.`];
   }
   if (edge.state === 'missing') {
-    return `${plural(queries, 'query joins', 'queries join')} ${from.table} and ${to.table},`
-      + ` but nobody ever declared the connection in the catalog.`
-      + ` Your lineage is incomplete here.`;
+    return [`${plural(queries, 'query joins', 'queries join')} `, from, ' and ', to,
+      ', but nobody ever declared the connection in the catalog.'
+      + ' Your lineage is incomplete here.'];
   }
-  return `There is no usage data for ${to.table} at all`
+  return ['There is no usage data for ', to, ' at all'
     + (cov.reason ? ` — ${humanReason(cov.reason)}` : '')
-    + `. We do not guess. This is the case other tools report as “unused”.`;
+    + '. We do not guess. This is the case other tools report as “unused”.'];
+}
+
+// Baut aus den Teilen einen Absatz. Jeder Nicht-String wird zum
+// ausgezeichneten Bezeichner -- es gibt keinen Weg, einen Namen roh in den
+// Satz zu bekommen.
+function sentenceInto(node, parts) {
+  for (const part of parts) {
+    node.append(typeof part === 'string' ? document.createTextNode(part) : dsNameNode(part));
+  }
+  return node;
+}
+
+// Rohe URNs muessen bleiben -- ein Beleg, den man nicht kopieren kann, ist
+// keiner. Gekuerzt oder mit "…" abgeschnitten waeren sie wertlos. Sie
+// duerfen die Spalte aber nicht beherrschen: vier Zeilen
+// `urn:li:dataset:(urn:li:dataPlatform:bigquery,…,PROD)` haben bis 10.08.
+// genau das getan. Darum: hinter EINER Zeile, vollstaendig, mit
+// Umbruchgelegenheiten an den Trennzeichen.
+const URN_BREAK_AFTER = new Set([':', ',', '.', '(', ')']);
+
+function urnValueNode(urn) {
+  const code = el('code', 'urn__value');
+  const text = String(urn || '');
+  code.title = text;
+  // `<wbr>` ist eine GELEGENHEIT, kein Zeichen: beim Kopieren kommt der
+  // URN Zeichen fuer Zeichen so heraus, wie er in den Daten steht.
+  let buf = '';
+  for (const ch of text) {
+    buf += ch;
+    if (URN_BREAK_AFTER.has(ch)) {
+      code.append(document.createTextNode(buf), document.createElement('wbr'));
+      buf = '';
+    }
+  }
+  if (buf) code.append(document.createTextNode(buf));
+  return code;
+}
+
+function urnsNode(edge) {
+  const rows = [['upstream', edge.upstream], ['downstream', edge.downstream]];
+  for (const q of ((edge.evidence || {}).query_urns || [])) rows.push(['query', q]);
+
+  const box = el('details', 'urns');
+  box.append(el('summary', 'urns__summary',
+    `Show the raw identifiers (${plural(rows.length, 'URN', 'URNs')})`));
+  box.append(el('p', 'urns__note',
+    'Unabridged, exactly as the catalog stores them — paste one into DataHub'
+    + ' or an API call and you land on the same object we measured.'));
+  for (const [role, urn] of rows) {
+    const line = el('div', 'urn');
+    line.append(el('span', 'urn__role', role));
+    line.append(urnValueNode(urn));
+    box.append(line);
+  }
+  return box;
 }
 
 function sparkNode(edge) {
@@ -1165,22 +1245,19 @@ function renderDetail() {
   const verdict = el('div');
   verdict.append(el('span', `chip chip--${edge.state}`, STATE_WORD[edge.state]));
   body.append(verdict);
-  body.append(el('p', 'detail__sentence', sentenceFor(edge)));
+  body.append(sentenceInto(el('p', 'detail__sentence'), sentenceParts(edge)));
 
   const help = stateHelpNode(edge.state);
   if (help) { help.className = 'block__text'; body.append(help); }
 
-  const declared = el('div');
+  const declared = el('div', 'block');
   declared.append(el('p', 'block__label block__label--declared', 'Declared — what the catalog claims'));
   const src = (edge.evidence || {}).source || '';
-  declared.append(el('p', 'block__text', src.includes('declared lineage')
-    ? `${to.table} lists ${from.table} as an upstream. Nobody has re-checked it since it was written.`
-    : 'Nobody wrote this connection into the catalog. It exists only in what the queries did.'));
-  for (const urn of ((edge.evidence || {}).query_urns || [])) {
-    declared.append(el('p', 'block__urn', urn));
-  }
-  declared.append(el('p', 'block__urn', edge.upstream));
-  declared.append(el('p', 'block__urn', edge.downstream));
+  declared.append(sentenceInto(el('p', 'block__text'), src.includes('declared lineage')
+    ? [to, ' lists ', from, ' as an upstream. Nobody has re-checked it since it was written.']
+    : ['Nobody wrote this connection into the catalog.'
+       + ' It exists only in what the queries did.']));
+  declared.append(urnsNode(edge));
   body.append(declared);
 
   body.append(sparkNode(edge));

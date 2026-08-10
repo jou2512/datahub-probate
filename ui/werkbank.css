@@ -1364,8 +1364,42 @@ button.chip { cursor: pointer; }
 
 .detail__body { padding: var(--space-3); display: flex; flex-direction: column; gap: var(--space-3); }
 
-.detail__sentence { font-size: 0.92rem; line-height: 1.5; }
+.detail__sentence { font-size: 0.92rem; line-height: 1.65; }
 .detail__sentence strong { font-weight: 700; }
+
+/* ---------------------------------------------------------------------
+   Bezeichner im Fliesstext
+   ---------------------------------------------------------------------
+   Ein Tabellenname ist keine Vokabel. Bis 10.08. lief er hier in derselben
+   Schrift, demselben Gewicht und derselben Farbe wie der Satz -- bei
+   `mart_spend_efficiency_by_market` entsteht daraus ein Block, in dem
+   niemand sieht, wo der Name aufhoert. Joel woertlich: "man sieht nicht,
+   was ist eine Tabelle, Namen oder so, was ist Normaltext".
+
+   Die Auszeichnung ist die eines Code-Schnipsels: Festbreitenschrift wie in
+   der Tabelle, sehr dezenter Grund, minimale Innenabstaende. Kein Rahmen
+   (das zerhackt den Satz in Kaesten) und KEINE Zustandsfarbe -- Rot bleibt
+   den vier Stellen der Spec vorbehalten.
+
+   `box-decoration-break: clone` ist nicht Kosmetik: bricht ein 36-Zeichen-
+   Name in der schmalen Detailspalte um, bekaeme sonst nur das erste
+   Bruchstueck Grund und Polsterung, und der Name saehe aus wie zwei Dinge.
+   --------------------------------------------------------------------- */
+
+.dsname {
+  font-family: var(--font-mono);
+  font-size: 0.85em;
+  color: var(--ink);
+  background: var(--surface-sunk);
+  border-radius: var(--r-chip);
+  padding: 0.1em 0.32em;
+  overflow-wrap: anywhere;
+  box-decoration-break: clone;
+  -webkit-box-decoration-break: clone;
+}
+
+.block { display: flex; flex-direction: column; gap: var(--space-2); }
+.block > .block__label { margin-bottom: 0; }
 
 .block__label {
   font-family: var(--font-mono);
@@ -1386,6 +1420,65 @@ button.chip { cursor: pointer; }
   font-size: 0.7rem;
   color: var(--ink-faint);
   overflow-wrap: anywhere;
+}
+
+/* ---------------------------------------------------------------------
+   Rohe URNs
+   ---------------------------------------------------------------------
+   Sie muessen bleiben (Beleg-Pflicht) und duerfen nicht gekuerzt werden --
+   ein Beleg, den man nicht kopieren kann, ist keiner. Sie duerfen die
+   Spalte aber auch nicht beherrschen, und genau das taten vier Zeilen
+   `urn:li:dataset:(urn:li:dataPlatform:bigquery,…,PROD)` bis 10.08.
+   Deshalb: hinter einer Zeile, vollstaendig, gedaempft, mit Rolle davor.
+   `user-select: all` macht einen Klick zum vollstaendigen Kopieren.
+   --------------------------------------------------------------------- */
+
+.urns {
+  border: 1px solid var(--line-soft);
+  border-radius: var(--r-chip);
+  background: var(--sunk-wash);
+  padding: var(--space-2);
+}
+
+.urns__summary {
+  font-size: 0.72rem;
+  color: var(--ink-muted);
+  cursor: pointer;
+}
+
+.urns__summary:hover { color: var(--ink); }
+
+.urns__note {
+  font-size: 0.68rem;
+  color: var(--ink-faint);
+  margin-top: var(--space-2);
+  line-height: 1.45;
+}
+
+.urn {
+  display: grid;
+  grid-template-columns: max-content minmax(0, 1fr);
+  gap: var(--space-2);
+  align-items: baseline;
+  margin-top: var(--space-2);
+}
+
+.urn__role {
+  font-family: var(--font-mono);
+  font-size: 0.6rem;
+  letter-spacing: 0.1em;
+  text-transform: uppercase;
+  color: var(--ink-faint);
+}
+
+.urn__value {
+  font-family: var(--font-mono);
+  font-size: 0.68rem;
+  line-height: 1.45;
+  color: var(--ink-muted);
+  overflow-wrap: anywhere;
+  user-select: all;
+  -webkit-user-select: all;
 }
 
 /* ---------------------------------------------------------------------
