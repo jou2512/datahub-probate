@@ -119,13 +119,28 @@ failure we accuse `sql_parsing_aggregator.py` of. Our citation rule was satisfia
 one-character quote. All of it is in the repo, in `docs/devpost.md` and the README's *Honest
 limitations*, which is the longest section in it on purpose.
 
-**Optional boosts, both delivered:** `examples/` carries 21 sample outputs (ledgers, verdicts,
-journal, refused campaigns, watcher logs). `docs/upstream/` carries **6 evidenced findings against
-DataHub itself**, each with a reproduction script — a required-but-nullable `range` argument, a
-`getTimeseriesAspectValues` null-pointer on a missing `limit`, a `uniqueUserCount` aggregation that
-is always zero, dense-calendar-grid usage buckets that report 31 windows where 4 were measured, an
-OpenAPI v3 get-aspect that silently returns only the newest timeseries row, and the commented-out
-query timestamps above.
+### Upstream contributions — filed, not just prepared
+
+Seven contributions to DataHub, all filed today (2026-08-10), every one re-measured against a live
+instance the same day before it went out:
+
+| # | What | Where |
+|---|---|---|
+| 1 | `usageStats.aggregations.uniqueUserCount` is always 0 while buckets in the same response report 4 and 3 — a **wrong number** shown on the dataset page, not an error | [datahub#19066](https://github.com/datahub-project/datahub/issues/19066) |
+| 2 | `Dataset.usageStats` returns HTTP 500 *"Name is null"* when the nullable `range` argument is omitted — with the line (`DatasetUsageStatsResolver.java:35`, `UsageTimeRange.valueOf(null)`) and a fix offer | [datahub#19067](https://github.com/datahub-project/datahub/issues/19067) |
+| 3 | The root cause behind an existing report: `AspectResource` unboxes a null `limit`, while its `startTimeMillis`/`endTimeMillis` neighbours are null-guarded — plus a raw-`curl` confirmation that it is not SDK-specific | [comment on datahub#19016](https://github.com/datahub-project/datahub/issues/19016#issuecomment-5242013528) |
+| 4 | Query entities carry no timestamp over MCP: `queries.gql` comments out `properties.created` and `lastModified.time`, while GMS serves both — a client defect, not a backend limit | [mcp-server-datahub#209](https://github.com/acryldata/mcp-server-datahub/issues/209) |
+| 5 | Docs: `usageStats.buckets` is a dense calendar grid — 125 buckets for 8 measured days — and the `null` vs `0` distinction inside it is undocumented | [datahub#19068](https://github.com/datahub-project/datahub/issues/19068) |
+| 6 | Docs: OpenAPI v3 get-aspect returns only the newest row for timeseries aspects, indistinguishable from a complete response | [datahub#19069](https://github.com/datahub-project/datahub/issues/19069) |
+| 7 | **A correction to someone else's issue** — three claims about the MCP server (`@latest` → 0.4.0, zero mutation tools, ~54 s telemetry) that we had copied into our own notes as facts. Re-measured: 0.6.0, 6 tools / 18 with the flag, 0.315 s. The ~54 s was session start attributed to a call | [comment on mcp-server-datahub#167](https://github.com/acryldata/mcp-server-datahub/issues/167#issuecomment-5242043100) |
+
+Number 3 is deliberately a comment, not an issue: the bug had already been reported on 2026-08-09,
+and a duplicate helps nobody. Number 7 is the one we would point a juror at — we inherited three
+wrong numbers from a search result, built on them for five days, measured them, and corrected the
+source.
+
+**The other optional boost:** `examples/` carries 21 sample outputs — ledgers, verdicts, the
+write-back journal, refused campaigns, watcher logs.
 
 ### Honest, up front
 
