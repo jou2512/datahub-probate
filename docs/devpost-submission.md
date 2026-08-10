@@ -46,8 +46,15 @@ That last row is the whole product. Every "lineage cleanup" tool on the market w
 those 145 edges as dead and invited you to delete them. Probate refuses: *we could not look* is not
 *nothing happened*. It is the failure this project exists to correct, and it was our own bug first.
 
-> Everyone else uses usage data to **weight** edges they already believe.
+> The projects we found use usage data to **weight** edges they already believe.
 > This tool uses it to **test the edge itself**.
+
+We surveyed the field and found **seven projects that read both lineage and usage**. All seven
+attach usage to an edge as a weight, a hint, or an evidence string on lineage they already accept —
+none of the seven asks whether the edge should exist. That is a claim about seven projects, not
+about the world: GitHub's search does not index READMEs and private repos are invisible, so the
+survey is a lower bound, not a census. We would rather claim seven and be right than claim "nobody"
+and be one counter-example away from wrong.
 
 ### It proves it re-measures, instead of asserting once
 
@@ -129,7 +136,7 @@ the two-stage cost saving it was designed to measure, and says so. The watcher's
 not be shown changing a verdict, and says so. A tool whose claim is "assert nothing without
 evidence" doesn't get an exception for itself.
 
-**Repo:** `<REPO-URL>` — Apache 2.0, clone-and-run in two commands with no DataHub instance
+**Repo:** `https://github.com/jou2512/datahub-probate` — Apache 2.0, clone-and-run in two commands with no DataHub instance
 required.
 
 ---
@@ -144,7 +151,7 @@ required.
 ## Checklist before submitting (not pasted)
 
 - [ ] `LICENSE` — real Apache-2.0 file at repo root, 202 lines, so GitHub's About box detects it ✔ (present)
-- [ ] Repo pushed **public**, `<REPO-URL>` substituted above in both places
+- [ ] Repo pushed **public**, `https://github.com/jou2512/datahub-probate` substituted above in both places
 - [ ] Demo video **under 3:00**, public on YouTube, plays without sign-in — check in a private window
 - [ ] Project URL = the public repo (the organisers state a repo with clear setup instructions is enough)
 - [ ] Exactly **one** category selected: *Agents That Do Real Work*

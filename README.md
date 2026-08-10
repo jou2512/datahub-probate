@@ -27,12 +27,19 @@ Built for *Build with DataHub: The Agent Hackathon*, category **Agents That Do R
 
 ## What separates this from everything else
 
-> Everyone else uses usage data to **weight** edges they already believe.
+> The projects we found use usage data to **weight** edges they already believe.
 > This tool uses it to **test the edge itself**.
 
-That is not a slogan, it is the result of a survey of the field. Seven projects were found that
-read both sources. All seven attach usage to an edge as a weight, a hint, or an evidence string
-on lineage they already accept. None of them ask whether the edge should exist.
+We say *the projects we found*, and we mean it literally. A survey of the field turned up **seven
+projects that read both lineage and usage**. All seven attach usage to an edge as a weight, a hint,
+or an evidence string on lineage they already accept. **None of the seven asks whether the edge
+should exist.**
+
+That is a statement about seven projects, not about the world. The survey is a **lower bound, not a
+census** — GitHub's search does not index READMEs, the Devpost gallery is unpublished, and private
+repositories are invisible to anyone outside them. We would rather claim seven and be right than
+claim "nobody" and be one counter-example away from wrong. The full limits of that survey are in
+[Honest limitations](#honest-limitations).
 
 **And DataHub's own blog post?** It pairs the two signals already — but it pairs them to judge a
 *table*, once, by hand:
@@ -482,7 +489,7 @@ count deviating beyond tolerance was **not** switched over.
 All of them. If a section like this is missing from a submission that claims "no assertion
 without evidence", the submission has already contradicted itself.
 
-**About the survey that produced the "nobody else does this" claim.** These counts come from the
+**About the seven-project survey behind the claim above.** These counts come from the
 competitive survey documented in the design spec, not from a run artifact — they are not covered
 by `audit_claims.py`, and they are the softest figures in this document:
 
@@ -494,7 +501,7 @@ by `audit_claims.py`, and they are the softest figures in this document:
   a page limit. Our count of neighbouring projects is a **lower bound**, not a census.
 - **"Metadata Tests" in DataHub Cloud is closed source.** The property table the docs promise does
   not exist in the markdown source. What is documented is that usage is already a predicate there.
-  "Cloud cannot do this" is therefore **unprovable**, and we carry it as a risk, not as an
+  "DataHub Cloud cannot do this" is therefore **unprovable**, and we carry it as a risk, not as an
   all-clear.
 
 **About the measurements:**
