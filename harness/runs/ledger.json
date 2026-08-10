@@ -3,7 +3,7 @@
   "gms": "http://localhost:28080",
   "cooccurrence_source": "graphql",
   "seeded": true,
-  "generated_at_ms": 1786373498658,
+  "generated_at_ms": 1786377846848,
   "edges_total": 1,
   "edges_confirmed": 1,
   "edges_dead": 0,
@@ -13,8 +13,8 @@
   "coverage_days_span": 2,
   "coverage_thin": false,
   "window_days": 33,
-  "window_start_ms": 1783608698732,
-  "window_end_ms": 1786459898732,
+  "window_start_ms": 1783613046929,
+  "window_end_ms": 1786464246929,
   "api_calls": 4,
   "queries_seen": 1,
   "edges": [
@@ -35,8 +35,8 @@
         "newest_bucket_ms": 1786320000000,
         "days_span": 2,
         "reason": "",
-        "window_start_ms": 1783608698732,
-        "window_end_ms": 1786459898732,
+        "window_start_ms": 1783613046929,
+        "window_end_ms": 1786464246929,
         "window_days": 33
       },
       "timeline": {

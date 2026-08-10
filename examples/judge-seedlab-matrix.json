@@ -1,17 +1,17 @@
 {
   "seeded": true,
-  "seeded_statement": "Alle vier Fokusse sind die synthetic seedlab datasets (harness/seed_lineage_lab.py) - not real warehouse usage.",
-  "run_at_iso": "2026-08-07T01:42:57Z",
+  "seeded_statement": "All four focuses are the synthetic Seedlab-Datensaetze (harness/seed_lineage_lab.py), keine echte Warehouse-Nutzung.",
+  "run_at_iso": "2026-08-10T15:57:13Z",
   "gms": "http://localhost:28080",
   "judge_limit": 5,
   "focuses": [
     {
       "expected_state_per_manifest": "confirmed",
-      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)",
+      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.gl_journal_entries_daily,PROD)",
       "edges_total": 1,
       "edges": [
         {
-          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.confirmed_downstream,PROD)",
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.gl_journal_entries_daily,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.finance_income_statement_consolidated,PROD)",
           "state": "confirmed"
         }
       ],
@@ -23,50 +23,50 @@
     },
     {
       "expected_state_per_manifest": "dead",
-      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)",
+      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_revenue_weekly_east,PROD)",
       "edges_total": 1,
       "edges": [
         {
-          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_downstream,PROD)",
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_revenue_weekly_east,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_sales_ranking_east,PROD)",
           "state": "dead"
         }
       ],
       "judged_edges": 1,
       "judged_with_model": 0,
       "judged_fallback": 1,
-      "judge_seconds_total": 17.84,
+      "judge_seconds_total": 22.21,
       "judgements": [
         {
-          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.dead_downstream,PROD)",
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_revenue_weekly_east,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.store_sales_ranking_east,PROD)",
           "important": false,
           "reason": "deterministischer Befund: dead",
           "quote": "",
           "source_field": "",
           "used_model": false,
-          "fallback_reason": "kein Zitat geliefert"
+          "fallback_reason": "quote only from the seeding notice, no evidence"
         }
       ]
     },
     {
       "expected_state_per_manifest": "missing",
-      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)",
+      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.checkout_events_raw,PROD)",
       "edges_total": 1,
       "edges": [
         {
-          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)",
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.checkout_events_raw,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_lifetime_value_by_segment,PROD)",
           "state": "missing"
         }
       ],
       "judged_edges": 1,
       "judged_with_model": 1,
       "judged_fallback": 0,
-      "judge_seconds_total": 19.94,
+      "judge_seconds_total": 15.2,
       "judgements": [
         {
-          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.missing_downstream,PROD)",
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.checkout_events_raw,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_lifetime_value_by_segment,PROD)",
           "important": true,
-          "reason": "The downstream dataset is a business-critical metric feeding executive reporting, so a missing lineage edge to it merits human verification despite weak co-occurrence evidence.",
-          "quote": "Grundlage fuer Marketing-Budgetentscheidungen sowie Teil des monatlichen Reportings an die Geschaeftsleitung",
+          "reason": "A missing lineage edge feeding a board-reported, budget-driving growth metric warrants human review of the undocumented upstream dependency.",
+          "quote": "a core growth metric and the basis for marketing budget decisions as well as part of the monthly reporting to the executive board",
           "source_field": "description",
           "used_model": true,
           "fallback_reason": ""
@@ -75,24 +75,24 @@
     },
     {
       "expected_state_per_manifest": "unknown",
-      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)",
+      "focus": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_dedup_stage,PROD)",
       "edges_total": 1,
       "edges": [
         {
-          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_downstream,PROD)",
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_dedup_stage,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.crm_migration_staging,PROD)",
           "state": "unknown"
         }
       ],
       "judged_edges": 1,
       "judged_with_model": 1,
       "judged_fallback": 0,
-      "judge_seconds_total": 23.12,
+      "judge_seconds_total": 15.22,
       "judgements": [
         {
-          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_upstream,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.unknown_downstream,PROD)",
-          "important": true,
-          "reason": "The upstream is described as an intermediate table of a deduplication script while the downstream is a temporary staging table for a migration test, so a lineage link between two unrelated temporary/throwaway artifacts warrants human verification.",
-          "quote": "Zwischentabelle eines Deduplizierungs-Skripts, haelt das Zwischenergebnis eines internen Bereinigungsschritts.",
+          "edge": "urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.customer_dedup_stage,PROD)->urn:li:dataset:(urn:li:dataPlatform:postgres,probate_seedlab.crm_migration_staging,PROD)",
+          "important": false,
+          "reason": "Both endpoints are explicitly synthetic demo tables holding interim state of a cleansing script and a migration test, so the unknown edge state carries no production consequence.",
+          "quote": "Temporary store of a migration test, holds its interim state.",
           "source_field": "description",
           "used_model": true,
           "fallback_reason": ""

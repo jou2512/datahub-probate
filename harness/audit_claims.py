@@ -207,7 +207,7 @@ def load_runs(runs: Path = RUNS) -> dict:
             data = json.loads(p.read_text(encoding="utf-8"))
         except json.JSONDecodeError as exc:
             raise ValueError(
-                f"{name}: gefunden, aber nicht als JSON lesbar ({exc})"
+                f"{name}: found, but not readable as JSON ({exc})"
             ) from exc
         for k, v in data.items():
             if k in NON_CLAIMABLE_METADATA_KEYS:
@@ -216,8 +216,8 @@ def load_runs(runs: Path = RUNS) -> dict:
                 continue
             if k in merged and merged[k] != v:
                 raise ConflictingClaim(
-                    f"{k}: {origin[k]} behauptet {merged[k]!r}, "
-                    f"{name} behauptet {v!r}"
+                    f"{k}: {origin[k]} claims {merged[k]!r}, "
+                    f"{name} claims {v!r}"
                 )
             merged[k] = v
             origin[k] = name
@@ -233,9 +233,9 @@ class ClaimResult:
 
 def check_claim(name: str, claimed, measured) -> ClaimResult:
     if measured is None:
-        return ClaimResult(name, False, f"behauptet {claimed}, aber nicht gemessen")
+        return ClaimResult(name, False, f"claimed {claimed}, but never measured")
     ok = claimed == measured
-    return ClaimResult(name, ok, f"behauptet {claimed}, gemessen {measured}")
+    return ClaimResult(name, ok, f"claimed {claimed}, measured {measured}")
 
 
 def main() -> int:
@@ -244,20 +244,20 @@ def main() -> int:
     # spaeteres Ueberschreiben des Modul-Attributs (z. B. per monkeypatch
     # in Tests) wuerde ihn sonst nie erreichen.
     found, missing = _run_file_status(RUNS)
-    print(f"  gelesen:          {', '.join(found) if found else '(keine)'}")
-    print(f"  nicht vorhanden:  {', '.join(missing) if missing else '(keine)'}")
+    print(f"  read:             {', '.join(found) if found else '(none)'}")
+    print(f"  not present:      {', '.join(missing) if missing else '(none)'}")
 
     try:
         run = load_runs(RUNS)
     except ConflictingClaim as exc:
-        print(f"\n  WIDERSPRUCH ZWISCHEN LAUF-ARTEFAKTEN: {exc}")
+        print(f"\n  RUN ARTIFACTS CONTRADICT EACH OTHER: {exc}")
         return 1
     except ValueError as exc:
-        print(f"\n  LAUF-ARTEFAKT NICHT LESBAR: {exc}")
+        print(f"\n  RUN ARTIFACT NOT READABLE: {exc}")
         return 1
 
     if not run:
-        print("  Kein Lauf-Artefakt - es gibt nichts zu behaupten.")
+        print("  No run artifact - there is nothing to claim.")
         return 1
 
     claims = json.loads((RUNS / "claims.json").read_text(encoding="utf-8"))
@@ -270,7 +270,7 @@ def main() -> int:
     if failed:
         print(f"\n  DRIFT: {', '.join(failed)}")
         return 1
-    print(f"\n  Alle {len(results)} Zahlen decken sich mit den Laeufen.")
+    print(f"\n  All {len(results)} numbers match the recorded runs.")
     return 0
 
 

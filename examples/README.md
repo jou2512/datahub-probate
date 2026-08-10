@@ -43,19 +43,23 @@ is the bug this project exists to fix.
 ## 2. A model judgement with its citation, and a fallback with its reason
 
 **`judge-seedlab-matrix.json`** — command: the judge run over all four seeded
-focuses, `judge_limit: 5`, run at `2026-08-07T01:42:57Z`. This one file
+focuses, `judge_limit: 5`, run at `2026-08-10T15:57:13Z`. This one file
 contains both halves of the citation duty side by side, per edge:
 
 - **Fallback, no model used** (`dead` focus): `used_model: false`,
-  `fallback_reason: "kein Zitat geliefert"` (no citation supplied),
-  `reason: "deterministischer Befund: dead"` — the deterministic verdict is
-  reported as-is; the judge is not invoked to embellish a fact that is
-  already certain.
+  `fallback_reason: "quote only from the seeding notice, no evidence"`,
+  `reason: "deterministischer Befund: dead"` — the model did answer and did
+  supply a quote, but the only thing it quoted was our own
+  `[probate-seedlab …]` seeding label, which is deliberately excluded from the
+  citable corpus (see
+  `docs/entscheidungen/2026-08-07-seed-hinweis-nicht-zitierfaehig.md`). A quote
+  from the label that marks the data as fake is not evidence about the data, so
+  the deterministic verdict stands as-is.
 - **Model judgement with citation** (`missing` focus): `used_model: true`,
-  `quote: "Grundlage fuer Marketing-Budgetentscheidungen sowie Teil des
-  monatlichen Reportings an die Geschaeftsleitung"`, `source_field:
-  "description"`, `important: true`. The model's claim ("merits human
-  verification") is anchored to a verbatim quote from the dataset's own
+  `quote: "a core growth metric and the basis for marketing budget decisions
+  as well as part of the monthly reporting to the executive board"`,
+  `source_field: "description"`, `important: true`. The model's claim ("merits
+  human review") is anchored to a verbatim quote from the dataset's own
   description field — not asserted on its own authority.
 - A second model judgement (`unknown` focus) is included too, quoting a
   different description field, for a second real example of the same
@@ -66,8 +70,10 @@ contains both halves of the citation duty side by side, per edge:
 measured `2026-08-07T01:24:30Z`. Included because it shows the *other* kind
 of fallback: `transport_call_ok: true` (the CLI call itself succeeded,
 `raw_reply_len_chars: 235`) but `judged_with_model: false`,
-`fallback_reason: "Zitat zu kurz, kein Beleg"` (citation too short, no
-evidence) — the model answered, but its answer didn't meet the citation bar,
+`fallback_reason: "Zitat zu kurz, kein Beleg"` — quoted verbatim from the
+artifact, which was recorded on 07.08. before the fallback reasons were
+reworded to English; today the same path reads `"quote too short, no
+evidence"` — the model answered, but its answer didn't meet the citation bar,
 so the system fell back rather than accept an unanchored claim. Also documents
 a real trap: `--system-prompt` is required, or the CLI loads this repo's own
 `CLAUDE.md`/`AGENTS.md` and answers as a coding agent instead of a judge.

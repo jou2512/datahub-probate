@@ -260,20 +260,20 @@ def test_a_quote_that_is_not_in_the_context_is_discarded():
     assert j.used_model is False
     assert j.important is False
     assert j.quote == ""
-    assert j.fallback_reason == "Zitat steht nicht im gelesenen Kontext"
+    assert j.fallback_reason == "quote not in the context read"
     assert "dead" in j.reason
 
 
 def test_a_reply_without_a_quote_field_is_discarded():
     j = judge_edge(DEAD, UP, DOWN, transport=_reply(important=True, reason="Wichtig."))
     assert j.used_model is False
-    assert j.fallback_reason == "kein Zitat geliefert"
+    assert j.fallback_reason == "no quote supplied"
 
 
 def test_a_reply_that_is_not_json_is_discarded_with_a_named_reason():
     j = judge_edge(DEAD, UP, DOWN, transport=lambda p: "Ja, das ist wichtig!")
     assert j.used_model is False
-    assert j.fallback_reason == "Antwort war kein JSON"
+    assert j.fallback_reason == "reply was not JSON"
 
 
 def test_a_transport_that_raises_falls_back_instead_of_propagating():
@@ -288,14 +288,14 @@ def test_a_transport_that_raises_falls_back_instead_of_propagating():
     # damit "unsere eigene Prompt-Baustelle" nie mit "der Transport hat
     # geantwortet und einen Fehler gemeldet" verwechselt werden kann.
     assert j.fallback_reason == (
-        "Transport gescheitert (JudgeTransportError): claude -p exit 1: not logged in")
+        "transport failed (JudgeTransportError): claude -p exit 1: not logged in")
     assert "not logged in" in j.fallback_reason
 
 
 def test_no_transport_at_all_means_the_deterministic_finding_verbatim():
     j = judge_edge(DEAD, UP, DOWN, transport=None)
     assert j.used_model is False
-    assert j.fallback_reason == "kein Transport konfiguriert"
+    assert j.fallback_reason == "no transport configured"
     assert j.reason == "deterministischer Befund: dead"
 
 
@@ -318,7 +318,7 @@ def test_the_prompt_contains_both_contexts_and_the_state_but_no_instruction_to_i
 def test_judgement_json_is_flat_and_carries_the_fallback_reason():
     j = judge_edge(DEAD, UP, DOWN, transport=None).to_json()
     assert j["used_model"] is False
-    assert j["fallback_reason"] == "kein Transport konfiguriert"
+    assert j["fallback_reason"] == "no transport configured"
     assert j["edge"] == "urn:up->urn:down"
 
 
@@ -339,7 +339,7 @@ def test_a_quote_that_only_matches_after_changing_case_is_discarded():
         important=True, reason="r", quote="GEPRÜFTER JAHRESABSCHLUSS, REVISIONSRELEVANT",
         source_field="description"))
     assert j.used_model is False
-    assert j.fallback_reason == "Zitat steht nicht im gelesenen Kontext"
+    assert j.fallback_reason == "quote not in the context read"
 
 
 def test_a_quote_field_that_is_not_a_string_is_treated_as_missing():
@@ -348,7 +348,7 @@ def test_a_quote_field_that_is_not_a_string_is_treated_as_missing():
     j = judge_edge(DEAD, UP, DOWN, transport=_reply(
         important=True, reason="r", quote=12345, source_field="description"))
     assert j.used_model is False
-    assert j.fallback_reason == "kein Zitat geliefert"
+    assert j.fallback_reason == "no quote supplied"
 
 
 def test_a_json_reply_that_is_not_an_object_is_discarded_not_crashed():
@@ -357,11 +357,11 @@ def test_a_json_reply_that_is_not_an_object_is_discarded_not_crashed():
     Rueckfall wie unparsbarer Text auslösen, nicht eine AttributeError."""
     j = judge_edge(DEAD, UP, DOWN, transport=lambda p: "42")
     assert j.used_model is False
-    assert j.fallback_reason == "Antwort war kein JSON"
+    assert j.fallback_reason == "reply was not JSON"
 
     j2 = judge_edge(DEAD, UP, DOWN, transport=lambda p: json.dumps(["important", True]))
     assert j2.used_model is False
-    assert j2.fallback_reason == "Antwort war kein JSON"
+    assert j2.fallback_reason == "reply was not JSON"
 
 
 def test_a_state_field_smuggled_into_the_model_reply_cannot_alter_the_verdict():
@@ -396,7 +396,7 @@ def test_c1_a_one_character_quote_is_rejected_the_measured_exploit():
         quote="e", source_field="description"))
     assert j.used_model is False
     assert j.important is False
-    assert j.fallback_reason == "Zitat zu kurz, kein Beleg"
+    assert j.fallback_reason == "quote too short, no evidence"
 
 
 def test_c1_boundary_eleven_chars_fails_twelve_chars_passes_the_length_gate():
@@ -410,13 +410,13 @@ def test_c1_boundary_eleven_chars_fails_twelve_chars_passes_the_length_gate():
     assert len(eleven) == 11
     j_short = judge_edge(DEAD, UP, DOWN, transport=_reply(
         important=True, reason="r", quote=eleven, source_field="description"))
-    assert j_short.fallback_reason == "Zitat zu kurz, kein Beleg"
+    assert j_short.fallback_reason == "quote too short, no evidence"
 
     twelve = "aaaa bbb ccc"  # 4+1+3+1+3 = 12 Zeichen, 3 Tokens
     assert len(twelve) == 12
     j_ok_length = judge_edge(DEAD, UP, DOWN, transport=_reply(
         important=True, reason="r", quote=twelve, source_field="description"))
-    assert j_ok_length.fallback_reason == "Zitat steht nicht im gelesenen Kontext"
+    assert j_ok_length.fallback_reason == "quote not in the context read"
 
 
 def test_c1_boundary_two_tokens_fails_three_tokens_passes_the_token_gate():
@@ -429,13 +429,13 @@ def test_c1_boundary_two_tokens_fails_three_tokens_passes_the_token_gate():
     assert len(two_tokens) > 12 and len(two_tokens.split()) == 2
     j_short = judge_edge(DEAD, UP, DOWN, transport=_reply(
         important=True, reason="r", quote=two_tokens, source_field="description"))
-    assert j_short.fallback_reason == "Zitat zu kurz, kein Beleg"
+    assert j_short.fallback_reason == "quote too short, no evidence"
 
     three_tokens = "aaaaaaaaaaaa bbbbbbbbbbbb cc"  # 28 Zeichen, 3 Tokens
     assert len(three_tokens.split()) == 3
     j_ok_length = judge_edge(DEAD, UP, DOWN, transport=_reply(
         important=True, reason="r", quote=three_tokens, source_field="description"))
-    assert j_ok_length.fallback_reason == "Zitat steht nicht im gelesenen Kontext"
+    assert j_ok_length.fallback_reason == "quote not in the context read"
 
 
 def test_c2_a_quote_welded_across_two_fields_of_the_same_side_is_rejected():
@@ -450,7 +450,7 @@ def test_c2_a_quote_welded_across_two_fields_of_the_same_side_is_rejected():
     j = judge_edge(DEAD, UP, DOWN, transport=_reply(
         important=True, reason="r", quote=welded, source_field="description"))
     assert j.used_model is False
-    assert j.fallback_reason == "Zitat steht nicht im gelesenen Kontext"
+    assert j.fallback_reason == "quote not in the context read"
 
 
 def test_c2_a_quote_welded_across_upstream_and_downstream_is_rejected():
@@ -464,7 +464,7 @@ def test_c2_a_quote_welded_across_upstream_and_downstream_is_rejected():
     j = judge_edge(DEAD, UP, DOWN, transport=_reply(
         important=True, reason="r", quote=welded, source_field="owner"))
     assert j.used_model is False
-    assert j.fallback_reason == "Zitat steht nicht im gelesenen Kontext"
+    assert j.fallback_reason == "quote not in the context read"
 
 
 def test_i2_important_as_the_string_false_is_parsed_as_false_not_coerced_to_true():
@@ -497,7 +497,7 @@ def test_i2_important_as_a_non_boolean_type_is_rejected():
         quote="Geprüfter Jahresabschluss, revisionsrelevant",
         source_field="description"))
     assert j.used_model is False
-    assert j.fallback_reason == "important-Feld nicht boolesch"
+    assert j.fallback_reason == "important field not boolean"
 
 
 def test_i3_source_field_is_derived_from_the_actual_match_never_trusted_from_the_model():
@@ -547,7 +547,7 @@ def test_m2_a_context_with_nothing_readable_on_either_side_gets_its_own_reason()
         important=True, reason="r", quote="irgendein laengeres Zitat",
         source_field="description"))
     assert j.used_model is False
-    assert j.fallback_reason == "kein lesbarer Kontext vorhanden"
+    assert j.fallback_reason == "no readable context available"
 
 
 def test_m4_important_with_an_empty_reason_is_discarded():
@@ -558,7 +558,7 @@ def test_m4_important_with_an_empty_reason_is_discarded():
         quote="Geprüfter Jahresabschluss, revisionsrelevant",
         source_field="description"))
     assert j.used_model is False
-    assert j.fallback_reason == "keine Begruendung geliefert"
+    assert j.fallback_reason == "no reason supplied"
 
 
 # --- Task 10: `claude -p`-Transport und judge_ledger ----------------------
@@ -640,7 +640,7 @@ def test_an_envelope_without_a_readable_result_field_yields_an_empty_string_not_
     """Ein Umschlag, der zwar gueltiges JSON ist, aber kein `result`-Feld
     traegt, ist kein Transport-Fehlschlag (der Prozess hat geantwortet,
     exit 0) -- er liefert einen leeren rohen Text. `judge_edge` faengt das
-    bereits als eigenen, benannten Fehlweg ab ("Antwort war kein JSON" bei
+    bereits als eigenen, benannten Fehlweg ab ("reply was not JSON" bei
     einem leeren String) -- der Transport selbst crasht hier nicht."""
     def runner(cmd, **kw):
         return FakeProc(0, json.dumps({"something_else": 1}))
@@ -713,7 +713,7 @@ def test_a_quote_that_is_only_the_seed_disclosure_falls_back_with_its_own_reason
     assert j.used_model is False
     assert j.important is False
     assert j.quote == ""
-    assert j.fallback_reason == "Zitat nur aus dem Seed-Hinweis, kein Beleg"
+    assert j.fallback_reason == "quote only from the seeding notice, no evidence"
 
 
 def test_a_quote_from_the_real_description_after_the_seed_prefix_still_passes():
@@ -758,7 +758,7 @@ def test_the_exclusion_is_structural_not_coupled_to_the_literal_seedlab_string()
         important=True, reason="r", quote="Only visible to test operators",
         source_field="description"))
     assert j.used_model is False
-    assert j.fallback_reason == "Zitat nur aus dem Seed-Hinweis, kein Beleg"
+    assert j.fallback_reason == "quote only from the seeding notice, no evidence"
 
 
 def test_judge_ledger_caches_context_per_urn_not_per_edge():

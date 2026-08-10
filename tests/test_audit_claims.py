@@ -109,7 +109,7 @@ def test_main_exits_1_and_names_both_artefacts_on_a_conflict(tmp_path, monkeypat
     (tmp_path / "claims.json").write_text(json.dumps({}))
     assert main() == 1
     out = capsys.readouterr().out
-    assert "WIDERSPRUCH" in out
+    assert "CONTRADICT" in out
     assert "campaign.json" in out and "ledger.json" in out
 
 
@@ -160,7 +160,7 @@ def test_main_still_passes_the_three_existing_campaign_claims(tmp_path, monkeypa
     )
     assert main() == 0
     out = capsys.readouterr().out
-    assert "Alle 3 Zahlen decken sich" in out
+    assert "All 3 numbers match the recorded runs" in out
 
 
 def test_every_claim_has_a_matching_key_in_some_run_artefact():

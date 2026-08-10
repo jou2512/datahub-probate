@@ -265,46 +265,55 @@ URNS: dict[str, str] = {k: ds_urn(v) for k, v in NAMES.items()}
 # Aktualitaets-Beobachtung, die das Werkzeug aus den Nutzungs-Buckets
 # herleiten soll, nicht aus Prosa. Jetzt parallel zu G: reine Inhaltsangabe
 # ohne Abschluss-/Datums-Aussage.
+#
+# SPRACHE (10.08.2026): die Beschreibungen sind DATEN, keine Kommentare --
+# und das Modell zitiert sie woertlich in ein Artefakt, das im Demo-Video
+# 22 Sekunden lang im Bild steht. Ein deutscher Zitat-Block in einer sonst
+# durchgehend englischen Einreichung liest sich fuer einen Juror wie ein
+# nicht uebersetzter Rest. Also englisch, Satz fuer Satz uebersetzt --
+# dieselben Aussagen, dieselbe Relevanz-Staffelung (A/B hoch, C mittel,
+# D abgeschwaecht, E trivial-roh, F hoch, G/H trivial), kein neues Signal.
+# Die Regel oben gilt unveraendert weiter: kein Zustandswort, kein HOW,
+# keine Pflege-/Aktualitaets-Aussage. Die CODE-Kommentare bleiben deutsch;
+# nur die Daten-Texte sind uebersetzt.
 DESC_PREFIX = "[probate-seedlab -- synthetische Demonstrationsdaten]"
 
 ORGANIC_DESCRIPTIONS: dict[str, str] = {
     "A": (
-        "Taeglicher Export der bereinigten Hauptbuch-Buchungszeilen aus dem "
-        "ERP-System (Stornos herausgefiltert). Bildet die Datengrundlage fuer "
-        "die konsolidierte Konzernbilanz; Aenderungen an der Extraktionslogik "
-        "durchlaufen den Change-Prozess von Finance."
+        "Daily export of the cleaned general ledger journal lines from the "
+        "ERP system (reversals filtered out). Forms the data basis for the "
+        "consolidated group balance sheet; changes to the extraction logic "
+        "go through the Finance change process."
     ),
     "B": (
-        "Konsolidierte Ergebnisrechnung fuer den Jahresabschluss. Grundlage "
-        "fuer die Pruefung durch das Audit-Committee und Bestandteil des "
-        "Investor-Reportings -- Abweichungen hier sind meldepflichtig."
+        "Consolidated income statement for the annual financial statements. "
+        "Basis for the review by the audit committee and part of investor "
+        "reporting -- deviations here are subject to disclosure."
     ),
     "C": (
-        "Woechentlicher Snapshot der Filialumsaetze fuer die Region Ost, "
-        "Rohbasis fuer die Auswertung der regionalen Vertriebsleistung."
+        "Weekly snapshot of store revenue for the East region, raw basis "
+        "for assessing regional sales performance."
     ),
     "D": (
-        "Aggregiertes Vertriebs-Ranking je Filiale aus den Regional-"
-        "Snapshots, dient als Orientierungsgroesse fuer die "
-        "Vertriebssteuerung Region Ost."
+        "Aggregated per-store sales ranking derived from the regional "
+        "snapshots, serves as a reference figure for sales management in "
+        "the East region."
     ),
     "E": (
-        "Rohes, ungefiltertes Log der Bestell- und Sitzungs-Events aus dem "
-        "Checkout-Service auf Einzelereignis-Ebene."
+        "Raw, unfiltered log of order and session events from the checkout "
+        "service at individual event level."
     ),
     "F": (
-        "Customer-Lifetime-Value je Kundensegment, zentrale "
-        "Wachstumskennzahl und Grundlage fuer Marketing-"
-        "Budgetentscheidungen sowie Teil des monatlichen Reportings an die "
-        "Geschaeftsleitung."
+        "Customer lifetime value per customer segment, a core growth metric "
+        "and the basis for marketing budget decisions as well as part of "
+        "the monthly reporting to the executive board."
     ),
     "G": (
-        "Zwischentabelle eines Deduplizierungs-Skripts, haelt das "
-        "Zwischenergebnis eines internen Bereinigungsschritts."
+        "Intermediate table of a deduplication script, holds the interim "
+        "result of an internal cleansing step."
     ),
     "H": (
-        "Temporaere Ablage eines Migrationstests, haelt dessen "
-        "Zwischenstand."
+        "Temporary store of a migration test, holds its interim state."
     ),
 }
 

@@ -87,7 +87,7 @@
       "script_range": "1:47-2:09",
       "target_s": 22.0,
       "words": 55,
-      "shot": "terminal: harness/audit_claims.py — stop on 'Alle 140 Zahlen decken sich mit den Laeufen.'",
+      "shot": "terminal: harness/audit_claims.py — stop on 'All 140 numbers match the recorded runs.'",
       "text": "Every number you just saw sits under a gate. This script re-derives all one hundred and forty of them from the committed run artifacts, and exits one on any drift. It runs offline, with no DataHub instance. We ran it against ourselves and lost — including three claims we'd published about DataHub's own MCP server."
     },
     {

@@ -204,7 +204,16 @@ uv run --python 3.11 probate ledger --focus '<urn>' --judge --judge-limit 5
 
 Let the JSON settle on a `judgements` block. Highlight `quote` and `source_field` on one edge, then
 scroll to the edge carrying `"used_model": false` and
-`"fallback_reason": "kein Zitat geliefert"` and leave it on screen while you finish the line.
+`"fallback_reason": "quote only from the seeding notice, no evidence"` and leave it on screen
+while you finish the line.
+
+*Changed 10.08., second pass:* the seed descriptions, the fallback reasons and the shell comment
+in this shot were German until now — a full screen of German in an otherwise English submission.
+All three are English since the re-run of `harness/judge_matrix.py` at `2026-08-10T15:57:13Z`.
+The abstention survived the change but landed on a **sharper** reason than before: the model did
+supply a quote this time, and the quote was our own `[probate-seedlab …]` seeding label, which the
+citation check excludes from the citable corpus. So the shot now shows the citation duty firing on
+a model that quoted the disclaimer instead of the data. The spoken line needs no change.
 
 **Spoken**
 > There's exactly one model call in this project: judging which deviation matters. It runs under a
@@ -227,7 +236,12 @@ correct, promising a UI for it is not.
 uv run --python 3.11 python harness/audit_claims.py
 ```
 
-Let it scroll. **Stop on the last line** — `Alle 140 Zahlen decken sich mit den Laeufen.` — and
+Let it scroll. **Stop on the last line** — `All 140 numbers match the recorded runs.` — and
+
+*Changed 10.08., second pass:* this script printed its verdict lines in German
+(`behauptet … gemessen`, `Alle 140 Zahlen decken sich mit den Laeufen.`) until now — 22 seconds of
+German in an English submission, the same defect as the 06 shot. Only the printed strings changed;
+the checks, the keys and the exit code are untouched, and the gate still exits 0 on 140 numbers.
 leave it up. Then cut to the README's *"Three things we believed, published, and then disproved by
 re-measuring"* table and let the three rows be readable.
 

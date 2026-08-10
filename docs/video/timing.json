@@ -71,7 +71,7 @@
     },
     {
       "id": "07-gate",
-      "shot": "terminal: harness/audit_claims.py \u2014 stop on 'Alle 140 Zahlen decken sich mit den Laeufen.'",
+      "shot": "terminal: harness/audit_claims.py \u2014 stop on 'All 140 numbers match the recorded runs.'",
       "target_s": 22.0,
       "reference_s": 22.25,
       "video_s": 22.65,

@@ -70,7 +70,8 @@ There is exactly one model call in the whole project: judging *which* deviation 
 edge into the annual-close table is not a dead edge into a nameless staging table. It runs under a
 **citation duty**: no verbatim quote from the metadata it was given, no judgement, and the
 deterministic finding stands unchanged. On our seeded four-state lab the rule fired against the
-model on one of three offered edges (`fallback_reason: "kein Zitat geliefert"`). We publish the
+model on one of three offered edges
+(`fallback_reason: "quote only from the seeding notice, no evidence"`). We publish the
 abstention rate rather than tuning the fixture until it looks better.
 
 ### How it uses DataHub

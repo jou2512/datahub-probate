@@ -99,7 +99,7 @@ Measured against the seeded four-state lab
 | Focus | State | Model judgement | Citation |
 |---|---|---|---|
 | confirmed | `confirmed` | not offered to the model | excluded by design — a confirmed edge needs no judgement |
-| dead | `dead` | fell back to the deterministic finding | `fallback_reason: "kein Zitat geliefert"` (no quote supplied) |
+| dead | `dead` | fell back to the deterministic finding | `fallback_reason: "quote only from the seeding notice, no evidence"` |
 | missing | `missing` | yes | quoted the downstream `description` |
 | unknown | `unknown` | yes | quoted the upstream `description` |
 
@@ -107,8 +107,10 @@ So the citation duty bites: on one of the three edges offered, the model produce
 quote and was overruled by its own rule. We consider that the feature working, and we report it
 rather than tuning the fixture until the number looks better
 ([`docs/entscheidungen/2026-08-07-seed-hinweis-nicht-zitierfaehig.md`](docs/entscheidungen/2026-08-07-seed-hinweis-nicht-zitierfaehig.md)
-records a related decision: our own "this data is seeded" disclaimer was removed from the citable
-corpus, because a quote from the label that marks data as fake proves nothing about the data).
+records the decision behind it: our own "this data is seeded" disclaimer was removed from the
+citable corpus, because a quote from the label that marks data as fake proves nothing about the
+data — and in this run that rule is exactly what fired, since the model's only quote came from
+that label).
 
 ## What DataHub does not do
 

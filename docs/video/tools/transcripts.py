@@ -34,6 +34,20 @@ from pathlib import Path
 ROOT = Path(__file__).resolve().parents[3]
 OUT = ROOT / "docs/video/transcripts"
 
+# `probate ledger` schreibt ohne `--out` nach `harness/runs/ledger.json` --
+# einem COMMITTETEN Beleg-Artefakt, das `harness/audit_claims.py` prueft
+# (`edges_confirmed`, `coverage_buckets_seen`, `coverage_days_span`,
+# `edges_unknown`). Gemessen 10.08.2026: der 04c-Mitschnitt laeuft
+# WAEHREND des Disconnect-Halts, also gegen die gerade gekappte Kante --
+# und hat damit nach jeder Aufnahme den committeten Lauf mit dem
+# Schnitt-Zustand ueberschrieben (`edges_confirmed: 1` -> `0`,
+# `edges_unknown: 0` -> `1`). Folge: `audit_claims.py` meldete danach
+# DRIFT und der Beleg-Gate war rot, ohne dass jemand etwas Falsches
+# behauptet haette -- der Beleg war nur nicht mehr der, auf den sich die
+# Prosa bezieht. Beide Mitschnitte schreiben deshalb in einen
+# Wegwerf-Pfad; gezeigt wird ohnehin nur die Standardausgabe.
+SCRATCH_LEDGER = "docs/video/transcripts/.ledger-scratch.json"
+
 FOCUS = ("urn:li:dataset:(urn:li:dataPlatform:postgres,"
          "probate_seedlab.gl_journal_entries_daily,PROD)")
 SHORT = "'…probate_seedlab.gl_journal_entries_daily…'"
@@ -61,7 +75,8 @@ def t_04c() -> str:
     """Die Kante, der gerade die Nutzungsdaten weggenommen wurden."""
     return run_block(
         f"probate ledger --focus {SHORT}",
-        ["uv", "run", "--python", "3.11", "probate", "ledger", "--focus", FOCUS],
+        ["uv", "run", "--python", "3.11", "probate", "ledger", "--focus", FOCUS,
+         "--out", SCRATCH_LEDGER],
         keep=["\"focus\"", "edges_total", "edges_confirmed", "edges_dead",
               "edges_missing", "edges_unknown", "\"state\"", "buckets_seen",
               "\"reason\""],
@@ -78,7 +93,7 @@ def t_06() -> str:
     """
     return run_block(
         "type harness\\runs\\judge-seedlab-matrix.json     "
-        "# der festgehaltene Lauf",
+        "# the recorded run",
         ["powershell", "-NoProfile", "-Command",
          "Get-Content harness/runs/judge-seedlab-matrix.json | Select-String "
          "-Pattern 'quote|source_field|used_model|fallback_reason'"],
@@ -87,7 +102,7 @@ def t_06() -> str:
 
 def t_07() -> str:
     """Das Beleg-Gate. Der Schnitt bleibt auf der LETZTEN Zeile stehen
-    ("Alle 140 Zahlen decken sich mit den Laeufen.") -- deshalb vom Ende her
+    ("All 140 numbers match the recorded runs.") -- deshalb vom Ende her
     abgeschnitten, nicht vom Anfang."""
     return run_block(
         "uv run --python 3.11 python harness/audit_claims.py",
@@ -107,10 +122,10 @@ def t_07b() -> str:
     a = run_block(
         f"probate ledger --focus {SHORT} --cooccurrence-source graphql",
         ["uv", "run", "--python", "3.11", "probate", "ledger", "--focus", FOCUS,
-         "--cooccurrence-source", "graphql"],
+         "--cooccurrence-source", "graphql", "--out", SCRATCH_LEDGER],
         keep=["cooccurrence_source", "edges_total", "edges_confirmed"], limit=4)
     b = run_block(
-        "type harness\\runs\\mcp-probe.json      # beide Wege, gemessen",
+        "type harness\\runs\\mcp-probe.json      # both transports, measured",
         ["powershell", "-NoProfile", "-Command",
          "Get-Content harness/runs/mcp-probe.json | Select-String -Pattern "
          "'mcp_maps_identical_all_four_states|mcp_totals_identical_all_four_states|"

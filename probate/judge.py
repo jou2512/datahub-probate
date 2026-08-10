@@ -508,17 +508,17 @@ def judge_edge(verdict, up_ctx: dict, down_ctx: dict,
     Reihenfolge der Fehlwege, jeder mit eigenem `fallback_reason` (Fix-
     Runde 1 fuegt Schritte 2b/3b/3c/5b ein, Fix-Runde 2 (Seed-Hinweis-
     Entscheid) fuegt 5c ein, s. Modul-Kommentar oben):
-      1. kein Transport injiziert                    -> "kein Transport konfiguriert"
+      1. kein Transport injiziert                    -> "no transport configured"
       2. Prompt-Bau schlaegt fehl (I4)                -> KEIN Fallback, propagiert (Bug in unserem Code)
-      2b. Transport wirft                             -> "Transport gescheitert (<ExceptionTyp>): <exc>"
-      3. Antwort ist kein JSON-Objekt                 -> "Antwort war kein JSON"
-      3a. kein (nutzbares) Zitat im JSON               -> "kein Zitat geliefert"
-      3b. Zitat zu kurz (C1)                          -> "Zitat zu kurz, kein Beleg"
-      3c. `important` ist kein echtes Bool (I2)        -> "important-Feld nicht boolesch"
-      3d. `reason` fehlt/ist leer (M4)                 -> "keine Begruendung geliefert"
-      5. kein Segment auf keiner Seite lesbar (M2)     -> "kein lesbarer Kontext vorhanden"
-      5b. Zitat NUR im Seed-Hinweis, sonst nirgends    -> "Zitat nur aus dem Seed-Hinweis, kein Beleg"
-      5c. Zitat in keinem Feld-Segment gefunden (C2)   -> "Zitat steht nicht im gelesenen Kontext"
+      2b. Transport wirft                             -> "transport failed (<ExceptionTyp>): <exc>"
+      3. Antwort ist kein JSON-Objekt                 -> "reply was not JSON"
+      3a. kein (nutzbares) Zitat im JSON               -> "no quote supplied"
+      3b. Zitat zu kurz (C1)                          -> "quote too short, no evidence"
+      3c. `important` ist kein echtes Bool (I2)        -> "important field not boolean"
+      3d. `reason` fehlt/ist leer (M4)                 -> "no reason supplied"
+      5. kein Segment auf keiner Seite lesbar (M2)     -> "no readable context available"
+      5b. Zitat NUR im Seed-Hinweis, sonst nirgends    -> "quote only from the seeding notice, no evidence"
+      5c. Zitat in keinem Feld-Segment gefunden (C2)   -> "quote not in the context read"
           (5b wird VOR 5c geprueft -- die praezisere Aussage gewinnt, s.
           `_quote_is_only_the_disclosure`)
 
@@ -533,7 +533,7 @@ def judge_edge(verdict, up_ctx: dict, down_ctx: dict,
     Programmfehler auch.
     """
     if transport is None:
-        return _fallback(verdict, "kein Transport konfiguriert")
+        return _fallback(verdict, "no transport configured")
 
     # I4: AUSSERHALB des try -- ein Fehler hier (z.B. `json.dumps` in
     # `build_prompt` scheitert an einem nicht-serialisierbaren Evidence-
@@ -544,34 +544,34 @@ def judge_edge(verdict, up_ctx: dict, down_ctx: dict,
     try:
         raw = transport(prompt)
     except Exception as exc:  # jeder Transportfehler, nicht nur unserer
-        return _fallback(verdict, f"Transport gescheitert ({type(exc).__name__}): {exc}")
+        return _fallback(verdict, f"transport failed ({type(exc).__name__}): {exc}")
 
     try:
         parsed = json.loads(raw)
         if not isinstance(parsed, dict):
             raise ValueError("kein Objekt")
     except Exception:
-        return _fallback(verdict, "Antwort war kein JSON")
+        return _fallback(verdict, "reply was not JSON")
 
     quote_raw = parsed.get("quote")
     quote_norm = _normalise(quote_raw) if isinstance(quote_raw, str) else ""
     if not quote_norm:
-        return _fallback(verdict, "kein Zitat geliefert")
+        return _fallback(verdict, "no quote supplied")
 
     if _quote_too_short(quote_norm):
-        return _fallback(verdict, "Zitat zu kurz, kein Beleg")
+        return _fallback(verdict, "quote too short, no evidence")
 
     important = _parse_important(parsed.get("important"))
     if important is None:
-        return _fallback(verdict, "important-Feld nicht boolesch")
+        return _fallback(verdict, "important field not boolean")
 
     reason_raw = parsed.get("reason")
     reason = reason_raw.strip() if isinstance(reason_raw, str) else ""
     if not reason:
-        return _fallback(verdict, "keine Begruendung geliefert")
+        return _fallback(verdict, "no reason supplied")
 
     if not _segments(up_ctx) and not _segments(down_ctx):
-        return _fallback(verdict, "kein lesbarer Kontext vorhanden")
+        return _fallback(verdict, "no readable context available")
 
     match = _match_in_context(quote_norm, up_ctx) or _match_in_context(quote_norm, down_ctx)
     if match is None:
@@ -580,8 +580,8 @@ def judge_edge(verdict, up_ctx: dict, down_ctx: dict,
         # ausschliesslich unser eigener Offenlegungs-Hinweis, kein
         # Geschaeftsinhalt (s. Modul-Kommentar bei `_match_in_context`).
         if _quote_is_only_the_disclosure(quote_norm, up_ctx, down_ctx):
-            return _fallback(verdict, "Zitat nur aus dem Seed-Hinweis, kein Beleg")
-        return _fallback(verdict, "Zitat steht nicht im gelesenen Kontext")
+            return _fallback(verdict, "quote only from the seeding notice, no evidence")
+        return _fallback(verdict, "quote not in the context read")
     matched_field, matched_span = match
 
     return Judgement(

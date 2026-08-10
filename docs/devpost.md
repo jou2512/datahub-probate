@@ -109,7 +109,7 @@ same artifact but is not itself a `claims.json` key):
 | Focus | State | Model judgement | Citation |
 |---|---|---|---|
 | confirmed | `confirmed` | not offered to the model | excluded by design — a confirmed edge needs no judgement |
-| dead | `dead` | fell back to the deterministic finding | `fallback_reason: "kein Zitat geliefert"` (no quote supplied) |
+| dead | `dead` | fell back to the deterministic finding | `fallback_reason: "quote only from the seeding notice, no evidence"` |
 | missing | `missing` | yes | quoted the downstream `description` |
 | unknown | `unknown` | yes | quoted the upstream `description` |
 

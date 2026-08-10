@@ -144,7 +144,7 @@ uv run --python 3.11 probate ledger --focus '<urn>' --judge --judge-limit 5
 
 Let the JSON scroll and stop on a `judgements` block. Highlight `quote`, `source_field`,
 `used_model`. Then scroll to the edge where `used_model: false` and
-`fallback_reason: "kein Zitat geliefert"`.
+`fallback_reason: "quote only from the seeding notice, no evidence"`.
 
 **Spoken**
 > There is exactly one model call in this project, and this is it: the model judges which

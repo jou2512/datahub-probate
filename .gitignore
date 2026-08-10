@@ -15,3 +15,8 @@ docs/video/proof/
 docs/video/audio/
 docs/video/*.mp4
 docs/video/marks-*.json
+
+# Wegwerf-Ziel der Mitschnitt-Befehle. Existiert nur, damit `probate
+# ledger` beim Filmen nicht das committete `harness/runs/ledger.json`
+# ueberschreibt (siehe Kommentar in docs/video/tools/transcripts.py).
+docs/video/transcripts/.ledger-scratch.json
