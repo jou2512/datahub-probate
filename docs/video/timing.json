@@ -1,0 +1,105 @@
+{
+  "handle_s": 0.4,
+  "limit_s": 180.0,
+  "total_s": 166.63,
+  "total_mmss": "2:46",
+  "headroom_s": 13.37,
+  "segments": [
+    {
+      "id": "01-payoff",
+      "shot": "console:overview \u2014 cursor sweeps the Dead card",
+      "target_s": 13.6,
+      "reference_s": 15.226,
+      "video_s": 15.63,
+      "script_range": "0:00-0:13"
+    },
+    {
+      "id": "02-seeded",
+      "shot": "console:seeded note under the top bar",
+      "target_s": 11.6,
+      "reference_s": 12.478,
+      "video_s": 12.88,
+      "script_range": "0:13-0:25"
+    },
+    {
+      "id": "03-dead-edge",
+      "shot": "console:Connections \u2192 Dead chip \u2192 dead row \u2192 detail panel",
+      "target_s": 14.8,
+      "reference_s": 16.087,
+      "video_s": 16.49,
+      "script_range": "0:25-0:44"
+    },
+    {
+      "id": "04a-flip-before",
+      "shot": "console:Connections confirmed row \u2192 Overview \u2192 cursor on the Disconnect row",
+      "target_s": 7.2,
+      "reference_s": 8.555,
+      "video_s": 8.96,
+      "script_range": "0:44-0:53"
+    },
+    {
+      "id": "04b-cut",
+      "shot": "console:click Disconnect \u2014 the Live log writes its line, then HOLD 3 s in silence",
+      "target_s": 10.0,
+      "reference_s": 7.843,
+      "video_s": 11.24,
+      "script_range": "0:53-1:03"
+    },
+    {
+      "id": "04c-reveal",
+      "shot": "terminal: probate ledger --focus '<urn>' \u2014 same edge, re-measured, now unknown",
+      "target_s": 13.6,
+      "reference_s": 13.67,
+      "video_s": 14.07,
+      "script_range": "1:03-1:17"
+    },
+    {
+      "id": "05-transitions",
+      "shot": "artifact harness/runs/demo-transitions.json \u2014 7 attempted / 7 proven on screen",
+      "target_s": 7.6,
+      "reference_s": 7.612,
+      "video_s": 8.01,
+      "script_range": "1:17-1:25"
+    },
+    {
+      "id": "06-model",
+      "shot": "terminal: probate ledger --focus '<urn>' --judge --judge-limit 5",
+      "target_s": 22.0,
+      "reference_s": 21.711,
+      "video_s": 22.11,
+      "script_range": "1:25-1:47"
+    },
+    {
+      "id": "07-gate",
+      "shot": "terminal: harness/audit_claims.py \u2014 stop on 'Alle 140 Zahlen decken sich mit den Laeufen.'",
+      "target_s": 22.0,
+      "reference_s": 22.25,
+      "video_s": 22.65,
+      "script_range": "1:47-2:09"
+    },
+    {
+      "id": "07b-mcp",
+      "shot": "terminal: the same ledger over both transports, then harness/runs/mcp-probe.json",
+      "target_s": 14.0,
+      "reference_s": 14.433,
+      "video_s": 14.83,
+      "script_range": "2:09-2:23"
+    },
+    {
+      "id": "08-close",
+      "shot": "README: the three disproved claims, then Honest limitations",
+      "target_s": 16.8,
+      "reference_s": 16.36,
+      "video_s": 16.76,
+      "script_range": "2:23-2:40"
+    },
+    {
+      "id": "09-endcard",
+      "shot": "end card",
+      "target_s": 3.0,
+      "reference_s": null,
+      "video_s": 3.0,
+      "script_range": "2:40-2:43"
+    }
+  ]
+}

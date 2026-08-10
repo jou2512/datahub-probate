@@ -1,0 +1,18 @@
+$ type harness\runs\judge-seedlab-matrix.json     # der festgehaltene Lauf
+
+          "quote": "",
+          "source_field": "",
+          "used_model": false,
+          "fallback_reason": "kein Zitat geliefert"
+          "quote": "Grundlage fuer Marketing-Budgetentscheidungen sowie Teil des monatlichen Reportings an die
+Geschaeftsleitung",
+          "source_field": "description",
+          "used_model": true,
+          "fallback_reason": ""
+          "quote": "Zwischentabelle eines Deduplizierungs-Skripts, haelt das Zwischenergebnis eines internen
+Bereinigungsschritts.",
+          "source_field": "description",
+          "used_model": true,
+          "fallback_reason": ""
+
+  → exit 0 · 0.88 s · 2026-08-10T14:51:36+00:00

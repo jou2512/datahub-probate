@@ -1,0 +1,19 @@
+$ uv run --python 3.11 python harness/audit_claims.py
+
+  OK    transitions_all_proven   behauptet True, gemessen True
+  OK    transitions_attempted    behauptet 7, gemessen 7
+  OK    transitions_cleanup_verified behauptet True, gemessen True
+  OK    transitions_journal_lines_added behauptet 3, gemessen 3
+  OK    transitions_journal_lines_reverted behauptet 3, gemessen 3
+  OK    transitions_proven       behauptet 7, gemessen 7
+  OK    transitions_settle_seconds_minimum behauptet 15.0, gemessen 15.0
+  OK    transitions_states_reached behauptet confirmed,missing,confirmed,dead,unknown,confirmed,unknown, gemessen confirmed,missing,confirmed,dead,unknown,confirmed,unknown
+  OK    transitions_usage_rows_cut_and_restored behauptet 3, gemessen 3
+  OK    transitions_usage_timeseries_identical_after_restore behauptet True, gemessen True
+  OK    watcher_events_seen      behauptet 80, gemessen 80
+  OK    watcher_reclassified_edges behauptet 0, gemessen 0
+  OK    watcher_relapses_detected behauptet 1, gemessen 1
+  OK    watcher_started          behauptet True, gemessen True
+  Alle 140 Zahlen decken sich mit den Laeufen.
+
+  → exit 0 · 0.86 s · 2026-08-10T14:52:09+00:00

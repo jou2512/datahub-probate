@@ -1,0 +1,17 @@
+$ probate ledger --focus '…probate_seedlab.gl_journal_entries_daily…' --cooccurrence-source graphql
+
+  "cooccurrence_source": "graphql",
+  "edges_total": 1,
+  "edges_confirmed": 1,
+
+  → exit 0 · 1.23 s · 2026-08-10T14:51:39+00:00
+
+$ type harness\runs\mcp-probe.json      # beide Wege, gemessen
+
+  "mcp_session_boot_seconds_warm": 9.4,
+  "timestamps": {
+  "mcp_maps_identical_all_four_states": true,
+  "mcp_totals_identical_all_four_states": true,
+  "end_to_end_verdicts_identical": true,
+
+  → exit 0 · 0.90 s · 2026-08-10T14:51:40+00:00

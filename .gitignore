@@ -5,3 +5,13 @@ __pycache__/
 .pytest_cache/
 harness/runs/*.tmp
 *.egg-info/
+
+# Video: Bild und Ton bleiben draussen, die Skripte nicht. Eine Rohaufnahme
+# ist ~30 MB pro Minute -- das Repo ist der Ort fuer das, womit man es
+# herstellt, nicht fuer das Erzeugnis.
+docs/video/raw/
+docs/video/cuts/
+docs/video/proof/
+docs/video/audio/
+docs/video/*.mp4
+docs/video/marks-*.json

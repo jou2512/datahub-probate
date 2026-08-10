@@ -1,0 +1,120 @@
+{
+  "_source": "docs/video-script-final.md. Wo der Text hier vom Drehbuch abweicht, steht der Grund im Abschnitt selbst unter _finding. Die Zahlenliste ('Numbers spoken in this cut') gilt unveraendert; keine Zahl ist dazugekommen.",
+  "_wpm_assumption": 150,
+  "_two_changes_against_the_script": [
+    "Der MCP-Abschnitt ist vom optionalen Einschub in den HAUPTSCHNITT gerueckt. Grund: Lakshay Nasa (DataHub) im Slack-Kanal #agent-hackathon, Sa 17:17 -- 'record a demo showing the full MCP + writeback loop working'. Der Veranstalter nennt genau diese Schleife als das, was ein Demo zeigen soll.",
+    "Die Einstellung 0:44 wartet NICHT mehr auf die Neumessung der Konsole. Gemessen 10.08.2026, vier Laeufe: 27.96 / 28.68 / 31.75 / 33.75 Sekunden. Das Drehbuch plante 3 Sekunden und stuetzte sich dabei auf harness/runs/warehouse-cut-latency.json (2.896 s) -- das ist aber die KATALOG-Seite, nicht die Konsole. Die Konsole misst nach jedem Knopfdruck ihren ganzen sichtbaren Umfang neu (330 Fokusse). 34 Sekunden Fortschrittsbalken ungeschnitten zu senden ergibt einen Schnitt ueber 3:00 = Ausschluss."
+  ],
+  "voice": {
+    "provider": "Windows SAPI (System.Speech), Microsoft Hazel Desktop, Rate 1",
+    "role": "NUR Referenzspur. Joel spricht die Endfassung selbst ein.",
+    "why_not_fal": "fal antwortete am 10.08.2026 auf jeden submit mit HTTP 403 'User is locked. Reason: Exhausted balance'. Gemessen, nicht vermutet.",
+    "calibration": "Rate 1 liefert 157.96 s ueber den Originaltext des Drehbuchs -- dessen eigene Rechnung sagt 158 s bei 150 Woertern pro Minute. Die Referenz ist damit auf der Annahme des Drehbuchs geeicht."
+  },
+  "segments": [
+    {
+      "id": "01-payoff",
+      "script_range": "0:00-0:13",
+      "target_s": 13.6,
+      "words": 34,
+      "shot": "console:overview — cursor sweeps the Dead card",
+      "text": "This catalog has six hundred eighteen tables, and claims five hundred thirteen connections between them. Nobody ever re-checks those claims. Probate just did — seventy-three of them are dead, and it says since when."
+    },
+    {
+      "id": "02-seeded",
+      "script_range": "0:13-0:25",
+      "target_s": 11.6,
+      "words": 29,
+      "shot": "console:seeded note under the top bar",
+      "_note": "Nicht verhandelbar. Bleibt drin, auch wenn der Schnitt lang wird.",
+      "text": "One thing before anything moves: every bit of usage data here is seeded. DataHub's sample catalog ships none. I wrote it, and every artifact in the repo says so."
+    },
+    {
+      "id": "03-dead-edge",
+      "script_range": "0:25-0:44",
+      "target_s": 14.8,
+      "words": 37,
+      "shot": "console:Connections → Dead chip → dead row → detail panel",
+      "_finding": "49 auf 37 Woerter gekuerzt (-4.7 s). Weggefallen ist nur der Nachsatz 'That's the difference between a check and a record' -- die Aussage steht im Bild (Last covered traegt ein Datum) und wird um 2:01 ohnehin noch einmal belegt.",
+      "text": "Here's one of the dead ones. The catalog declares it. In thirty-three days of usage windows, not one query touched both tables. Last covered is a date, taken from the measurement — not from the moment I pressed a button."
+    },
+    {
+      "id": "04a-flip-before",
+      "script_range": "0:44-0:53",
+      "target_s": 7.2,
+      "words": 18,
+      "shot": "console:Connections confirmed row → Overview → cursor on the Disconnect row",
+      "text": "Now the one that matters. This edge is confirmed — real measured traffic. I'm taking its usage data away."
+    },
+    {
+      "id": "04b-cut",
+      "script_range": "0:53-1:03",
+      "target_s": 10.0,
+      "words": 22,
+      "shot": "console:click Disconnect — the Live log writes its line, then HOLD 3 s in silence",
+      "_delivery": "Erst 'Watch what does not happen', dann DREI SEKUNDEN schweigen (der Beat aus dem Drehbuch, unveraendert), dann der zweite Satz ueber die Protokollzeile.",
+      "text": "Watch what does not happen. That button wrote to a live catalog — the same journalled path as the command line."
+    },
+    {
+      "id": "04c-reveal",
+      "script_range": "1:03-1:17",
+      "target_s": 13.6,
+      "words": 34,
+      "shot": "terminal: probate ledger --focus '<urn>' — same edge, re-measured, now unknown",
+      "_finding": "Statt auf die 34-Sekunden-Neumessung der Konsole zu warten, misst die Kommandozeile GENAU DIESE Kante neu: 1.25 s gemessen (10.08.2026, exit 0). Das ist nicht weniger Beleg, sondern mehr -- der Zustand steht als Text da, mit URN, gegen denselben lebenden Katalog. Die Konsole misst im Hintergrund weiter; ihr Balken laeuft im vorigen Bild sichtbar an.",
+      "text": "It did not become dead. It became not-judged. We stopped being able to look, so we stop making a statement. Every other tool I found calls that dead and invites you to delete the table."
+    },
+    {
+      "id": "05-transitions",
+      "script_range": "1:17-1:25",
+      "target_s": 7.6,
+      "words": 19,
+      "shot": "artifact harness/runs/demo-transitions.json — 7 attempted / 7 proven on screen",
+      "_finding": "46 auf 19 Woerter (Vorschlag des Koordinators, geprueft und uebernommen): die Zahl 7/7 traegt sich selbst, die Herleitung davor nicht.",
+      "text": "Seven transitions attempted, seven proven, every one written to a live catalog and taken back in the same run."
+    },
+    {
+      "id": "06-model",
+      "script_range": "1:25-1:47",
+      "target_s": 22.0,
+      "words": 55,
+      "shot": "terminal: probate ledger --focus '<urn>' --judge --judge-limit 5",
+      "_finding": "64 auf 55 Woerter. Weggefallen: 'from the metadata it read' und 'judging which deviation matters' gekuerzt. Die Regel und ihr Gegenbeispiel bleiben vollstaendig -- sie sind der Punkt.",
+      "text": "There's exactly one model call in this project. It runs under a citation duty — no verbatim quote, no judgement, and the deterministic finding stands. Here it quoted. Here it did not, and it was overruled by its own rule. I'm showing you that one, because a rule that never fires is not a rule."
+    },
+    {
+      "id": "07-gate",
+      "script_range": "1:47-2:09",
+      "target_s": 22.0,
+      "words": 55,
+      "shot": "terminal: harness/audit_claims.py — stop on 'Alle 140 Zahlen decken sich mit den Laeufen.'",
+      "text": "Every number you just saw sits under a gate. This script re-derives all one hundred and forty of them from the committed run artifacts, and exits one on any drift. It runs offline, with no DataHub instance. We ran it against ourselves and lost — including three claims we'd published about DataHub's own MCP server."
+    },
+    {
+      "id": "07b-mcp",
+      "script_range": "2:09-2:23",
+      "target_s": 14.0,
+      "words": 34,
+      "shot": "terminal: the same ledger over both transports, then harness/runs/mcp-probe.json",
+      "_finding": "Im Drehbuch war das der optionale Einschub. Der Veranstalter verlangt genau diese Schleife im Demo, also steht er im Hauptschnitt.",
+      "_forbidden": "NIEMALS 'MCP ist 130x langsamer' (das ist Sitzungsstart, nicht Durchsatz). NIEMALS behaupten, das Altersurteil funktioniere ueber MCP -- tut es nicht, und mcp-probe.json sagt warum.",
+      "text": "We read this over DataHub's own MCP server too — same verdict, every edge. What it costs and where it stops is a file in the repo: nine seconds of session start, and no timestamps on query entities."
+    },
+    {
+      "id": "08-close",
+      "script_range": "2:23-2:40",
+      "target_s": 16.8,
+      "words": 42,
+      "shot": "README: the three disproved claims, then Honest limitations",
+      "text": "Seeded data. No real warehouse ever connected. A watcher whose re-evaluation I could not show changing a verdict. All of it is in the README — because a tool that says \"assert nothing without evidence\" does not get an exception for itself."
+    },
+    {
+      "id": "09-endcard",
+      "script_range": "2:40-2:43",
+      "target_s": 3.0,
+      "words": 0,
+      "shot": "end card",
+      "text": ""
+    }
+  ]
+}

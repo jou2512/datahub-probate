@@ -38,6 +38,44 @@ seconds whether to keep watching. So the first sentence is not what the tool *is
    `uv run --python 3.11 python harness/audit_claims.py`.
 8. Screen 1920×1080. Browser zoom so the Overview cards are readable without scrolling.
 
+### Added 10.08. — what must be true about the *screen*, not the product
+
+The recording is **window-scoped** (`gdigrab -i title=…`), never the desktop.
+This machine has competitive research on other teams, a Slack channel with their
+announcements, mail and a chat transcript open. A desktop capture would publish
+all of it on YouTube. `docs/video/tools/capture.py` refuses to do desktop capture
+at all; these four are the human's job:
+
+9. **Notifications off.** Win+A → *Do not disturb*. One Slack or mail toast
+   during the take ruins it and can show content that is not ours to show.
+10. **In the recording browser: the workbench tab only.** No second tab with a
+    readable title, no bookmarks bar, no history dropdown.
+11. **Nothing in the terminal history.** Moot since 10.08. — the command shots no
+    longer film a terminal at all (Windows 11 console windows cannot be captured
+    window-scoped; they come out black). The commands run for real and their
+    **output** is shown as a text file, with command line, exit code, duration
+    and timestamp. See `docs/video/tools/transcripts.py`.
+12. **Look at the frames before anything goes up.** `record.ps1` drops stills
+    into `docs/video/proof/`. Confirm by eye: no chat, no Slack, no mail window,
+    no taskbar, no notification.
+
+### Added 10.08. — two measured facts that change the shoot
+
+**The console does not flip in 3 seconds. It takes 28–34.** After any button it
+re-measures its whole visible scope (330 focuses) — measured four times: 27.96 /
+28.68 / 31.75 / 33.75 s. The 2.896 s in `harness/runs/warehouse-cut-latency.json`
+is the **catalog** side, not the console. Filming that wait uncut puts the cut
+over 3:00, which is disqualification. So the 0:44 shot keeps the click, the live
+log line and the 3-second beat exactly as written — and the *verdict* is then
+re-measured for that one edge on the command line: **1.25 s**, exit 0, state on
+screen as text. That is more evidence than the progress bar, not less.
+
+**The MCP section moved into the main cut.** Lakshay Nasa (DataHub), Slack
+`#agent-hackathon`, Sat 17:17: *"record a demo showing the full MCP + writeback
+loop working."* It is no longer the optional insert. To pay for it, 03, 05 and 06
+were tightened; every claim survives. Per-segment word counts and the reason for
+each trim are in `docs/video/segments.json`.
+
 **One honesty rule for the edit:** the 0:44 shot is filmed in **one uninterrupted take, no
 speed-up**. Nothing else in this cut waits on DataHub's lineage index, which is why the slow
 transitions (~20–30 s) are not filmed at all any more — they are shown as an artifact at 1:17
