@@ -3,7 +3,11 @@
 Concrete wording for the findings in this folder that are documentation defects rather than
 bugs, plus the schema-description half of the two that are bugs.
 
-Nothing here has been submitted. Where we quote current wording, we quote what the running
+**No documentation pull request has been opened.** The findings this wording belongs to were
+filed as issues on 2026-08-10 — see [`README.md`](README.md) for the six links. Turning this
+wording into a PR against the docs is a separate, deliberate act and has not happened.
+
+Where we quote current wording, we quote what the running
 instance and the published docs actually say on 2026-08-07 against **DataHub v1.5.0.6** /
 **mcp-server-datahub 0.6.0**; where a description is simply absent, we say "absent" rather
 than inventing a strawman to correct.

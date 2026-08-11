@@ -1,8 +1,32 @@
 # Upstream contribution package — DataHub
 
-**Nothing in this folder has been filed. No issue is open, no pull request exists, nothing
-has been posted anywhere.** These are drafts, ready for a human to submit. Filing them is a
-deliberate act by the author, not a side effect of generating them.
+**Status: all six findings were filed on 2026-08-10, before the submission deadline.** Five as
+issues, one as a comment on an existing report. Every link below is public and can be opened:
+
+| # | Where it went | State |
+|---|---|---|
+| 01 | [datahub#19067](https://github.com/datahub-project/datahub/issues/19067) | open |
+| 02 | comment on [datahub#19016](https://github.com/datahub-project/datahub/issues/19016) (reported independently a day earlier — see below) | open |
+| 03 | [datahub#19066](https://github.com/datahub-project/datahub/issues/19066) | open |
+| 04 | [datahub#19068](https://github.com/datahub-project/datahub/issues/19068) | open |
+| 05 | [datahub#19069](https://github.com/datahub-project/datahub/issues/19069) | open |
+| 06 | [mcp-server-datahub#209](https://github.com/acryldata/mcp-server-datahub/issues/209) | open |
+
+A seventh contribution is a correction we posted to
+[mcp-server-datahub#167](https://github.com/acryldata/mcp-server-datahub/issues/167), where we
+re-measured someone else's claims rather than repeating them. The issue's author replied and
+showed our re-measurement was itself incomplete; that exchange is worth reading in full.
+
+> **This paragraph used to read "Nothing in this folder has been filed. No issue is open, no
+> pull request exists."** That was true when it was written and stopped being true a few hours
+> later, when the issues went out — and nobody updated the line. It is corrected here on
+> 2026-08-11 rather than quietly rewritten, because a stale claim that nobody re-checked is
+> precisely the failure mode this whole project is built to catch. We caught it in our own
+> repository last.
+
+Filing was a deliberate act by the author, not a side effect of generating the drafts. What is
+*not* filed is listed under [Measured but not filed](#measured-but-not-filed) — those stay put
+until they have the evidence the six above have.
 
 ## What this is
 
