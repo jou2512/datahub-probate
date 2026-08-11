@@ -656,18 +656,32 @@ entity *does* carry `queryproperties.value.created.time` when read over **GraphQ
 ([`query-timestamp-probe.json`](harness/runs/query-timestamp-probe.json)). The field exists in GMS.
 The MCP server simply does not ask for it.
 
-**Three things we believed, published, and then disproved by re-measuring.** They were in this
-README until 2026-08-07:
+**Three things we believed, published, re-measured — and then had our re-measurement corrected in
+turn.** This is the most instructive thing in this README, so it gets the full chain rather than
+the flattering half of it.
 
-| We wrote | Re-measured (0.6.0, `mcp-probe.json`) |
-|---|---|
-| "`@latest` resolves to 0.4.0" | resolves to **0.6.0**, with *and* without an interpreter pin. Not reproducible. What does hold: 0.5.0+ requires Python ≥ 3.11 where 0.4.0 needed ≥ 3.10, so an unpinned run can land on a smaller tool set |
-| "registers zero mutation tools" | **6 tools by default, 18 with `TOOLS_IS_MUTATION_ENABLED=true`** — 12 mutation tools (`tool_count_default`, `tool_count_with_mutations`, `mutation_tool_count`) |
-| "~54 s of telemetry per tool call" | **0.315 s** (`telemetry_overhead_seconds`) |
+Until 2026-08-07 we carried three claims about the MCP server, copied from
+[mcp-server-datahub#167](https://github.com/acryldata/mcp-server-datahub/issues/167) into our own
+notes without measuring them. On 2026-08-10 we measured, found different numbers, and posted the
+correction upstream. **Within two hours the issue's author, `bayshores`, replied and showed that
+our correction was itself wrong or incomplete on all three points**
+([the reply](https://github.com/acryldata/mcp-server-datahub/issues/167#issuecomment-5243145255)):
 
-We are naming these rather than quietly deleting them. They were claims about the organisers' own
-product, in the one document whose thesis is that claims carry evidence — refuting them ourselves
-is cheaper than having a juror do it, and the correction is part of the record.
+| The original claim | What we measured | What we got wrong |
+|---|---|---|
+| "`@latest` resolves to 0.4.0" | 0.6.0 on our machine, with and without a pin — we called it "not reproducible" | **Wrong.** It still reproduces. `uvx` resolves `@latest` against the *default interpreter*: on Python 3.10 you get 0.4.0 (re-confirmed by the author the same day, with `--refresh`), on 3.11+ you get 0.6.0. We measured on 3.11 and mistook our environment for the world |
+| "registers zero mutation tools" | 6 by default, 18 with `TOOLS_IS_MUTATION_ENABLED=true` | **We refuted a claim about a different version.** The original row is about 0.4.0, which predates the flag entirely. Our 18 vs. the 21 reported there is also environment-dependent: `search_documents`/`grep_documents` register only when the instance holds documents, `get_me` is gated by `TOOLS_IS_USER_ENABLED` |
+| "~54 s of telemetry per tool call" | 0.315 s | **Different conditions, not a contradiction.** The 54 s was measured with `track.datahubproject.io` *unreachable*. A sub-second figure with the endpoint reachable says nothing about the case where it hangs |
+
+Our measurements are still in [`mcp-probe.json`](harness/runs/mcp-probe.json) and still correct
+*for the conditions we measured*. What was wrong was the verdict we hung on them.
+
+The lesson is the one this whole project is about, applied to us one level deeper than we expected:
+**"I measured X" and "X is the case" are different statements, and the gap between them is the
+environment you measured in.** We caught the first-order version of that mistake ourselves. The
+second-order version needed someone else. That is why the correction stays here in full, including
+the part where we were the ones corrected — deleting it would leave the flattering half standing,
+which is exactly the failure mode this tool exists to detect.
 
 ## License
 
